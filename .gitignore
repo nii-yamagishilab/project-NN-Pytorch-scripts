@@ -1,0 +1,11 @@
+*.pyc
+*.*~
+*~
+*.pt
+*.bin
+*.dic
+*DS_Store
+runs
+log*
+debug
+__pycache__
