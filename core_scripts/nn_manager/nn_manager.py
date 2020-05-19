@@ -95,13 +95,13 @@ def f_run_one_epoch(args,
             optimizer.zero_grad()
 
         # compute
-        data_in = data_in.to(device)
+        data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
         data_gen = pt_model(data_in)
         
         # compute loss and do back propagate
         loss_value = 0
         if isinstance(data_tar, torch.Tensor):
-            data_tar = data_tar.to(device)
+            data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
             normed_target = pt_model.normalize_target(data_tar)
             loss = loss_wrapper.compute(data_gen, normed_target)
             loss_value = loss.item()            
@@ -185,7 +185,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     train_log = ''
 
     # print the network
-    pt_model.to(device)
+    pt_model.to(device, dtype=nii_dconf.d_dtype)
     print(pt_model)
 
     # resume training or initialize the model if necessary
@@ -233,7 +233,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # if necessary, do validataion 
         if val_dataset_wrapper is not None:
             # set eval() if necessary 
-            if args.eval_mode_for_validation():
+            if args.eval_mode_for_validation:
                 pt_model.eval()
             with torch.no_grad():
                 f_run_one_epoch(args, pt_model, loss_wrapper, \
@@ -310,7 +310,7 @@ def f_inference_wrapper(args, pt_model, device, \
     test_dataset_wrapper.print_info()
     
     # print the network
-    pt_model.to(device)
+    pt_model.to(device, dtype=nii_dconf.d_dtype)
     print(pt_model)
     
     cp_names = CheckPointKey()
@@ -328,7 +328,7 @@ def f_inference_wrapper(args, pt_model, device, \
             # send data to device
             data_in = data_in.to(device)
             if isinstance(data_tar, torch.Tensor):
-                data_tar = data_tar.to(device)
+                data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
                 
             data_seq_info = data_info[0]
             
