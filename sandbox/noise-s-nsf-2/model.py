@@ -229,8 +229,7 @@ class CondModule(torch_nn.Module):
         self.l_blstm = BLSTMLayer(input_dim, self.blstm_s)
         self.l_conv1d = Conv1dKeepLength(self.blstm_s, output_dim, 1, \
                                          self.cnn_kernel_s)
-        self.l_upsamp = UpSampleLayer(self.output_dim, self.up_sample, \
-                                      True)
+        self.l_upsamp = UpSampleLayer(self.output_dim, self.up_sample, True)
 
     def forward(self, x):
         return self.l_upsamp(self.l_conv1d(self.l_blstm(x)))
@@ -246,12 +245,13 @@ class SourceModule(torch_nn.Module):
         self.up_samp = up_samp
         self.l_upsamp = UpSampleLayer(self.dim, self.up_samp, False)
         # use bias=0
-        self.l_linear = torch_nn.Linear(self.dim, self.dim, bias=False)
-        self.l_tanh = torch_nn.Tanh()
+        #self.l_linear = torch_nn.Linear(self.dim, self.dim, bias=False)
+        #self.l_tanh = torch_nn.Tanh()
 
     def forward(self, x):
         noise = torch.randn_like(self.l_upsamp(x)) * self.amp / 3 
-        return self.l_tanh(self.l_linear(noise))
+        #return self.l_tanh(self.l_linear(noise))
+        return noise
         
         
 # For Filter module
@@ -383,7 +383,7 @@ class Loss():
         self.frame_lens = [320, 80, 1920]
         self.fft_n = [4096, 4096, 4096]
         self.win = torch.hann_window
-        self.amp_floor = 0.00000001
+        self.amp_floor = 0.00001
         self.loss1 = torch_nn.MSELoss()
         self.loss2 = torch_nn.MSELoss()
         self.loss3 = torch_nn.MSELoss()
@@ -403,9 +403,11 @@ class Loss():
         for frame_shift, frame_len, fft_p, loss_f in \
             zip(self.frame_hops, self.frame_lens, self.fft_n, self.loss):
             x_stft = torch.stft(output, fft_p, frame_shift, frame_len, \
-                                window=self.win(frame_len), onesided=True)
+                                window=self.win(frame_len), onesided=True,
+                                pad_mode="constant")
             y_stft = torch.stft(target, fft_p, frame_shift, frame_len, \
-                                window=self.win(frame_len), onesided=True)
+                                window=self.win(frame_len), onesided=True,
+                                pad_mode="constant")
             x_sp_amp = torch.log(torch.norm(x_stft, 2, -1).pow(2) + \
                                    self.amp_floor)
             y_sp_amp = torch.log(torch.norm(y_stft, 2, -1).pow(2) + \

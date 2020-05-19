@@ -116,6 +116,9 @@ class NIIDataSet(torch.utils.data.Dataset):
            len(self.m_input_dirs) != len(self.m_input_dims):
             nii_warn.f_print("Input dirs, exts, dims, unequal length",
                              'error')
+            nii_warn.f_print(str(self.m_input_dirs), 'error')
+            nii_warn.f_print(str(self.m_input_exts), 'error')
+            nii_warn.f_print(str(self.m_input_dims), 'error')
             nii_warn.f_die("Please check input dirs, exts, dims")
 
         if len(self.m_output_dims) != len(self.m_output_exts) or \
@@ -205,15 +208,9 @@ class NIIDataSet(torch.utils.data.Dataset):
                                         nii_dconf.data_len_file)
         
         # initialize data length and mean /std
-        self.m_seq_info = []
-        self.m_data_length = {}
-        self.m_data_total_length = 0
-        
         flag_cal_len = self.f_init_data_len_stats(self.m_data_len_path)
         flag_cal_mean_std = self.f_init_mean_std(self.m_ms_input_path,
                                                  self.m_ms_output_path)
-        if not self.m_save_ms:
-            flag_cal_mean_std = False
             
         # if data information is not available, read it again from data
         if flag_cal_len or flag_cal_mean_std:
@@ -328,7 +325,6 @@ class NIIDataSet(torch.utils.data.Dataset):
             out_data = []
 
         return in_data, out_data, tmp_seq_info.print_to_str(), idx
-
     
     def f_get_num_seq(self):
         """ __len__():
@@ -522,6 +518,11 @@ class NIIDataSet(torch.utils.data.Dataset):
         self.m_input_std = np.ones([self.m_input_all_dim])
         self.m_output_mean = np.zeros([self.m_output_all_dim])
         self.m_output_std = np.ones([self.m_output_all_dim])
+        
+        flag = True
+        if not self.m_save_ms:
+            # assume mean/std will be in the network
+            flag = False
 
         if os.path.isfile(ms_input_path) and \
            os.path.isfile(ms_output_path):
@@ -532,22 +533,23 @@ class NIIDataSet(torch.utils.data.Dataset):
             if ms_input.shape[0] != (self.m_input_all_dim * 2) or \
                ms_output.shape[0] != (self.m_output_all_dim * 2):
                 if ms_input.shape[0] != (self.m_input_all_dim * 2):
-                    nii_warn.f_print("%s invalid" % (m_input_path))
+                    nii_warn.f_print("%s incompatible" % (m_input_path),
+                                     'warning')
                 if ms_output.shape[0] != (self.m_output_all_dim * 2):
-                    nii_warn.f_print("%s invalid" % (m_output_path))
-                nii_warn.f_print("mean/std will be computed", 'warning')
-                return True
+                    nii_warn.f_print("%s incompatible" % (m_output_path),
+                                     'warning')
+                nii_warn.f_print("mean/std will be recomputed", 'warning')
             else:
                 self.m_input_mean = ms_input[0:self.m_input_all_dim]
                 self.m_input_std = ms_input[self.m_input_all_dim:]
                 
                 self.m_output_mean = ms_output[0:self.m_output_all_dim]
                 self.m_output_std = ms_output[self.m_output_all_dim:]
-                return False
-        else:
-            # no pre-stored mean/std
-            return True
-            
+                nii_warn.f_print("Load mean/std from %s and %s" % \
+                                 (ms_input_path, ms_output_path))
+                flag = False
+        return flag
+
 
     def f_sum_data_length(self):
         """
@@ -562,8 +564,13 @@ class NIIDataSet(torch.utils.data.Dataset):
         If yes, load data_path and return False
         Else, return True
         """
+        self.m_seq_info = []
+        self.m_data_length = {}
+        self.m_data_total_length = 0
+        
+        flag = True
         if os.path.isfile(data_path):
-            # load data length
+            # load data length from pre-stored *.dic
             dic_seq_infos = nii_io_tk.read_dic(self.m_data_len_path)
             for dic_seq_info in dic_seq_infos:
                 seq_info = nii_seqinfo.SeqInfo()
@@ -574,13 +581,19 @@ class NIIDataSet(torch.utils.data.Dataset):
                     self.m_data_length[seq_tag] = seq_info.seq_length()
                 else:
                     self.m_data_length[seq_tag] += seq_info.seq_length()
-                    
             self.m_data_total_length = self.f_sum_data_length()
-            nii_warn.f_print("Read sequence infor from %s" % (data_path))
-            return False
-        else:
-            # no pre-stored data length
-            return True
+            
+            # check whether *.dic contains files in filelist
+            if nii_list_tools.list_identical(self.m_file_list,\
+                                             self.m_data_length.keys()):
+                nii_warn.f_print("Read sequence info: %s" % (data_path))
+                flag = False
+            else:
+                self.m_seq_info = []
+                self.m_data_length = {}
+                self.m_data_total_length = 0
+
+        return flag
 
     def f_save_data_len(self, data_len_path):
         """
@@ -618,6 +631,20 @@ class NIIDataSet(torch.utils.data.Dataset):
         mes += "\n  Minimum sequence length: {:d}".format(tmp_min_len)
         if self.m_min_seq_len is not None:
             mes += "\n  Shorter sequences are ignored"
+        mes += "\n  Inputs\n    Dirs:"
+        for subdir in self.m_input_dirs:
+            mes += "\n        {:s}".format(subdir)
+        mes += "\n    Exts:{:s}".format(str(self.m_input_exts))
+        mes += "\n    Dims:{:s}".format(str(self.m_input_dims))
+        mes += "\n    Reso:{:s}".format(str(self.m_input_reso))
+        mes += "\n    Norm:{:s}".format(str(self.m_input_norm))
+        mes += "\n  Outputs\n    Dirs:"
+        for subdir in  self.m_output_dirs:
+            mes += "\n        {:s}".format(subdir)
+        mes += "\n    Exts:{:s}".format(str(self.m_output_exts))
+        mes += "\n    Dims:{:s}".format(str(self.m_output_dims))
+        mes += "\n    Reso:{:s}".format(str(self.m_output_reso))
+        mes += "\n    Norm:{:s}".format(str(self.m_output_norm))
         nii_warn.f_print_message(mes)
         return
     

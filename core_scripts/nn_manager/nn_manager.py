@@ -11,16 +11,28 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time
+import datetime
 
+import core_scripts.data_io.conf as nii_dconf
 import core_scripts.other_tools.display as nii_display
 import core_scripts.other_tools.str_tools as nii_str_tk
 import core_scripts.op_manager.op_process_monitor as nii_monitor
+import core_scripts.op_manager.op_display_tools as nii_op_display_tk
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
 #############################################################
+
+# name for the checkpoint keys
+class CheckPointKey:
+    state_dict = 'state_dict'
+    info = 'info'
+    optimizer = 'optimizer' 
+    trnlog = 'train_log'
+    vallog = 'val_log'
+    
 
 def f_save_epoch_name(args, epoch_idx):
     """ 
@@ -66,7 +78,9 @@ def f_run_one_epoch(args,
                      if None, the back propgation will be skipped
                      (for developlement set)
     """
-    
+    # timer
+    start_time = time.time()
+        
     # loop over samples
     for data_idx, (data_in, data_tar, data_info, idx_orig) in \
         enumerate(data_loader):
@@ -74,11 +88,8 @@ def f_run_one_epoch(args,
         # idx_orig is the original idx in the dataset
         # which can be different from data_idx when shuffle = True
         idx_orig = idx_orig.numpy()[0]
-        data_seq_info = data_info[0]
-            
-        # timer
-        start_time = time.time()
-
+        data_seq_info = data_info[0]    
+        
         # send data to device
         if optimizer is not None:
             optimizer.zero_grad()
@@ -86,7 +97,7 @@ def f_run_one_epoch(args,
         # compute
         data_in = data_in.to(device)
         data_gen = pt_model(data_in)
-
+        
         # compute loss and do back propagate
         loss_value = 0
         if isinstance(data_tar, torch.Tensor):
@@ -102,7 +113,7 @@ def f_run_one_epoch(args,
         end_time = time.time()
         monitor.log_loss(loss_value, end_time - start_time, \
                          data_seq_info, idx_orig, epoch_idx)
-
+        start_time = time.time()
         # print infor for one sentence
         if args.verbose == 1:
             monitor.print_error_for_batch(data_idx, idx_orig, \
@@ -115,11 +126,13 @@ def f_run_one_epoch(args,
 def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                     optimizer_wrapper, \
                     train_dataset_wrapper, \
-                    val_dataset_wrapper = None):
+                    val_dataset_wrapper = None, \
+                    checkpoint = None):
     """ 
     f_train_wrapper(args, pt_model, loss_wrapper, device, 
                     optimizer_wrapper
-                    train_dataset_wrapper, val_dataset_wrapper):
+                    train_dataset_wrapper, val_dataset_wrapper = None,
+                    check_point = None):
       A wrapper to run the training process
 
     Args:
@@ -140,7 +153,10 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
        val_dataset_wrapper: 
            a wrapper over validation data set (data_io/default_data_io.py)
            it can None.
-    """
+       
+       check_point:
+           a check_point that stores every thing to resume training
+    """        
 
     # get the optimizer
     optimizer_wrapper.print_info()
@@ -165,16 +181,43 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     else:
         monitor_val = None
 
+    # training log information
+    train_log = ''
+
     # print the network
+    pt_model.to(device)
     print(pt_model)
 
+    # resume training or initialize the model if necessary
+    cp_names = CheckPointKey()
+    if checkpoint is not None:
+        if type(checkpoint) is dict:
+            # checkpoint
+            if cp_names.state_dict in checkpoint:
+                pt_model.load_state_dict(checkpoint[cp_names.state_dict])
+            if cp_names.optimizer in checkpoint:
+                optimizer.load_state_dict(checkpoint[cp_names.optimizer])
+            if cp_names.trnlog in checkpoint:
+                monitor_trn.load_state_dic(checkpoint[cp_names.trnlog])
+            if cp_names.vallog in checkpoint and monitor_val:
+                monitor_val.load_state_dic(checkpoint[cp_names.vallog])
+            if cp_names.info in checkpoint:
+                train_log = checkpoint[cp_names.info]
+            nii_display.f_print("Load check point and resume training")
+        else:
+            # only model status
+            pt_model.load_state_dict(checkpoint)
+            nii_display.f_print("Load pre-trained model")
+            
     # other variables
     flag_early_stopped = False
-    start_epoch = 0
-    train_log = ''
-    _ = nii_monitor.print_log_head()
-    if len(train_log):
-        nii_display.f_print_message(train_log, flush=True)
+    start_epoch = monitor_trn.get_epoch()
+    epoch_num = monitor_trn.get_max_epoch()
+
+    # print
+    _ = nii_op_display_tk.print_log_head()
+    nii_display.f_print_message(train_log, flush=True, end='')
+        
         
     # loop over multiple epochs
     for epoch_idx in range(start_epoch, epoch_num):
@@ -189,7 +232,9 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         
         # if necessary, do validataion 
         if val_dataset_wrapper is not None:
-            pt_model.eval()
+            # set eval() if necessary 
+            if args.eval_mode_for_validation():
+                pt_model.eval()
             with torch.no_grad():
                 f_run_one_epoch(args, pt_model, loss_wrapper, \
                                 device, \
@@ -207,12 +252,12 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             flag_new_best = True
             
         # print information
-        train_log += nii_monitor.print_train_info(epoch_idx, \
-                                                  time_trn, \
-                                                  loss_trn, \
-                                                  time_val, \
-                                                  loss_val, \
-                                                  flag_new_best)
+        train_log += nii_op_display_tk.print_train_info(epoch_idx, \
+                                                        time_trn, \
+                                                        loss_trn, \
+                                                        time_val, \
+                                                        loss_val, \
+                                                        flag_new_best)
         # save the best model
         if flag_new_best:
             tmp_best_name = f_save_trained_name(args)
@@ -221,13 +266,24 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # save intermediate model if necessary
         if not args.not_save_each_epoch:
             tmp_model_name = f_save_epoch_name(args, epoch_idx)
+            if monitor_val is not None:
+                tmp_val_log = monitor_val.get_state_dic()
+            else:
+                tmp_val_log = None
+            # save
             tmp_dic = {
-                'epoch': epoch_idx,
-                'state_dict': pt_model.state_dict(),
-                'info': train_log,
-                'optimizer' : optimizer.state_dict(),
+                cp_names.state_dict : pt_model.state_dict(),
+                cp_names.info : train_log,
+                cp_names.optimizer : optimizer.state_dict(),
+                cp_names.trnlog : monitor_trn.get_state_dic(),
+                cp_names.vallog : tmp_val_log
             }
             torch.save(tmp_dic, tmp_model_name)
+            if args.verbose == 1:
+                nii_display.f_eprint(str(datetime.datetime.now()))
+                nii_display.f_eprint("Save {:s}".format(tmp_model_name),
+                                     flush=True)
+                
             
         # early stopping
         if monitor_val is not None and \
@@ -236,7 +292,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             break
         
     # loop done        
-    nii_monitor.print_log_tail()
+    nii_op_display_tk.print_log_tail()
     if flag_early_stopped:
         nii_display.f_print("Training finished by early stopping")
     else:
@@ -246,7 +302,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     return
 
 def f_inference_wrapper(args, pt_model, device, \
-                        test_dataset_wrapper):
+                        test_dataset_wrapper, checkpoint):
     """
     """
     test_data_loader = test_dataset_wrapper.get_loader()
@@ -254,7 +310,15 @@ def f_inference_wrapper(args, pt_model, device, \
     test_dataset_wrapper.print_info()
     
     # print the network
+    pt_model.to(device)
     print(pt_model)
+    
+    cp_names = CheckPointKey()
+    if type(checkpoint) is dict and cp_names.state_dict in checkpoint:
+        pt_model.load_state_dict(checkpoint[cp_names.state_dict])
+    else:
+        pt_model.load_state_dict(checkpoint)
+
     
     pt_model.eval() 
     with torch.no_grad():
@@ -274,13 +338,11 @@ def f_inference_wrapper(args, pt_model, device, \
             data_gen = pt_model.denormalize_output(data_gen)
             time_cost = time.time() - start_time
             
-            _ = nii_monitor.print_gen_info(data_seq_info, \
-                                           time_cost)
+            _ = nii_op_display_tk.print_gen_info(data_seq_info, time_cost)
             
             # save output
             data_gen_np = data_gen.to("cpu").numpy()
-            test_dataset_wrapper.putitem(data_gen_np, \
-                                         args.output_dir, \
+            test_dataset_wrapper.putitem(data_gen_np, args.output_dir, \
                                          data_seq_info)
     # done
     return

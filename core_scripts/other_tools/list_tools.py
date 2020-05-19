@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import collections
 import core_scripts.other_tools.display as nii_warn
 import core_scripts.other_tools.str_tools as nii_str_tool
 
@@ -54,6 +55,14 @@ def common_members(list_a, list_b):
     list_c = list(set(list_a).intersection(list_b))
     list_c.sort()
     return list_c
+
+
+def list_identical(list_a, list_b):
+    """ flag = list_identical(list_a, list_b)
+    Return true/false, check whether list_a is identical to list_b
+    stackoverflow.com/a/19244156/403423
+    """
+    return collections.Counter(list_a) == collections.Counter(list_b)
 
 def read_list_from_text(filename, f_chop=True):
     """                                       
