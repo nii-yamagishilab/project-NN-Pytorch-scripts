@@ -75,6 +75,15 @@ def f_args_parsed(argument_input = None):
                         help='extension name of model (default: .pt)')
     
     #######
+    # options to load model
+    mes = 'a trained model for inference or resume training '
+    parser.add_argument('--trained-model', type=str, \
+                        default="", help=mes + "(default: '')")
+
+    mes = 'run inference mode (default: False, run training script)'
+    parser.add_argument('--inference', action='store_true', \
+                        default=False, help=mes)    
+    #######
     # options to output
     mes = 'path to save generated data (default: ./output)'
     parser.add_argument('--output-dir', type=str, default="./output", \
