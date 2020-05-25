@@ -1,11 +1,6 @@
 *.pyc
 *.*~
-*~
-*.pt
-*.bin
-*.dic
-*DS_Store
-runs
-log*
 debug
+.DS_Store
+._.DS_Store
 __pycache__
