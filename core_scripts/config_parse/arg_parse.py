@@ -50,9 +50,16 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--seed', type=int, default=1, metavar='S',\
                         help='random seed (default: 1)')
     
-    mes = 'set model.eval() on validation set (default: false)'
+    mes = 'turn model.eval() on validation set (default: false)'
     parser.add_argument('--eval-mode-for-validation', \
                         action='store_true', default=False, help=mes)
+
+    mes = 'if model.forward(input, target), please set this option on.'
+    mes += 'This is used for autoregressive model, auto-encoder ...'
+    parser.add_argument('--model-forward-with-target', \
+                        action='store_true', default=False, help=mes)
+    
+
     ######
     # options to save model / checkpoint
     parser.add_argument('--save-model-dir', type=str, \

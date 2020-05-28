@@ -96,12 +96,25 @@ def f_run_one_epoch(args,
 
         # compute
         data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
-        data_gen = pt_model(data_in)
+        if args.model_forward_with_target:
+            # if model.forward requires (input, target) as arguments
+            # for example, for auto-encoder & autoregressive model
+            if isinstance(data_tar, torch.Tensor):
+                data_tar_tm = data_tar.to(device, dtype=nii_dconf.d_dtype)
+                data_gen = pt_model(data_in, data_tar_tm)
+            else:
+                nii_display.f_print("--model-forward-with-target is set")
+                nii_display.f_die("but no data_tar is not loaded")
+        else:
+            # normal case for model.forward(input)
+            data_gen = pt_model(data_in)
         
         # compute loss and do back propagate
         loss_value = 0
         if isinstance(data_tar, torch.Tensor):
             data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
+            # there is no way to normalize the data inside loss
+            # thus, do normalization here
             normed_target = pt_model.normalize_target(data_tar)
             loss = loss_wrapper.compute(data_gen, normed_target)
             loss_value = loss.item()            
@@ -116,8 +129,7 @@ def f_run_one_epoch(args,
         start_time = time.time()
         # print infor for one sentence
         if args.verbose == 1:
-            monitor.print_error_for_batch(data_idx, idx_orig, \
-                                          epoch_idx)
+            monitor.print_error_for_batch(data_idx, idx_orig, epoch_idx)
             
     # lopp done
     return
