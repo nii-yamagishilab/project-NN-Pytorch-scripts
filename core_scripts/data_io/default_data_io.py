@@ -215,7 +215,11 @@ class NIIDataSet(torch.utils.data.Dataset):
         # if data information is not available, read it again from data
         if flag_cal_len or flag_cal_mean_std:
             self.f_calculate_stats(flag_cal_len, flag_cal_mean_std) 
-
+            
+        # check
+        if self.__len__() < 1:
+            nii_warn.f_print("Fail to load any data", "error")
+            nii_warn.f_die("Please check configuration")
         # done
         return                
         
@@ -492,7 +496,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                                                    file_name, seg_idx,
                                                    start_pos, info_idx)
                     if self.m_min_seq_len is None or \
-                       seg_length > self.m_min_seq_len:
+                       seg_length >= self.m_min_seq_len:
                         self.m_seq_info.append(seq_info)
                         seg_idx += 1
                     start_pos += seg_length
@@ -503,7 +507,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                                                file_name, seg_idx,
                                                start_pos, info_idx)
                 if self.m_min_seq_len is None or \
-                   length_remain > self.m_min_seq_len:
+                   length_remain >= self.m_min_seq_len:
                     self.m_seq_info.append(seq_info)
         
         # get the total length
@@ -865,6 +869,9 @@ class NIIDataSetLoader:
         get_loader(): return a torch.util.data.DataLoader
         get_dataset(): return a torch.util.data.DataSet
         """
+        nii_warn.f_print_w_date("Loading dataset %s" % (dataset_name),
+                                level="h")
+        
         # create torch.util.data.DataSet
         self.m_dataset = NIIDataSet(dataset_name, \
                                     file_list, \

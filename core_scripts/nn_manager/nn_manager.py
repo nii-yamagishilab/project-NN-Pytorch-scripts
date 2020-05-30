@@ -57,6 +57,19 @@ def f_save_trained_name(args):
                                  args.save_trained_name, \
                                  args.save_model_ext)
 
+def f_model_show(pt_model):
+    """ 
+    f_model_show(pt_model)
+    Args: pt_model, a Pytorch model
+    
+    Print the informaiton of the model
+    """
+    print(pt_model)
+    num = sum(p.numel() for p in pt_model.parameters() if p.requires_grad)
+    nii_display.f_print("Parameter number: {:d}".format(num), "normal")
+    return
+    
+
 def f_run_one_epoch(args,
                     pt_model, loss_wrapper, \
                     device, monitor,  \
@@ -87,8 +100,8 @@ def f_run_one_epoch(args,
 
         # idx_orig is the original idx in the dataset
         # which can be different from data_idx when shuffle = True
-        idx_orig = idx_orig.numpy()[0]
-        data_seq_info = data_info[0]    
+        #idx_orig = idx_orig.numpy()[0]
+        #data_seq_info = data_info[0]    
         
         # send data to device
         if optimizer is not None:
@@ -124,12 +137,20 @@ def f_run_one_epoch(args,
                     
         # log down process information
         end_time = time.time()
-        monitor.log_loss(loss_value, end_time - start_time, \
-                         data_seq_info, idx_orig, epoch_idx)
+        batchsize = len(data_info)
+        for idx, data_seq_info in enumerate(data_info):
+            monitor.log_loss(loss_value / batchsize, \
+                             (end_time-start_time) / batchsize, \
+                             data_seq_info, idx_orig.numpy()[idx], \
+                             epoch_idx)
+            # print infor for one sentence
+            if args.verbose == 1:
+                monitor.print_error_for_batch(data_idx*batchsize + idx,\
+                                              idx_orig.numpy()[idx], \
+                                              epoch_idx)
+            # 
+        # start the timer for a new batch
         start_time = time.time()
-        # print infor for one sentence
-        if args.verbose == 1:
-            monitor.print_error_for_batch(data_idx, idx_orig, epoch_idx)
             
     # lopp done
     return
@@ -169,6 +190,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
        check_point:
            a check_point that stores every thing to resume training
     """        
+    
+    nii_display.f_print_w_date("Start model training")
 
     # get the optimizer
     optimizer_wrapper.print_info()
@@ -198,7 +221,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
 
     # print the network
     pt_model.to(device, dtype=nii_dconf.d_dtype)
-    print(pt_model)
+    f_model_show(pt_model)
 
     # resume training or initialize the model if necessary
     cp_names = CheckPointKey()
@@ -341,21 +364,28 @@ def f_inference_wrapper(args, pt_model, device, \
             data_in = data_in.to(device)
             if isinstance(data_tar, torch.Tensor):
                 data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
-                
-            data_seq_info = data_info[0]
+            
             
             # compute output
             start_time = time.time()
-            data_gen = pt_model(data_in)
+            if args.model_forward_with_target:
+                # if model.forward requires (input, target) as arguments
+                # for example, for auto-encoder
+                data_gen = pt_model(data_in, data_tar)
+            else:    
+                data_gen = pt_model(data_in)
             data_gen = pt_model.denormalize_output(data_gen)
             time_cost = time.time() - start_time
-            
-            _ = nii_op_display_tk.print_gen_info(data_seq_info, time_cost)
-            
-            # save output
+            # average time for each sequence when batchsize > 1
+            time_cost = time_cost / len(data_info)
+
+            # save output (in case batchsize > 1, )
             data_gen_np = data_gen.to("cpu").numpy()
-            test_dataset_wrapper.putitem(data_gen_np, args.output_dir, \
-                                         data_seq_info)
+            for idx, seq_info in enumerate(data_info):
+                _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
+                test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
+                                             args.output_dir, \
+                                             seq_info)
     # done
     return
             
