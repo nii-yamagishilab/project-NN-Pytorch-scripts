@@ -3,4 +3,5 @@
 debug
 .DS_Store
 ._.DS_Store
+.ipynb_checkpoints
 __pycache__

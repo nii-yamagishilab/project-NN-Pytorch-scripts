@@ -386,6 +386,8 @@ def f_inference_wrapper(args, pt_model, device, \
                 test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
                                              args.output_dir, \
                                              seq_info)
+    # 
+    nii_display.f_print("Generated data to %s" % (args.output_dir))
     # done
     return
             

@@ -29,8 +29,8 @@ def f_args_parsed(argument_input = None):
     # Training settings
     parser = argparse.ArgumentParser(description='General argument parse')
     
-    mes = 'input batch size for training (default: 64)'
-    parser.add_argument('--batch-size', type=int, default=64, \
+    mes = 'batch size for training/inference (default: 1)'
+    parser.add_argument('--batch-size', type=int, default=1, \
                         metavar='N', help=mes)
     
     mes = 'number of epochs to train (default: 50)'
@@ -59,7 +59,13 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--model-forward-with-target', \
                         action='store_true', default=False, help=mes)
     
+    parser.add_argument('--shuffle', action='store_false', \
+                        default=True, help='shuffle data? (default true)')
 
+    mes = 'number of parallel workers to load data (default: 0)'
+    parser.add_argument('--num-workers', type=int, default=0, \
+                        metavar='N', help=mes)
+    
     ######
     # options to save model / checkpoint
     parser.add_argument('--save-model-dir', type=str, \

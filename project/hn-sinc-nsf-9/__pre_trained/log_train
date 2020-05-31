@@ -1,0 +1,494 @@
+[94mRead sequence info: ./cmu_all_trn_utt_length.dic[0m
+[94mLoad mean/std from ./cmu_all_trn_mean_std_input.bin and ./cmu_all_trn_mean_std_output.bin[0m
+[94mRead sequence info: ./cmu_all_val_utt_length.dic[0m
+Optimizer:
+  Type: Adam 
+  Learing rate: 0.000030
+  Epochs: 100
+  No-best-epochs: 10
+Dataset cmu_all_trn:
+  Time steps: 198395040 
+  Truncate length: 48000
+  Data sequence num: 5681
+  Maximum sequence length: 48000
+  Minimum sequence length: 4080
+  Shorter sequences are ignored
+  Inputs
+    Dirs:
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/melspec
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/f0
+    Exts:['.mfbsp', '.f0']
+    Dims:[80, 1]
+    Reso:[80, 80]
+    Norm:[True, True]
+  Outputs
+    Dirs:
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/wav_16k_norm
+    Exts:['.wav']
+    Dims:[1]
+    Reso:[1]
+    Norm:[False]
+Dataset cmu_all_val:
+  Time steps: 13548720 
+  Truncate length: 48000
+  Data sequence num: 391
+  Maximum sequence length: 48000
+  Minimum sequence length: 4080
+  Shorter sequences are ignored
+  Inputs
+    Dirs:
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/melspec
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/f0
+    Exts:['.mfbsp', '.f0']
+    Dims:[80, 1]
+    Reso:[80, 80]
+    Norm:[True, True]
+  Outputs
+    Dirs:
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/wav_16k_norm
+    Exts:['.wav']
+    Dims:[1]
+    Reso:[1]
+    Norm:[False]
+Model(
+  (m_cond): CondModuleHnSincNSF(
+    (l_blstm): BLSTMLayer(
+      (l_blstm): LSTM(81, 32, bidirectional=True)
+    )
+    (l_conv1d): Conv1dKeepLength(
+      64, 64, kernel_size=(3,), stride=(1,)
+      (l_ac): Tanh()
+    )
+    (l_upsamp): UpSampleLayer(
+      (l_upsamp): Upsample(scale_factor=80.0, mode=nearest)
+      (l_ave1): MovingAverage(
+        64, 64, kernel_size=(80,), stride=(1,), groups=64, bias=False
+        (l_ac): Identity()
+      )
+      (l_ave2): MovingAverage(
+        64, 64, kernel_size=(80,), stride=(1,), groups=64, bias=False
+        (l_ac): Identity()
+      )
+    )
+    (l_upsamp_f0_hi): UpSampleLayer(
+      (l_upsamp): Upsample(scale_factor=80.0, mode=nearest)
+      (l_ave1): MovingAverage(
+        1, 1, kernel_size=(80,), stride=(1,), bias=False
+        (l_ac): Identity()
+      )
+      (l_ave2): MovingAverage(
+        1, 1, kernel_size=(80,), stride=(1,), bias=False
+        (l_ac): Identity()
+      )
+    )
+    (l_upsamp_F0): UpSampleLayer(
+      (l_upsamp): Upsample(scale_factor=80.0, mode=nearest)
+      (l_ave1): Identity()
+      (l_ave2): Identity()
+    )
+    (l_cut_f_smooth): MovingAverage(
+      1, 1, kernel_size=(320,), stride=(1,), bias=False
+      (l_ac): Identity()
+    )
+  )
+  (m_source): SourceModuleHnNSF(
+    (l_sin_gen): SineGen()
+    (l_linear): Linear(in_features=8, out_features=1, bias=True)
+    (l_tanh): Tanh()
+  )
+  (m_filter): FilterModuleHnSincNSF(
+    (l_har_blocks): ModuleList(
+      (0): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+      (1): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+      (2): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+      (3): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+      (4): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+    )
+    (l_noi_blocks): ModuleList(
+      (0): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+    )
+    (l_sinc_coef): SincFilter()
+    (l_tv_filtering): TimeVarFIRFilter()
+  )
+)
+[94mLoad check point and resume training[0m
+--------------------------------------------------------------
+  Epoch |  Duration(s) |   Train loss |     Dev loss |  Best
+--------------------------------------------------------------
+      0 |       2361.6 |      15.3318 |       9.6299 |   yes
+      1 |       2363.7 |       8.8895 |       8.3482 |   yes
+      2 |       2374.9 |       7.9366 |       7.6414 |   yes
+      3 |       2377.2 |       7.4682 |       7.4957 |   yes
+      4 |       2386.0 |       7.1706 |       6.9626 |   yes
+      5 |       2390.2 |       6.9480 |       6.7729 |   yes
+      6 |       2391.4 |       6.7869 |       6.6155 |   yes
+      7 |       2387.9 |       6.6616 |       6.4336 |   yes
+      8 |       2390.7 |       6.5467 |       6.3981 |   yes
+      9 |       2389.8 |       6.4488 |       6.3005 |   yes
+     10 |       2388.5 |       6.3695 |       6.2014 |   yes
+     11 |       2388.5 |       6.2911 |       6.4124 |    no
+     12 |       2362.6 |       6.2261 |       6.1181 |   yes
+     13 |       2365.8 |       6.1767 |       6.0509 |   yes
+     14 |       2361.5 |       6.1133 |       6.0019 |   yes
+     15 |       2350.7 |       6.0720 |       6.0301 |    no
+     16 |       2359.5 |       6.0261 |       5.8605 |   yes
+     17 |       2385.8 |       5.9958 |       5.9251 |    no
+     18 |       2371.5 |       5.9477 |       5.8142 |   yes
+     19 |       2375.3 |       5.9220 |       5.7747 |   yes
+     20 |       2388.8 |       5.8893 |       5.7461 |   yes
+     21 |       2387.5 |       5.8535 |       6.2237 |    no
+     22 |       2394.8 |       5.8200 |       5.6953 |   yes
+     23 |       2399.5 |       5.7915 |       5.7573 |    no
+     24 |       2395.3 |       5.7666 |       5.8469 |    no
+     25 |       2385.9 |       5.7419 |       5.6784 |   yes
+     26 |       2395.7 |       5.7263 |       5.6458 |   yes
+     27 |       2403.2 |       5.7003 |       5.6842 |    no
+     28 |       2413.8 |       5.6853 |       5.7825 |    no
+     29 |       2401.8 |       5.6562 |       5.5909 |   yes
+     30 |       2396.5 |       5.6341 |       5.5682 |   yes
+     31 |       2398.3 |       5.6149 |       5.6272 |    no
+     32 |       2393.6 |       5.6004 |       5.4854 |   yes
+     33 |       2406.9 |       5.5846 |       5.5204 |    no
+     34 |       2394.6 |       5.5644 |       5.6371 |    no
+     35 |       2403.1 |       5.5511 |       5.4458 |   yes
+     36 |       2339.0 |       5.5335 |       5.4587 |    no
+     37 |       2336.5 |       5.5167 |       5.4224 |   yes
+     38 |       2335.5 |       5.5047 |       5.3991 |   yes
+     39 |       2336.9 |       5.4827 |       5.4787 |    no
+     40 |       2336.8 |       5.4720 |       5.3705 |   yes
+     41 |       2337.2 |       5.4559 |       5.4812 |    no
+     42 |       2338.4 |       5.4494 |       5.4600 |    no
+     43 |       2337.5 |       5.4322 |       5.3502 |   yes
+     44 |       2340.1 |       5.4203 |       5.3125 |   yes
+     45 |       2337.4 |       5.4077 |       5.3766 |    no
+     46 |       2341.7 |       5.3910 |       5.2877 |   yes
+     47 |       2345.9 |       5.3815 |       5.4439 |    no
+     48 |       2338.8 |       5.3722 |       5.3306 |    no
+     49 |       2342.0 |       5.3588 |       5.3151 |    no
+     50 |       2340.6 |       5.3463 |       5.2857 |   yes
+     51 |       2354.6 |       5.3357 |       5.2646 |   yes
+     52 |       2352.2 |       5.3229 |       5.2438 |   yes
+     53 |       2345.0 |       5.3179 |       5.2401 |   yes
+     54 |       2351.3 |       5.3039 |       5.2093 |   yes
+     55 |       2349.6 |       5.2915 |       5.1994 |   yes
+     56 |       2356.3 |       5.2859 |       5.2114 |    no
+     57 |       2348.7 |       5.2672 |       5.3889 |    no
+     58 |       2349.6 |       5.2576 |       5.1588 |   yes
+     59 |       2350.4 |       5.2448 |       5.2707 |    no
+     60 |       2348.2 |       5.2378 |       5.3910 |    no
+     61 |       2349.3 |       5.2294 |       5.1561 |   yes
+     62 |       2348.5 |       5.2216 |       5.1447 |   yes
+     63 |       2354.6 |       5.2080 |       5.1635 |    no
+     64 |       2351.1 |       5.1973 |       5.2310 |    no
+     65 |       2351.1 |       5.1836 |       5.1318 |   yes
+     66 |       2353.4 |       5.1809 |       5.1083 |   yes
+     67 |       2352.2 |       5.1674 |       5.0865 |   yes
+     68 |       2351.8 |       5.1588 |       5.0782 |   yes
+     69 |       2346.4 |       5.1550 |       5.0879 |    no
+     70 |       2335.0 |       5.1410 |       5.2276 |    no
+     71 |       2342.4 |       5.1332 |       5.0858 |    no
+     72 |       2337.3 |       5.1226 |       5.0721 |   yes
+     73 |       2346.2 |       5.1166 |       5.0428 |   yes
+     74 |       2336.9 |       5.1113 |       5.2176 |    no
+     75 |       2338.0 |       5.0979 |       5.0078 |   yes
+     76 |       2345.4 |       5.0928 |       5.0166 |    no
+     77 |       2337.2 |       5.0834 |       5.0581 |    no
+     78 |       2339.6 |       5.0765 |       5.0223 |    no
+     79 |       2339.0 |       5.0672 |       4.9743 |   yes
+     80 |       2341.2 |       5.0588 |       5.0004 |    no
+     81 |       2342.6 |       5.0504 |       4.9602 |   yes
+     82 |       2342.5 |       5.0418 |       5.0314 |    no
+     83 |       2339.1 |       5.0355 |       5.0427 |    no
+     84 |       2338.0 |       5.0255 |       4.9350 |   yes
+     85 |       2352.9 |       5.0191 |       4.9614 |    no
+     86 |       2343.9 |       5.0136 |       4.9861 |    no
+     87 |       2346.8 |       5.0045 |       4.9264 |   yes
+     88 |       2341.9 |       4.9993 |       4.9134 |   yes
+     89 |       2321.0 |       4.9883 |       4.8949 |   yes
+     90 |       2324.0 |       4.9821 |       4.8874 |   yes
+     91 |       2325.7 |       4.9762 |       4.9183 |    no
+     92 |       2325.5 |       4.9651 |       4.9920 |    no
+     93 |       2337.2 |       4.9569 |       4.8644 |   yes
+     94 |       2339.9 |       4.9480 |       5.1396 |    no
+     95 |       2351.1 |       4.9469 |       4.9347 |    no
+     96 |       2352.0 |       4.9393 |       4.8497 |   yes
+     97 |       2351.1 |       4.9255 |       4.8803 |    no
+     98 |       2353.6 |       4.9219 |       4.8580 |    no
+     99 |       2359.3 |       4.9126 |       4.8374 |   yes
+--------------------------------------------------------------
+[94mTraining finished[0m
+[94mModel is saved to[0m[94m./trained_network.pt[0m

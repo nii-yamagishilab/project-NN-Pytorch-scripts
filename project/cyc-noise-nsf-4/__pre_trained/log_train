@@ -1,0 +1,431 @@
+[94mRead sequence info: ./cmu_all_trn_utt_length.dic[0m
+[94mLoad mean/std from ./cmu_all_trn_mean_std_input.bin and ./cmu_all_trn_mean_std_output.bin[0m
+[94mRead sequence info: ./cmu_all_val_utt_length.dic[0m
+Optimizer:
+  Type: Adam 
+  Learing rate: 0.000100
+  Epochs: 100
+  No-best-epochs: 10
+Dataset cmu_all_trn:
+  Time steps: 198395040 
+  Truncate length: 48000
+  Data sequence num: 5681
+  Maximum sequence length: 48000
+  Minimum sequence length: 4080
+  Shorter sequences are ignored
+  Inputs
+    Dirs:
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/melspec
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/f0
+    Exts:['.mfbsp', '.f0']
+    Dims:[80, 1]
+    Reso:[80, 80]
+    Norm:[True, True]
+  Outputs
+    Dirs:
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/wav_16k_norm
+    Exts:['.wav']
+    Dims:[1]
+    Reso:[1]
+    Norm:[False]
+Dataset cmu_all_val:
+  Time steps: 13548720 
+  Truncate length: 48000
+  Data sequence num: 391
+  Maximum sequence length: 48000
+  Minimum sequence length: 4080
+  Shorter sequences are ignored
+  Inputs
+    Dirs:
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/melspec
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/f0
+    Exts:['.mfbsp', '.f0']
+    Dims:[80, 1]
+    Reso:[80, 80]
+    Norm:[True, True]
+  Outputs
+    Dirs:
+        /gs/hs0/tgh-20IAA/wang/DATA/CMU/all/5ms/wav_16k_norm
+    Exts:['.wav']
+    Dims:[1]
+    Reso:[1]
+    Norm:[False]
+Model(
+  (m_cond): CondModuleHnSincNSF(
+    (l_blstm): BLSTMLayer(
+      (l_blstm): LSTM(81, 32, bidirectional=True)
+    )
+    (l_conv1d): Conv1dKeepLength(
+      64, 65, kernel_size=(3,), stride=(1,)
+      (l_ac): Tanh()
+    )
+    (l_upsamp): UpSampleLayer(
+      (l_upsamp): Upsample(scale_factor=80.0, mode=nearest)
+      (l_ave1): MovingAverage(
+        65, 65, kernel_size=(80,), stride=(1,), groups=65, bias=False
+        (l_ac): Identity()
+      )
+      (l_ave2): MovingAverage(
+        65, 65, kernel_size=(80,), stride=(1,), groups=65, bias=False
+        (l_ac): Identity()
+      )
+    )
+    (l_upsamp_F0): UpSampleLayer(
+      (l_upsamp): Upsample(scale_factor=80.0, mode=nearest)
+      (l_ave1): Identity()
+      (l_ave2): Identity()
+    )
+    (l_cut_f_smooth): MovingAverage(
+      1, 1, kernel_size=(320,), stride=(1,), bias=False
+      (l_ac): Identity()
+    )
+  )
+  (m_source): SourceModuleCycNoise_v1(
+    (l_cyc_gen): CyclicNoiseGen_v1(
+      (l_pulse): PulseGen(
+        (l_sinegen): SineGen()
+      )
+      (l_conv): SignalsConv1d()
+    )
+  )
+  (m_filter): FilterModuleCycNoiseNSF(
+    (l_har_blocks): ModuleList(
+      (0): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=True)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,)
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,)
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,)
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,)
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,)
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,)
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,)
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,)
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,)
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,)
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=True)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=True)
+        (l_ff_3_tanh): Tanh()
+      )
+      (1): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=True)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,)
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,)
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,)
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,)
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,)
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,)
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,)
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,)
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,)
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,)
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=True)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=True)
+        (l_ff_3_tanh): Tanh()
+      )
+      (2): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=True)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,)
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,)
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,)
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,)
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,)
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,)
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,)
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,)
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,)
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,)
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=True)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=True)
+        (l_ff_3_tanh): Tanh()
+      )
+      (3): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=True)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,)
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,)
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,)
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,)
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,)
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,)
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,)
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,)
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,)
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,)
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=True)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=True)
+        (l_ff_3_tanh): Tanh()
+      )
+      (4): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=True)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,)
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,)
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,)
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,)
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,)
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,)
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,)
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,)
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,)
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,)
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=True)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=True)
+        (l_ff_3_tanh): Tanh()
+      )
+    )
+    (l_noi_blocks): ModuleList(
+      (0): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=True)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,)
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,)
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,)
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,)
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,)
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=True)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=True)
+        (l_ff_3_tanh): Tanh()
+      )
+    )
+    (l_sinc_coef): SincFilter()
+    (l_tv_filtering): TimeVarFIRFilter()
+  )
+  (m_sinemask): SineGen()
+)
+[94mLoad check point and resume training[0m
+--------------------------------------------------------------
+  Epoch |  Duration(s) |   Train loss |     Dev loss |  Best
+--------------------------------------------------------------
+      0 |       2627.0 |      18.0911 |      12.9373 |   yes
+      1 |       2618.9 |      12.5339 |      11.5984 |   yes
+      2 |       2611.4 |      11.3804 |      11.0916 |   yes
+      3 |       2615.2 |      10.7231 |      10.4433 |   yes
+      4 |       2619.5 |      10.2990 |       9.8915 |   yes
+      5 |       2624.4 |       9.9525 |       9.8273 |   yes
+      6 |       2621.0 |       9.6733 |       9.2497 |   yes
+      7 |       2624.2 |       9.4494 |       9.4520 |    no
+      8 |       2620.6 |       9.2541 |       8.8488 |   yes
+      9 |       2646.2 |       9.0521 |       8.7368 |   yes
+     10 |       2615.0 |       8.8916 |       8.6074 |   yes
+     11 |       2621.3 |       8.6944 |       8.3700 |   yes
+     12 |       2620.6 |       8.5324 |       8.2047 |   yes
+     13 |       2606.9 |       8.3806 |       8.0514 |   yes
+     14 |       2584.7 |       8.2588 |       7.9645 |   yes
+     15 |       2612.5 |       8.1156 |       7.8708 |   yes
+     16 |       2617.3 |       7.9881 |       7.7911 |   yes
+     17 |       2619.8 |       7.8846 |       7.6581 |   yes
+     18 |       2621.3 |       7.7788 |       7.8228 |    no
+     19 |       2633.3 |       7.7033 |       7.4226 |   yes
+     20 |       2660.9 |       7.6180 |       7.4079 |   yes
+     21 |       2662.8 |       7.5461 |       7.3289 |   yes
+     22 |       2661.5 |       7.4806 |       7.4811 |    no
+     23 |       2664.3 |       7.4212 |       7.2277 |   yes
+     24 |       2664.8 |       7.3529 |       7.0532 |   yes
+     25 |       2664.1 |       7.3061 |       7.1668 |    no
+     26 |       2666.5 |       7.2487 |       7.1772 |    no
+     27 |       2661.5 |       7.1847 |       7.0230 |   yes
+     28 |       2661.2 |       7.1469 |       7.0066 |   yes
+     29 |       2653.1 |       7.1096 |       6.8786 |   yes
+     30 |       2660.6 |       7.0707 |       6.9009 |    no
+     31 |       2659.2 |       7.0256 |       6.8343 |   yes
+     32 |       2661.8 |       6.9890 |       6.8148 |   yes
+     33 |       2662.6 |       6.9578 |       6.8777 |    no
+     34 |       2665.9 |       6.9199 |       6.8140 |   yes
+     35 |       2667.6 |       6.8853 |       6.7588 |   yes
+     36 |       2665.2 |       6.8675 |       6.6550 |   yes
+     37 |       2664.8 |       6.8285 |       6.6097 |   yes
+     38 |       2668.1 |       6.8095 |       6.6312 |    no
+     39 |       2662.8 |       6.7753 |       6.5758 |   yes
+     40 |       2664.9 |       6.7560 |       6.5717 |   yes
+     41 |       2665.2 |       6.7320 |       6.7773 |    no
+     42 |       2664.8 |       6.7136 |       6.6637 |    no
+     43 |       2665.1 |       6.6920 |       6.4707 |   yes
+     44 |       2664.7 |       6.6654 |       6.4521 |   yes
+     45 |       2664.9 |       6.6537 |       6.6004 |    no
+     46 |       2670.4 |       6.6270 |       6.4923 |    no
