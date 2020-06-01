@@ -20,7 +20,7 @@ __copyright__ = "Copyright 2020, Xin Wang"
 def print_gen_info(seq_name, time):
     """ Print the information during inference
     """
-    mes = "Generatin {}, time: {:.3f}s".format(seq_name, time)
+    mes = "Generating {}, time: {:.3f}s".format(seq_name, time)
     nii_display.f_print_message(mes)
     return mes + '\n'
 

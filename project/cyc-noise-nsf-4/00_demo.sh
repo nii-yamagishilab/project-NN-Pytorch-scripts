@@ -29,6 +29,8 @@ if [ -e "../DATA/${FILENAME}" ];then
     echo -e "${RED}Try pre-trained model${NC}"
     source ../../env.sh
     python main.py --inference --trained-model __pre_trained/trained_network.pt --output-dir __pre_trained/output
+    echo -e "${RED}Please check generated waveforms from pre-trained model in ./__pre_trained/output"
+    echo -e "----"
 else
     echo "Cannot find ../DATA/${FILENAME}. Please contact the author"
 fi
@@ -36,7 +38,7 @@ fi
 
 # train the model
 if [ -e "../DATA/${FILENAME}" ];then
-    echo -e "${RED}Train model${NC}"
+    echo -e "${RED}Train a new model${NC}"
     echo -e "${RED}Training will take several hours. Please don't quit this job. ${NC}"
     echo -e "${RED}Please check log_train and log_err for monitoring the training process.${NC}"
     source ../../env.sh
