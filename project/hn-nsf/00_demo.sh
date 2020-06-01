@@ -16,7 +16,7 @@ if [ ! -e "../DATA/${FILENAME}" ];then
 	cd ${FILENAME}
 	sh 00_get_wav.sh
 	cd ../
-	mv ${FILENAME} ../DATA
+	mv ${FILENAME} ../DATA/${FILENAME}
 	rm ${FILENAME}.tar
     else
 	echo "Cannot download ${DATALINK}. Please contact the author"
