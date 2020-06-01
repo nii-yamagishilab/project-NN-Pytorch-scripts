@@ -1,7 +1,9 @@
 # project-NII-pytorch-scripts
 By Xin Wang, National Institute of Informatics, 2020
 
-I am a new pytorch user. If you have any suggestions or questions on this repostiory, pleas email wangxin at nii dot ac dot jp
+(status: under testing)
+
+I am a new pytorch user. If you have any suggestions or questions, pleas email wangxin at nii dot ac dot jp
 
 ---
 
