@@ -23,7 +23,14 @@ This is the re-implemetation of projects based on [CURRENNT](https://github.com/
 3. numpy (test on  1.18.1)
 4. scipy (test on 1.4.1)
 
-I use miniconda to manage python environment. If necessary, you may use [env.yml](./env.yml) to create the environment on our server by *conda env create -f env.yml*
+I use miniconda to manage python environment. You may use [./env.yml](./env.yml) to create the environment on our server by: 
+
+```
+# create environment
+$: conda env create -f env.yml
+# load environment (whose name is pytorch-1.4)
+$: conda activate pytorch-1.4
+```
 
 ### Usage
 Take cyc-noise-nsf as an example:
@@ -38,10 +45,37 @@ $: cd project/cyc-noise-nsf-4
 $: bash 00_demo.sh
 ``` 
 
-The above steps will download the CMU-arctic data, and run waveform generation using a pre-trained model, and train a new model (which may take 1 day or more).
+The above steps will download the CMU-arctic data, run waveform generation using a pre-trained model, and train a new model (which may take 1 day or more). 
 
 
 ### Explanation
+
+#### Data format
+
+* Waveform: 16/32-bit PCM or 32-bit float WAV that can be read by [scipy.io.wavfile.read](https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.wavfile.read.html) 
+
+* Other data: binary, float-32bit, litten endian ([numpy dtype <f4](https://numpy.org/doc/1.18/reference/generated/numpy.dtype.html)). The data can be read in python by:
+```
+# for a data of shape [N, M]
+>>> f = open(filepath,'rb')
+>>> datatype = np.dtype(('<f4',(M,)))
+>>> data = np.fromfile(f,dtype=datatype)
+>>> f.close()
+```
+I assume data should be stored in [c_continuous format](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.flags.html) (row-major). 
+There are helper functions in ./core_scripts/data_io/io_tools.py to read and write binary data:
+```
+# create a float32 data array
+>>> import numpy as np
+>>> data = np.asarray(np.random.randn(5, 3), dtype=np.float32)
+# write to './temp.bin' and read it as data2
+>>> import core_scripts.data_io.io_tools as readwrite
+>>> readwrite.f_write_raw_mat(data, './temp.bin')
+>>> data2 = readwrite.f_read_raw_mat('./temp.bin', 3)
+>>> data - data2
+```
+
+#### Files
 
 Directory | Function
 ------------ | -------------
@@ -62,13 +96,15 @@ The motivation is to separate the training and inference process, the model defi
 ### Differences from CURRENNT implementation
 There may be more, but here are the important ones:
 
-1. "Batch-normalization": in CURRENNT, "batch-normalization" is conducted along the length sequence, i.e., assuming each frame as one sample. There is no equivalent implementation on this Pytorch repository;
+* Waveform normalization: in CURRENNT and all experiments in the paper, the target waveforms were normalized using [sv56](https://www.itu.int/rec/T-REC-G.191-201901-I/en). You can find the script to use sv56 in *./project/DATA/cmu-arctic-data-set/scripts/wav/00_batch.sh* after runnning 00_demo.sh in any of the projects. For convenience, unormalized waveforms are used as training target in this repository; 
 
-2. No bias in CNN and FF: due to the 1st point, NSF in this repostory uses bias=false for CNN and feedforward layers in neural filter blocks, which can be helpful to make the hidden signals around 0;
+* "Batch-normalization": in CURRENNT, "batch-normalization" is conducted along the length sequence, i.e., assuming each frame as one sample. There is no equivalent implementation on this Pytorch repository;
 
-3. STFT framing/padding: in CURRENNT, the first frame starts from the 1st step of a signal; in this Pytorch repository (as Librosa), the first frame is centered around the 1st step of a signal, and the frame is padded with 0;
+* No bias in CNN and FF: due to the 1st point, NSF in this repostory uses bias=false for CNN and feedforward layers in neural filter blocks, which can be helpful to make the hidden signals around 0;
 
-4. (minor one) STFT backward: in CURRENNT, STFT backward follows the steps in [this paper](https://ieeexplore.ieee.org/document/8915761/); in Pytorch respository, backward over STFT is done by the Pytorch library. 
+* STFT framing/padding: in CURRENNT, the first frame starts from the 1st step of a signal; in this Pytorch repository (as Librosa), the first frame is centered around the 1st step of a signal, and the frame is padded with 0;
+
+* (minor one) STFT backward: in CURRENNT, STFT backward follows the steps in [this paper](https://ieeexplore.ieee.org/document/8915761/); in Pytorch respository, backward over STFT is done by the Pytorch library. 
 
 ### Reference
 

@@ -44,3 +44,12 @@ if [ -e "../DATA/${FILENAME}" ];then
 else
     echo "Cannot find ../DATA/${FILENAME}. Please contact the author"
 fi
+
+# generate using trained model
+if [ -e "../DATA/${FILENAME}" ];then
+    echo -e "${RED}Model is trained${NC}"
+    echo -e "${RED}Generate waveform${NC}"
+    python main.py --inference --trained-model trained_network.pt --output-dir output
+else
+    echo "Cannot find ../DATA/${FILENAME}. Please contact the author"
+fi

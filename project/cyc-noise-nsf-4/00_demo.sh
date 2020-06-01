@@ -40,7 +40,18 @@ if [ -e "../DATA/${FILENAME}" ];then
     echo -e "${RED}Training will take several hours. Please don't quit this job. ${NC}"
     echo -e "${RED}Please check log_train and log_err for monitoring the training process.${NC}"
     source ../../env.sh
-    python main.py --num-workers 2 > log_train 2>log_err
+    python main.py --num-workers 10 > log_train 2>log_err
+    
+else
+    echo "Cannot find ../DATA/${FILENAME}. Please contact the author"
+fi
+
+
+# generate using trained model
+if [ -e "../DATA/${FILENAME}" ];then
+    echo -e "${RED}Model is trained${NC}"
+    echo -e "${RED}Generate waveform${NC}"
+    python main.py --inference --trained-model trained_network.pt --output-dir output
 else
     echo "Cannot find ../DATA/${FILENAME}. Please contact the author"
 fi
