@@ -56,7 +56,7 @@ input_reso = [80, 80]
 input_norm = [True, True]
     
 # Similar configurations for output features
-output_dirs = [tmp + '/wav_16k']
+output_dirs = [tmp + '/wav_16k_norm']
 output_dims = [1]
 output_exts = ['.wav']
 output_reso = [1]
