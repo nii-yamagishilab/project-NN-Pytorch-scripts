@@ -98,8 +98,6 @@ The motivation is to separate the training and inference process, the model defi
 ### Differences from CURRENNT implementation
 There may be more, but here are the important ones:
 
-* Waveform normalization: in CURRENNT and all experiments in the paper, the target waveforms were normalized using [sv56](https://www.itu.int/rec/T-REC-G.191-201901-I/en). You can find the script to use sv56 in *./project/DATA/cmu-arctic-data-set/scripts/wav/00_batch.sh* after runnning 00_demo.sh in any of the projects. For convenience, unormalized waveforms are used as training target in this repository; 
-
 * "Batch-normalization": in CURRENNT, "batch-normalization" is conducted along the length sequence, i.e., assuming each frame as one sample. There is no equivalent implementation on this Pytorch repository;
 
 * No bias in CNN and FF: due to the 1st point, NSF in this repostory uses bias=false for CNN and feedforward layers in neural filter blocks, which can be helpful to make the hidden signals around 0;
