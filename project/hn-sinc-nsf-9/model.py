@@ -14,6 +14,7 @@ import torch
 import torch.nn as torch_nn
 import torch.nn.functional as torch_nn_func
 import core_scripts.other_tools.debug as nii_debug
+import config as prj_conf
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -790,9 +791,10 @@ class Model(torch_nn.Module):
         # dimension of hidden features in filter blocks
         self.hidden_dim = 64
         # upsampling rate on input acoustic features (16kHz * 5ms = 80)
-        self.upsamp_rate = 80
+        # assume input_reso has the same value
+        self.upsamp_rate = prj_conf.input_reso[0]
         # sampling rate (Hz)
-        self.sampling_rate = 16000
+        self.sampling_rate = prj_conf.wav_samp_rate
         # CNN kernel size in filter blocks        
         self.cnn_kernel_s = 3
         # number of filter blocks (for harmonic branch)
