@@ -1,8 +1,6 @@
 # project-NII-pytorch-scripts
 By Xin Wang, National Institute of Informatics, 2020
 
-(status: under testing)
-
 I am a new pytorch user. If you have any suggestions or questions, pleas email wangxin at nii dot ac dot jp
 
 ---
@@ -16,6 +14,8 @@ This repository contains pytorch codes for a few projects:
 2. [Harmonic-plus-noise NSF with trainable sinc filter](https://nii-yamagishilab.github.io/samples-nsf/nsf-v3.html) 
 
 3. [Harmonic-plus-noise NSF with fixed FIR filter](https://nii-yamagishilab.github.io/samples-nsf/nsf-v2.html) 
+
+All projects come with pre-trained models on CMU-arctic (4 speakers) and a demo script to run/train/inference.
 
 This is the re-implemetation of projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. 
 
@@ -49,13 +49,17 @@ $: bash 00_demo.sh
 
 The above steps will download the CMU-arctic data, run waveform generation using a pre-trained model, and train a new model (which may take 1 day or more on Nvidia V100 GPU). 
 
-Note that 00_demo.sh will download a data package for the CMU-arctic corpus, which includes wav (normalized), f0, and Mel-spectrogram. If you want to train the model on your own data, please prepare the input/output data by yourself. There are scripts to extract features from 16kHz in the CMU-arctic data package (in ./project/DATA after running 00_demo.sh)
+### Notes
 
-Also note that, most of my experiments are done on 16 kHz waveforms. If you want to try 24 kHz waveforms, FIR or sinc digital filters in the model may be changed for better performance:
+* Input data: 00_demo.sh above will download a data package for the CMU-arctic corpus, including wav (normalized), f0, and Mel-spectrogram. If you want to train the model on your own data, please prepare the input/output data by yourself. There are scripts to extract features from 16kHz in the CMU-arctic data package (in ./project/DATA after running 00_demo.sh)
 
-1. in hn-nsf: lp_v, lp_u, hp_v, and hp_u are calculated on for 16 kHz configuartions. For different sampling rate, you may use this online tool http://t-filter.engineerjs.com to get the filter coefficients. In this case, the stop-band for lp_v and lp_u is extended to 12k, while the pass-band for hp_v and hp_u is extended to 12k. The reason is that, no matter what is the sampling rate, the actual formats (in Hz) and spectral of sounds don't change along the sampling rate;
+* Batch size: implementation works only for batchsize = 1. My previous experiments only used batchsize = 1. I haven't update the data I/O to load varied length utterances
 
-2. in hn-sinc-nsf and cyc-noise-nsf: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
+* To 24kHz: most of my experiments are done on 16 kHz waveforms. If you want to try 24 kHz waveforms, FIR or sinc digital filters in the model may be changed for better performance:
+    
+    1. in hn-nsf: lp_v, lp_u, hp_v, and hp_u are calculated on for 16 kHz configuartions. For different sampling rate, you may use this online tool http://t-filter.engineerjs.com to get the filter coefficients. In this case, the stop-band for lp_v and lp_u is extended to 12k, while the pass-band for hp_v and hp_u is extended to 12k. The reason is that, no matter what is the sampling rate, the actual formats (in Hz) and spectral of sounds don't change along the sampling rate;
+
+    2. in hn-sinc-nsf and cyc-noise-nsf: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
 
 
 ### Explanation
@@ -110,11 +114,16 @@ There may be more, but here are the important ones:
 
 * No bias in CNN and FF: due to the 1st point, NSF in this repostory uses bias=false for CNN and feedforward layers in neural filter blocks, which can be helpful to make the hidden signals around 0;
 
+* smaller learning rate: due to the 1st point, learning rate in this repository is decreased from 0.0003 to a smaller value. Accordingly, more training epochs;
+
 * STFT framing/padding: in CURRENNT, the first frame starts from the 1st step of a signal; in this Pytorch repository (as Librosa), the first frame is centered around the 1st step of a signal, and the frame is padded with 0;
 
 * (minor one) STFT backward: in CURRENNT, STFT backward follows the steps in [this paper](https://ieeexplore.ieee.org/document/8915761/); in Pytorch respository, backward over STFT is done by the Pytorch library. 
 
 * ...
+
+The learning curves look similar to the CURRENNT (cuda) version.
+![learning_curve](./misc/fig1_curve.png)
 
 ### Reference
 
@@ -123,3 +132,12 @@ There may be more, but here are the important ones:
 2. Xin Wang, Shinji Takaki, and Junichi Yamagishi. 2020. Neural source-filter waveform models for statistical parametric speech synthesis. IEEE/ACM Transactions on Audio, Speech, and Language Processing, 28:402–415. https://ieeexplore.ieee.org/document/8915761/
 
 
+### To do
+
+1. Add tutorial on Modules
+
+2. Network config for 24kHz
+
+3. Batchsize > 1
+
+4. ...
