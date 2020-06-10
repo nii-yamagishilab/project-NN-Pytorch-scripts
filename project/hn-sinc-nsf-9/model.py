@@ -848,9 +848,9 @@ class Model(torch_nn.Module):
                 sys.exit(1)
         else:
             in_m = torch.zeros([in_dim])
-            in_s = torch.zeros([in_dim])
+            in_s = torch.ones([in_dim])
             out_m = torch.zeros([out_dim])
-            out_s = torch.zeros([out_dim])
+            out_s = torch.ones([out_dim])
             
         return in_m, in_s, out_m, out_s
         
