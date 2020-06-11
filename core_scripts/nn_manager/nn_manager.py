@@ -18,6 +18,7 @@ import core_scripts.other_tools.display as nii_display
 import core_scripts.other_tools.str_tools as nii_str_tk
 import core_scripts.op_manager.op_process_monitor as nii_monitor
 import core_scripts.op_manager.op_display_tools as nii_op_display_tk
+import core_scripts.nn_manager.nn_manager_tools as nii_nn_tools
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -33,7 +34,6 @@ class CheckPointKey:
     trnlog = 'train_log'
     vallog = 'val_log'
     
-
 def f_save_epoch_name(args, epoch_idx):
     """ 
     f_save_epoch_name(args, epoch_idx)
@@ -73,7 +73,8 @@ def f_model_show(pt_model):
 def f_run_one_epoch(args,
                     pt_model, loss_wrapper, \
                     device, monitor,  \
-                    data_loader, epoch_idx, optimizer = None):
+                    data_loader, epoch_idx, optimizer = None, \
+                    target_norm_method = None):
     """
     f_run_one_epoch: 
        run one poech over the dataset (for training or validation sets)
@@ -90,6 +91,8 @@ def f_run_one_epoch(args,
        optimizer:    torch optimizer or None
                      if None, the back propgation will be skipped
                      (for developlement set)
+       target_norm_method: method to normalize target data
+                           (by default, use pt_model.normalize_target)
     """
     # timer
     start_time = time.time()
@@ -135,7 +138,11 @@ def f_run_one_epoch(args,
             data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
             # there is no way to normalize the data inside loss
             # thus, do normalization here
-            normed_target = pt_model.normalize_target(data_tar)
+            if target_norm_method is None:
+                normed_target = pt_model.normalize_target(data_tar)
+            else:
+                normed_target = target_norm_method(data_tar)
+
             loss = loss_wrapper.compute(data_gen, normed_target)
             loss_value = loss.item()            
             if optimizer is not None:
@@ -229,8 +236,21 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     # training log information
     train_log = ''
 
-    # print the network
+    # prepare for DataParallism if available
+    # pytorch.org/tutorials/beginner/blitz/data_parallel_tutorial.html
+    if torch.cuda.device_count() > 1 and args.multi_gpu_data_parallel:
+        flag_multi_device = True  
+        nii_display.f_print("Use %d GPUs" % (torch.cuda.device_count()))
+        # no way to call normtarget_f after pt_model is in DataParallel
+        normtarget_f = pt_model.normalize_target
+        pt_model = nn.DataParallel(pt_model)
+    else:
+        nii_display.f_print("Use single GPU")
+        flag_multi_device = False
+        normtarget_f = None
     pt_model.to(device, dtype=nii_dconf.d_dtype)
+
+    # print the network
     f_model_show(pt_model)
 
     # resume training or initialize the model if necessary
@@ -241,7 +261,14 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
 
             # load model parameter and optimizer state
             if cp_names.state_dict in checkpoint:
-                pt_model.load_state_dict(checkpoint[cp_names.state_dict])
+                # wrap the state_dic in f_state_dict_wrapper 
+                # in case the model is saved when DataParallel is on
+                pt_model.load_state_dict(
+                    nii_nn_tools.f_state_dict_wrapper(
+                        checkpoint[cp_names.state_dict], 
+                        flag_multi_device))
+
+            # load optimizer state
             if cp_names.optimizer in checkpoint:
                 optimizer.load_state_dict(checkpoint[cp_names.optimizer])
             
@@ -261,7 +288,10 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                 nii_display.f_print("Load pretrained model and optimizer")
         else:
             # only model status
-            pt_model.load_state_dict(checkpoint)
+            #pt_model.load_state_dict(checkpoint)
+            pt_model.load_state_dict(
+                nii_nn_tool.f_state_dict_wrapper(
+                    checkpoint, flag_multi_device))
             nii_display.f_print("Load pretrained model")
             
     # other variables
@@ -281,7 +311,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         pt_model.train()
         f_run_one_epoch(args, pt_model, loss_wrapper, device, \
                         monitor_trn, train_data_loader, \
-                        epoch_idx, optimizer)
+                        epoch_idx, optimizer, normtarget_f)
         time_trn = monitor_trn.get_time(epoch_idx)
         loss_trn = monitor_trn.get_loss(epoch_idx)
         
@@ -294,7 +324,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                 f_run_one_epoch(args, pt_model, loss_wrapper, \
                                 device, \
                                 monitor_val, val_data_loader, \
-                                epoch_idx, None)
+                                epoch_idx, None, normtarget_f)
             time_val = monitor_val.get_time(epoch_idx)
             loss_val = monitor_val.get_loss(epoch_idx)
         else:

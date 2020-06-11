@@ -77,6 +77,10 @@ def f_args_parsed(argument_input = None):
     mes = 'number of parallel workers to load data (default: 0)'
     parser.add_argument('--num-workers', type=int, default=0, \
                         metavar='N', help=mes)
+
+    mes = 'use DataParallel to levarage multiple GPU (default: False)'
+    parser.add_argument('--multi-gpu-data-parallel', \
+                        action='store_true', default=False, help=mes)
     
     ######
     # options to save model / checkpoint
