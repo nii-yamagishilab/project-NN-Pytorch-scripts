@@ -27,7 +27,8 @@ def f_args_parsed(argument_input = None):
     
     ######
     # Training settings
-    parser = argparse.ArgumentParser(description='General argument parse')
+    parser = argparse.ArgumentParser(
+        description='General argument parse')
     
     mes = 'batch size for training/inference (default: 1)'
     parser.add_argument('--batch-size', type=int, default=1, \
@@ -41,7 +42,8 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--no-best-epochs', type=int, default=5, \
                         metavar='N', help=mes)
     
-    parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',\
+    parser.add_argument('--lr', type=float, default=0.0001, 
+                        metavar='LR',\
                         help='learning rate (default: 0.0001)')
     
     parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -56,11 +58,21 @@ def f_args_parsed(argument_input = None):
 
     mes = 'if model.forward(input, target), please set this option on.'
     mes += 'This is used for autoregressive model, auto-encoder ...'
+    mes += 'When --model-forward-with-file-name is also on, '
+    mes += 'model.forward(input, target, file_name) should be defined'
     parser.add_argument('--model-forward-with-target', \
+                        action='store_true', default=False, help=mes)
+
+    mes = 'if model.forward(input, file_name), please set option on.'
+    mes += 'This is used with forward requires file name of the data.'
+    mes += 'When --model-forward-with-target is also on, '
+    mes += 'model.forward(input, target, file_name) should be defined'
+    parser.add_argument('--model-forward-with-file-name', \
                         action='store_true', default=False, help=mes)
     
     parser.add_argument('--shuffle', action='store_false', \
-                        default=True, help='shuffle data? (default true)')
+                        default=True, 
+                        help='shuffle data? (default true)')
 
     mes = 'number of parallel workers to load data (default: 0)'
     parser.add_argument('--num-workers', type=int, default=0, \
@@ -70,7 +82,7 @@ def f_args_parsed(argument_input = None):
     # options to save model / checkpoint
     parser.add_argument('--save-model-dir', type=str, \
                         default="./", \
-                        help='save model to this direcotry (default: ./)')
+                        help='save model to this direcotry (default ./)')
     
     mes = 'do not save model after every epoch (default: False)'
     parser.add_argument('--not-save-each-epoch', action='store_true', \
@@ -92,6 +104,12 @@ def f_args_parsed(argument_input = None):
     mes = 'a trained model for inference or resume training '
     parser.add_argument('--trained-model', type=str, \
                         default="", help=mes + "(default: '')")
+
+    mes = 'do not load previous training error information.'
+    mes += " Load only model para. and optimizer state  (default: false)"
+    parser.add_argument('--ignore-training-history-in-trained-model', 
+                        action='store_true', \
+                        default=False, help=mes)    
 
     mes = 'run inference mode (default: False, run training script)'
     parser.add_argument('--inference', action='store_true', \

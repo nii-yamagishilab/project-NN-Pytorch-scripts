@@ -73,7 +73,7 @@ def wavformMuLaw2Raw(wavdata, quanLevel = 255.0):
     return wavdata
 
 
-def float2wav(rawdata, wavFile, bit=16, samplingRate = 16000):
+def float2wav(rawData, wavFile, bit=16, samplingRate = 16000):
     """ 
     float2wav(rawFile, wavFile, bit=16, samplingRate = 16000)
     Convert float waveform into waveform in int

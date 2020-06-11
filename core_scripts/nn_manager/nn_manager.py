@@ -114,13 +114,20 @@ def f_run_one_epoch(args,
             # for example, for auto-encoder & autoregressive model
             if isinstance(data_tar, torch.Tensor):
                 data_tar_tm = data_tar.to(device, dtype=nii_dconf.d_dtype)
-                data_gen = pt_model(data_in, data_tar_tm)
+                if args.model_forward_with_file_name:
+                    data_gen = pt_model(data_in, data_tar_tm, data_info)
+                else:
+                    data_gen = pt_model(data_in, data_tar_tm)
             else:
                 nii_display.f_print("--model-forward-with-target is set")
-                nii_display.f_die("but no data_tar is not loaded")
+                nii_display.f_die("but data_tar is not loaded")
         else:
-            # normal case for model.forward(input)
-            data_gen = pt_model(data_in)
+            if args.model_forward_with_file_name:
+                # specifcal case when model.forward requires data_info
+                data_gen = pt_model(data_in, data_info)
+            else:
+                # normal case for model.forward(input)
+                data_gen = pt_model(data_in)
         
         # compute loss and do back propagate
         loss_value = 0
@@ -135,11 +142,14 @@ def f_run_one_epoch(args,
                 loss.backward()
                 optimizer.step()
                     
-        # log down process information
+        # save the training process information to the monitor
         end_time = time.time()
         batchsize = len(data_info)
         for idx, data_seq_info in enumerate(data_info):
-            monitor.log_loss(loss_value / batchsize, \
+            # loss_value is supposed to be the average loss value
+            # over samples in the the batch, thus, just loss_value
+            # rather loss_value / batchsize
+            monitor.log_loss(loss_value, \
                              (end_time-start_time) / batchsize, \
                              data_seq_info, idx_orig.numpy()[idx], \
                              epoch_idx)
@@ -228,21 +238,31 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     if checkpoint is not None:
         if type(checkpoint) is dict:
             # checkpoint
+
+            # load model parameter and optimizer state
             if cp_names.state_dict in checkpoint:
                 pt_model.load_state_dict(checkpoint[cp_names.state_dict])
             if cp_names.optimizer in checkpoint:
                 optimizer.load_state_dict(checkpoint[cp_names.optimizer])
-            if cp_names.trnlog in checkpoint:
-                monitor_trn.load_state_dic(checkpoint[cp_names.trnlog])
-            if cp_names.vallog in checkpoint and monitor_val:
-                monitor_val.load_state_dic(checkpoint[cp_names.vallog])
-            if cp_names.info in checkpoint:
-                train_log = checkpoint[cp_names.info]
-            nii_display.f_print("Load check point and resume training")
+            
+            # optionally, load training history
+            if not args.ignore_training_history_in_trained_model:
+                nii_display.f_print("Load ")
+                if cp_names.trnlog in checkpoint:
+                    monitor_trn.load_state_dic(
+                        checkpoint[cp_names.trnlog])
+                if cp_names.vallog in checkpoint and monitor_val:
+                    monitor_val.load_state_dic(
+                        checkpoint[cp_names.vallog])
+                if cp_names.info in checkpoint:
+                    train_log = checkpoint[cp_names.info]
+                nii_display.f_print("Load check point, resume training")
+            else:
+                nii_display.f_print("Load pretrained model and optimizer")
         else:
             # only model status
             pt_model.load_state_dict(checkpoint)
-            nii_display.f_print("Load pre-trained model")
+            nii_display.f_print("Load pretrained model")
             
     # other variables
     flag_early_stopped = False
@@ -371,9 +391,16 @@ def f_inference_wrapper(args, pt_model, device, \
             if args.model_forward_with_target:
                 # if model.forward requires (input, target) as arguments
                 # for example, for auto-encoder
-                data_gen = pt_model(data_in, data_tar)
+                if args.model_forward_with_file_name:
+                    data_gen = pt_model(data_in, data_tar, data_info)
+                else:
+                    data_gen = pt_model(data_in, data_tar)
             else:    
-                data_gen = pt_model(data_in)
+                if args.model_forward_with_file_name:
+                    data_gen = pt_model(data_in, data_info)
+                else:
+                    data_gen = pt_model(data_in)
+                    
             data_gen = pt_model.denormalize_output(data_gen)
             time_cost = time.time() - start_time
             # average time for each sequence when batchsize > 1
