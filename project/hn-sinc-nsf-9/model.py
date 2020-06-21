@@ -27,7 +27,7 @@ __copyright__ = "Copyright 2020, Xin Wang"
 #     
 # For blstm
 class BLSTMLayer(torch_nn.Module):
-    """ Wrapper over dilated conv1D
+    """ Wrapper over lstm
     Input tensor:  (batchsize=1, length, dim_in)
     Output tensor: (batchsize=1, length, dim_out)
     
