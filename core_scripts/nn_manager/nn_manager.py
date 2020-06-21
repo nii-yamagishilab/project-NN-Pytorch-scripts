@@ -245,7 +245,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         normtarget_f = pt_model.normalize_target
         pt_model = nn.DataParallel(pt_model)
     else:
-        nii_display.f_print("Use single GPU")
+        nii_display.f_print("Use single GPU: %s" % \
+                            (torch.cuda.get_device_name(device)))
         flag_multi_device = False
         normtarget_f = None
     pt_model.to(device, dtype=nii_dconf.d_dtype)
@@ -394,6 +395,12 @@ def f_inference_wrapper(args, pt_model, device, \
     test_seq_num = test_dataset_wrapper.get_seq_num()
     test_dataset_wrapper.print_info()
     
+    if torch.cuda.device_count() > 1 and args.multi_gpu_data_parallel:
+        nii_display.f_print(
+            "DataParallel for inference is not implemented", 'warning')
+    nii_display.f_print("Use single GPU: %s" % \
+                        (torch.cuda.get_device_name(device)))
+
     # print the network
     pt_model.to(device, dtype=nii_dconf.d_dtype)
     print(pt_model)
