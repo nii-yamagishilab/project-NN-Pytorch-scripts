@@ -24,13 +24,27 @@ def print_gen_info(seq_name, time):
     nii_display.f_print_message(mes)
     return mes + '\n'
 
+def _print_loss(loss_array):
+    mes = ""
+    if loss_array.shape[0] == 1:
+        mes += "%12.4f " % (loss_array[0])
+    else:
+        mes = []
+        for data in loss_array:
+            mes.append('%6.2f' % (data))
+        mes = ' '.join(mes)
+    mes += "| "
+    return mes
+
 def print_train_info(epoch, time_tr, loss_tr, time_val, loss_val, isbest):
     """ Print the information during training
     """
     mes = "{:>7d} | ".format(epoch)
     mes = mes + "{:>12.1f} | ".format(time_tr + time_val)
-    mes = mes + "{:>12.4f} | ".format(loss_tr)
-    mes = mes + "{:>12.4f} | ".format(loss_val)    
+    mes += _print_loss(loss_tr)
+    mes += _print_loss(loss_val)
+    #mes = mes + "{:>12.4f} | ".format(loss_tr)
+    #mes = mes + "{:>12.4f} | ".format(loss_val)    
     if isbest:
         mes = mes + "{:>5s}".format("yes")
     else:

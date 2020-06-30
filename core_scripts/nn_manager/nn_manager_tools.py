@@ -49,3 +49,29 @@ def f_state_dict_wrapper(state_dict, data_parallel=False):
             new_state_dict[name] = v
         return new_state_dict
 
+def f_process_loss(loss):
+    """ loss, loss_value = f_process_loss(loss):
+    Input:
+      loss: returned by loss_wrapper.compute
+      It can be a torch.tensor or a list of torch.tensor
+      When it is a list, it should look like:
+       [[loss_1, loss_2, loss_3],
+        [true/false,   true/false,  true.false]]
+      where true / false tells whether the loss should be taken into 
+      consideration for early-stopping
+
+    Output:
+      loss: a torch.tensor
+      loss_value: a torch number of a list of torch number
+    """
+    if type(loss) is list:
+        loss_sum = loss[0][0]
+        loss_list = [loss[0][0].item()]
+        if len(loss[0]) > 1:
+            for loss_tmp in loss[0][1:]:
+                loss_sum += loss_tmp
+                loss_list.append(loss_tmp.item())
+        return loss_sum, loss_list, loss[1]
+    else:
+        return loss, [loss.item()], [True]
+

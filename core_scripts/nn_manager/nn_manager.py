@@ -133,7 +133,7 @@ def f_run_one_epoch(args,
                 data_gen = pt_model(data_in)
         
         # compute loss and do back propagate
-        loss_value = 0
+        loss_vals = [0]
         if isinstance(data_tar, torch.Tensor):
             data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
             # there is no way to normalize the data inside loss
@@ -142,9 +142,14 @@ def f_run_one_epoch(args,
                 normed_target = pt_model.normalize_target(data_tar)
             else:
                 normed_target = target_norm_method(data_tar)
+            
+            # return the loss from loss_wrapper
+            loss_computed = loss_wrapper.compute(data_gen, normed_target)
 
-            loss = loss_wrapper.compute(data_gen, normed_target)
-            loss_value = loss.item()            
+            # to handle cases where there are multiple loss functions
+            loss, loss_vals, loss_flags = nii_nn_tools.f_process_loss(
+                loss_computed)
+
             if optimizer is not None:
                 loss.backward()
                 optimizer.step()
@@ -156,7 +161,7 @@ def f_run_one_epoch(args,
             # loss_value is supposed to be the average loss value
             # over samples in the the batch, thus, just loss_value
             # rather loss_value / batchsize
-            monitor.log_loss(loss_value, \
+            monitor.log_loss(loss_vals, loss_flags, \
                              (end_time-start_time) / batchsize, \
                              data_seq_info, idx_orig.numpy()[idx], \
                              epoch_idx)
@@ -275,7 +280,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             
             # optionally, load training history
             if not args.ignore_training_history_in_trained_model:
-                nii_display.f_print("Load ")
+                #nii_display.f_print("Load ")
                 if cp_names.trnlog in checkpoint:
                     monitor_trn.load_state_dic(
                         checkpoint[cp_names.trnlog])
@@ -338,12 +343,9 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             flag_new_best = True
             
         # print information
-        train_log += nii_op_display_tk.print_train_info(epoch_idx, \
-                                                        time_trn, \
-                                                        loss_trn, \
-                                                        time_val, \
-                                                        loss_val, \
-                                                        flag_new_best)
+        train_log += nii_op_display_tk.print_train_info(
+            epoch_idx, time_trn, loss_trn, time_val, loss_val, 
+            flag_new_best)
         # save the best model
         if flag_new_best:
             tmp_best_name = f_save_trained_name(args)
