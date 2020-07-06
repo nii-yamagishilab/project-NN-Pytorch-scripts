@@ -111,9 +111,15 @@ class Monitor():
     def get_max_epoch(self):
         return self.epoch_num
 
-    def _get_loss_for_learning_stopping(self):
+    def _get_loss_for_learning_stopping(self, epoch_idx):
         # compute the average loss values
-        loss_this = np.sum(self.loss_mat[self.cur_epoch, :, :], axis=0)
+        if epoch_idx > self.cur_epoch:
+            nii_display.f_print("To find loss for future epochs", 'error')
+            nii_display.f_die("Op_process_monitor: error")
+        if epoch_idx < 0:
+            nii_display.f_print("To find loss for NULL epoch", 'error')
+            nii_display.f_die("Op_process_monitor: error")
+        loss_this = np.sum(self.loss_mat[epoch_idx, :, :], axis=0)
         # compute only part of the loss for early stopping when necessary
         loss_this = np.sum(loss_this * self.loss_flag)
         return loss_this
@@ -146,7 +152,7 @@ class Monitor():
         """
         check whether epoch is the new_best
         """
-        loss_this = self._get_loss_for_learning_stopping()
+        loss_this = self._get_loss_for_learning_stopping(self.cur_epoch)
         if self.best_error is None or loss_this < self.best_error:
             self.best_error = loss_this
             self.best_epoch = self.cur_epoch
@@ -159,6 +165,15 @@ class Monitor():
         check whether to stop training early
         """
         if (self.cur_epoch - self.best_epoch) >= no_best_epoch_num:
+            #
+            #tmp = []
+            #for idx in np.arange(no_best_epoch_num+1):
+            #    tmp.append(self._get_loss_for_learning_stopping(
+            #        self.cur_epoch - idx))
+            #if np.sum(np.diff(tmp) < 0) >= no_best_epoch_num:
+            #    return True
+            #else:
+            #    return False
             return True
         else:
             return False
