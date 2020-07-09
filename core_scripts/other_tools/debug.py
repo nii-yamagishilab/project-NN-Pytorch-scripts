@@ -32,3 +32,4 @@ def qw(data, path=None):
         pass
     
     nii_io.f_write_raw_mat(data.detach().to('cpu').numpy(), path)
+

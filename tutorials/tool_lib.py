@@ -41,6 +41,43 @@ def read_raw_mat(filename,col,format='f4',end='l'):
     else:
         return data
 
+def write_raw_mat(data, filename, data_format='f4', end='l'):
+    """write_raw_mat(data,filename,data_format='',end='l')                
+       Write the binary data from filename.                               
+       Return True                                                        
+                                                                          
+       data:     np.array                                                 
+       filename: the name of the file, take care about '\\'               
+       data_format:   please use the Python protocal to write data_format 
+                 default: 'f4', float32                                   
+       end:      little endian 'l' or big endian 'b'?                     
+                 default: '', only when data_format is specified, end     
+                 is effective                                             
+                                                                          
+       dependency: numpy                                                  
+       Note: we can also write two for loop to write the data using       
+             f.write(data[a][b]), but it is too slow                      
+    """
+    if not isinstance(data, np.ndarray):
+        print("Error write_raw_mat: input shoul be np.array")
+        return False
+    f = open(filename,'wb')
+    if len(data_format)>0:
+        if end=='l':
+            data_format = '<'+data_format
+        elif end=='b':
+            data_format = '>'+data_format
+        else:
+            data_format = '='+data_format
+        datatype = np.dtype(data_format)
+        temp_data = data.astype(datatype)
+    else:
+        temp_data = data
+    temp_data.tofile(f,'')
+    f.close()
+    return True
+
+    
 def spec(data, fft_bins=4096, frame_shift=40, frame_length=240):
     """
     f, t, cfft = scipy.signal.stft(data, nfft=4096, noverlap=frame_length-frame_shift, nperseg=frame_length)
