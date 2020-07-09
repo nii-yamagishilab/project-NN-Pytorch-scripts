@@ -4,7 +4,7 @@
 
 Tutorials are written as Jupyter notebook. You may use Jupyter notebook or Jupyter lab to run the notebooks.
 
-Otherwise, please browse the html files and try the codes in your favorite python environment.
+Otherwise, please browse the HTML files and try the codes in your favorite python environment.
 
 To use Jupyter:
 1. Please install Jupyter notebook or Jupyter Lab https://jupyter.org/;
