@@ -63,7 +63,7 @@ def plot_matrix(data, fig, axis_left=0.0,
             # plot from top to down
             y_idx_reverse = y_max - 1 - y_idx
             axis.text(x_idx+0.5+bias, y_idx_reverse+0.5+bias, 
-                      "%.2f" % (data[y_idx, x_idx]),
+                      "%.1f" % (data[y_idx, x_idx]),
                       color='k', horizontalalignment='center',
                       verticalalignment='center')
             x_tmp = np.array([x_idx, x_idx+1, x_idx+1, x_idx]) + bias
@@ -79,24 +79,36 @@ def plot_matrix(data, fig, axis_left=0.0,
                 cell_color = cmap(color_val[color_idx])
             axis.fill(x_tmp, y_tmp, color=cell_color, alpha=alpha)
     axis.axis('off')
+    return axis
 
-def plot_tensor(data, fig, shift=0.2, colormap='Greys',
+def plot_tensor(data, shift=0.1, colormap='Greys',
                 color_on_value=False,
                 colorgrad_y=True, colorgrad_x=True, alpha=1.0):
+    
     if data.ndim != 3:
         print("input data is not a 3d tensor ")
-        return
+        return None,None
+    
+    fig_width = data.shape[2]/2 + (data.shape[0]-1)*shift
+    fig_height = data.shape[1]/2 + (data.shape[0]-1)*shift
+    fig = plt.figure(figsize=(fig_width, fig_height))
     axis_start = 0.0
     axis_end = 1.0
     axis_length = axis_end - shift * (data.shape[0] - 1) - axis_start
+    
     
     if color_on_value:
         color_norm = lambda x: (x - data.min())/(data.max() - data.min()+0.0001)*0.6
     else:
         color_norm = None
+    axis = []
     for idx in np.arange(data.shape[0]):
-        plot_matrix(data[idx], fig, 
-                    axis_start + shift * idx, 
-                    axis_start + shift * (data.shape[0]-1-idx),
-                    axis_length, 
-                    colormap, color_norm, colorgrad_y, colorgrad_x, alpha)
+        axis.append(
+            plot_matrix(
+                data[idx], fig, 
+                axis_start + shift * idx, 
+                axis_start + shift * (data.shape[0]-1-idx),
+                axis_length, 
+                colormap, color_norm, 
+                colorgrad_y, colorgrad_x, alpha))
+    return fig, axis
