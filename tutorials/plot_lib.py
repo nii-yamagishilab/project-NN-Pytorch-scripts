@@ -37,7 +37,8 @@ import matplotlib
 def plot_matrix(data, fig, axis_left=0.0, 
                 axis_bottom=0.0, axis_length=1.0, colormap='Greys',
                 color_norm = None,
-                colorgrad_y=True, colorgrad_x=True, alpha=1.0):
+                colorgrad_y=True, colorgrad_x=True, alpha=1.0, 
+                int_width=1, deci_width=1):
     
     axis = fig.add_axes([axis_left, axis_bottom, axis_length, axis_length])
     
@@ -63,7 +64,7 @@ def plot_matrix(data, fig, axis_left=0.0,
             # plot from top to down
             y_idx_reverse = y_max - 1 - y_idx
             axis.text(x_idx+0.5+bias, y_idx_reverse+0.5+bias, 
-                      "%.1f" % (data[y_idx, x_idx]),
+                      "%*.*f" % (int_width, deci_width, data[y_idx, x_idx]),
                       color='k', horizontalalignment='center',
                       verticalalignment='center')
             x_tmp = np.array([x_idx, x_idx+1, x_idx+1, x_idx]) + bias
@@ -83,7 +84,8 @@ def plot_matrix(data, fig, axis_left=0.0,
 
 def plot_tensor(data, shift=0.1, colormap='Greys',
                 color_on_value=False,
-                colorgrad_y=True, colorgrad_x=True, alpha=1.0):
+                colorgrad_y=True, colorgrad_x=True, alpha=1.0,
+                title='', int_width=1, deci_width=1):
     
     if data.ndim != 3:
         print("input data is not a 3d tensor ")
@@ -110,5 +112,7 @@ def plot_tensor(data, shift=0.1, colormap='Greys',
                 axis_start + shift * (data.shape[0]-1-idx),
                 axis_length, 
                 colormap, color_norm, 
-                colorgrad_y, colorgrad_x, alpha))
+                colorgrad_y, colorgrad_x, alpha, int_width, deci_width))
+    if len(title):
+        fig.text(0.5, 0.98, title, ha='center') 
     return fig, axis
