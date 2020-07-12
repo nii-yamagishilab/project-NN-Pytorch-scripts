@@ -330,16 +330,16 @@ class SineGen(torch_nn.Module):
         output uv: tensor(batchsize=1, length, 1)
         """
         with torch.no_grad():
-            phase_buf = torch.zeros(f0.shape[0], f0.shape[1], self.dim, \
+            f0_buf = torch.zeros(f0.shape[0], f0.shape[1], self.dim, \
                                     device=f0.device)
             # fundamental component
-            phase_buf[:, :, 0] = f0[:, :, 0]
+            f0_buf[:, :, 0] = f0[:, :, 0]
             for idx in np.arange(self.harmonic_num):
                 # idx + 2: the (idx+1)-th overtone, (idx+2)-th harmonic
-                phase_buf[:, :, idx+1] = phase_buf[:, :, 0] * (idx+2)
+                f0_buf[:, :, idx+1] = f0_buf[:, :, 0] * (idx+2)
                 
             # generate sine waveforms
-            sine_waves = self._f02sine(phase_buf) * self.sine_amp
+            sine_waves = self._f02sine(f0_buf) * self.sine_amp
             
             # generate uv signal
             #uv = torch.ones(f0.shape)
