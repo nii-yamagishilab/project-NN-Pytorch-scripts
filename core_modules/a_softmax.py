@@ -142,9 +142,13 @@ class AngularSoftmaxWithLoss(torch_nn.Module):
     
         # output (batchsize, output_dim)
         # Tricks
-        # output(\theta_yi) = (lambda * cos(\theta_yi) + ((-1) ** k * cos(m * \theta_yi) - 2 * k)) / (1 + lambda)
-        #             = cos(\theta_yi) - cos(\theta_yi) / (1 + lambda) + Phi(\theta_yi) / (1 + lambda)
-        self.lamb = max(self.lambda_min, self.lambda_max / (1 + 0.1 * self.iter))
+        # output(\theta_yi) 
+        # = (lambda*cos(\theta_yi) + ((-1)**k * cos(m * \theta_yi) - 2*k))
+        #    /(1 + lambda)
+        # = cos(\theta_yi) 
+        #   - cos(\theta_yi) / (1 + lambda) + Phi(\theta_yi) / (1 + lambda)
+        self.lamb = max(self.lambda_min, 
+                        self.lambda_max / (1 + 0.1 * self.iter))
         output = input[0] * 1.0
         output[index] -= input[0][index] * 1.0 / (1 + self.lamb)
         output[index] += input[1][index] * 1.0 / (1 + self.lamb)

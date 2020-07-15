@@ -144,12 +144,28 @@ def f_run_one_epoch(args,
                 normed_target = target_norm_method(data_tar)
             
             # return the loss from loss_wrapper
+            # loss_computed may be [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
+            #   which contain multiple loss and flags indicating whether
+            #   the corresponding loss should be taken into consideration
+            #   for early stopping
+            # or 
+            # loss_computed may be simply a tensor loss 
             loss_computed = loss_wrapper.compute(data_gen, normed_target)
 
-            # to handle cases where there are multiple loss functions
+            # To handle cases where there are multiple loss functions
+            # when loss_comptued is [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
+            #   loss: sum of [loss_1, loss_2, ...], for backward()
+            #   loss_vals: [loss_1.item(), loss_2.item() ..], for logging
+            #   loss_flags: [True/False, ...], for logging, 
+            #               whether loss_n is used for early stopping
+            # when loss_computed is loss
+            #   loss: loss
+            #   los_vals: [loss.item()]
+            #   loss_flags: [True]
             loss, loss_vals, loss_flags = nii_nn_tools.f_process_loss(
                 loss_computed)
 
+            # Back-propgation using the summed loss
             if optimizer is not None:
                 loss.backward()
                 optimizer.step()
@@ -296,7 +312,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             # only model status
             #pt_model.load_state_dict(checkpoint)
             pt_model.load_state_dict(
-                nii_nn_tool.f_state_dict_wrapper(
+                nii_nn_tools.f_state_dict_wrapper(
                     checkpoint, flag_multi_device))
             nii_display.f_print("Load pretrained model")
             
