@@ -48,6 +48,14 @@ $: source ../../env.sh
 $: bash 00_demo.sh
 ``` 
 
+You may also put the job to background rather wait for the job on terminal.
+```
+# run 
+$: bash 00_demo.sh > log_batch 2>&1 &
+``` 
+
+
+
 The above steps will download the CMU-arctic data, run waveform generation using a pre-trained model, and train a new model (which may take 1 day or more on Nvidia V100 GPU). 
 
 ### Notes
