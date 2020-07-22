@@ -1,0 +1,14 @@
+name: pytorch-1.4
+channels:
+  - defaults
+  - anaconda
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.8
+  - pytorch=1.4
+  - cudatoolkit=9.2
+  - torchvision
+  - scipy=1.4.1
+  - numpy=1.18.1
+prefix: /home/smg/wang/TOOL/python-devs/miniconda3/envs/pytorch-1.4
