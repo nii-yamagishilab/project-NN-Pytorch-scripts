@@ -81,7 +81,7 @@ def f_args_parsed(argument_input = None):
     mes = 'use DataParallel to levarage multiple GPU (default: False)'
     parser.add_argument('--multi-gpu-data-parallel', \
                         action='store_true', default=False, help=mes)
-    
+
     ######
     # options to save model / checkpoint
     parser.add_argument('--save-model-dir', type=str, \

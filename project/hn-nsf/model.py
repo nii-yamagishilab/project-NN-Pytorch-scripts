@@ -24,7 +24,7 @@ __copyright__ = "Copyright 2020, Xin Wang"
 #     
 # For blstm
 class BLSTMLayer(torch_nn.Module):
-    """ Wrapper over lstm
+    """ Wrapper over dilated BLSTM
     Input tensor:  (batchsize, length, dim_in)
     Output tensor: (batchsize, length, dim_out)
     We want to keep the length the same
@@ -285,12 +285,24 @@ class SineGen(torch_nn.Module):
         rand_ini = torch.rand(f0_values.shape[0], f0_values.shape[2],\
                               device = f0_values.device)
         rand_ini[:, 0] = 0
-        rad_values[:, 0, :] = rad_values[:, 0, :] + rand_ini
+        rad_values[:, 0, :] = rad_values[:, 0, :] + rand_ini        
         
         # instantanouse phase sine[t] = sin(2*pi \sum_i=1 ^{t} rad)
         if not self.flag_for_pulse:
             # for normal case
-            sines = torch.sin(torch.cumsum(rad_values, dim=1) *2*np.pi)
+
+            # To prevent torch.cumsum numerical overflow,
+            # it is necessary to add -1 whenever \sum_k=1^n rad_value_k > 1.
+            # Buffer tmp_over_one_idx indicates the time step to add -1.
+            # This will not change F0 of sine because (x-1) * 2*pi = x *2*pi
+            tmp_over_one = torch.cumsum(rad_values, 1) % 1
+            tmp_over_one_idx = (tmp_over_one[:, 1:, :] - 
+                                tmp_over_one[:, :-1, :]) < 0
+            cumsum_shift = torch.zeros_like(rad_values)
+            cumsum_shift[:, 1:, :] = tmp_over_one_idx * -1.0
+            
+            sines = torch.sin(torch.cumsum(rad_values + cumsum_shift, dim=1) \
+                              * 2 * np.pi)
         else:
             # If necessary, make sure that the first time step of every 
             # voiced segments is sin(pi) or cos(0)
