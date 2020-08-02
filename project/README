@@ -1,0 +1,7 @@
+DATA: folder to store data (for demonstration)
+
+hn-nsf: harmonic-plus-noise NSF
+hn-sinc-nsf-9: harmonic-plus-noise NSF with trainable sinc filter
+cyc-noise-nsf-4: cyclic-noise hn-sinc-NSF
+
+hn-sinc-nsf-10: hn-sinc-nsf-9 with BLSTM in condition module been replaced by multiple CNN layers
