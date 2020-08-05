@@ -137,7 +137,9 @@ def f_run_one_epoch_GAN(
         errD_real = loss_wrapper.compute_gan_D_real(d_out_real)
         if optimizer_D is not None:
             errD_real.backward()
-        d_out_real_mean = d_out_real.mean()
+
+        # this should be given by pt_model_D or loss wrapper
+        #d_out_real_mean = d_out_real.mean()
 
         # train with fake
         #  generate sample
@@ -167,7 +169,6 @@ def f_run_one_epoch_GAN(
         errD_fake = loss_wrapper.compute_gan_D_fake(d_out_fake)
         if optimizer_D is not None:
             errD_fake.backward()
-        d_out_fake_mean = d_out_fake.mean()
         
         errD = errD_real + errD_fake
         if optimizer_D is not None:
@@ -177,26 +178,37 @@ def f_run_one_epoch_GAN(
         # Update Generator 
         ############################
         pt_model_G.zero_grad()
-        d_output_fake_for_G = pt_model_D(data_gen)
-        errG_gan = loss_wrapper.compute_gan_G(d_output_fake_for_G)
-        errG_aux = loss_wrapper.compute_aux(data_gen, data_tar)
-        errG = errG_gan + errG_aux
+        d_out_fake_for_G = pt_model_D(data_gen)
+        errG_gan = loss_wrapper.compute_gan_G(d_out_fake_for_G)
+
+        # if defined, calculate auxilliart loss
+        if hasattr(loss_wrapper, "compute_aux"):
+            errG_aux = loss_wrapper.compute_aux(data_gen, data_tar)
+        else:
+            errG_aux = torch.zeros_like(errG_gan)
+
+        # if defined, calculate feat-matching loss
+        if hasattr(loss_wrapper, "compute_feat_match"):
+            errG_feat = loss_wrapper.compute_feat_match(
+                d_out_real, d_out_fake_for_G)
+        else:
+            errG_feat = torch.zeros_like(errG_gan)
+
+        # sum loss for generator
+        errG = errG_gan + errG_aux + errG_feat
 
         if optimizer_G is not None:
             errG.backward()
             optimizer_G.step()
-            
-        d_output_fake_for_G_mean = d_output_fake_for_G.mean()
         
         # construct the loss for logging and early stopping 
         # only use errG_aux for early-stopping
-        loss_computed = [[errG_aux, errD_real, errD_fake, errG_gan,
-                          d_out_real_mean, d_out_fake_mean, 
-                          d_output_fake_for_G_mean],
-                         [True, False, False, False, False, False, False]]
+        loss_computed = [
+            [errG_aux, errD_real, errD_fake, errG_gan, errG_feat],
+            [True, False, False, False, False]]
         
         # to handle cases where there are multiple loss functions
-        loss, loss_vals, loss_flags = nii_nn_tools.f_process_loss(
+        _, loss_vals, loss_flags = nii_nn_tools.f_process_loss(
             loss_computed)
 
                     
@@ -328,8 +340,8 @@ def f_run_one_epoch_WGAN(
         # Update Generator 
         ############################
         pt_model_G.zero_grad()
-        d_output_fake_for_G = pt_model_D(data_gen)
-        errG_gan = loss_wrapper.compute_gan_G(d_output_fake_for_G)
+        d_out_fake_for_G = pt_model_D(data_gen)
+        errG_gan = loss_wrapper.compute_gan_G(d_out_fake_for_G)
         errG_aux = loss_wrapper.compute_aux(data_gen, data_tar)
         errG = errG_gan + errG_aux
 
@@ -338,13 +350,13 @@ def f_run_one_epoch_WGAN(
             errG.backward()
             optimizer_G.step()
             
-        d_output_fake_for_G_mean = d_output_fake_for_G.mean()
+        d_out_fake_for_G_mean = d_out_fake_for_G.mean()
         
         # construct the loss for logging and early stopping 
         # only use errG_aux for early-stopping
         loss_computed = [[errG_aux, errG_gan, errD_real, errD_fake,
                           d_out_real_mean, d_out_fake_mean, 
-                          d_output_fake_for_G_mean],
+                          d_out_fake_for_G_mean],
                          [True, False, False, False, False, False, False]]
         
         # to handle cases where there are multiple loss functions
