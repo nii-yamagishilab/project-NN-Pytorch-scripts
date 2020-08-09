@@ -64,12 +64,24 @@ class Monitor():
             if self.seq_num != state_dic['seq_num']:
                 nii_display.f_print("Number of samples are different \
                 from previous training", 'error')
-                nii_display.f_die("Please make sure resumed training are \
-                using the same training/development sets as before")
+                nii_display.f_print("Please make sure that you are \
+                using the same training/development sets as before.", "error")
+                nii_display.f_print("Or\nPlease add --")
+                nii_display.f_print("ignore_training_history_in_trained_model")
+                nii_display.f_die(" to avoid loading training history")
 
-            self.loss_mat = state_dic['loss_mat']
-            self.time_mat = state_dic['time_mat']
-            self.epoch_num = state_dic['epoch_num']
+            if self.epoch_num == state_dic['epoch_num']:
+                self.loss_mat = state_dic['loss_mat']
+                self.time_mat = state_dic['time_mat']
+            else:
+                # if training epoch is increased, resize the shape
+                tmp_loss_mat = state_dic['loss_mat']
+                self.loss_mat = np.resize(
+                    self.loss_mat, 
+                    [self.epoch_num, self.seq_num, tmp_loss_mat.shape[2]])
+                self.loss_mat[0:tmp_loss_mat.shape[0]] = tmp_loss_mat
+                self.time_mat[0:tmp_loss_mat.shape[0]] = state_dic['time_mat']
+
             self.seq_num = state_dic['seq_num']
             # since the saved cur_epoch has been finished
             self.cur_epoch = state_dic['cur_epoch'] + 1
