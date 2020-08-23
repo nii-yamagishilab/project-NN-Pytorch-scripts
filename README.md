@@ -4,7 +4,9 @@ By Xin Wang, National Institute of Informatics, 2020
 I am a new pytorch user. If you have any suggestions or questions, pleas email wangxin at nii dot ac dot jp
 
 ---
+### Update
 
+1. 2020-08: Tutorial materials are added to ./tutorial. Most of the materials can be run on CPU. You can use laptop to go through the tutorial. Please check ./tutorial/README for details
 
 ### General
 This repository contains pytorch codes for a few projects:
