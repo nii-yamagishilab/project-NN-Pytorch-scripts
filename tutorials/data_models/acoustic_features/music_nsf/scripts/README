@@ -1,0 +1,11 @@
+same as ../misc-comparison/librosa_version/
+
+00_get.py: script wrapper to extract mel from wav
+audio.py:  main code to extract mel from wav
+hparams.py:parameter configuration (default for 24kHz, 12ms frameshift, 50 frame length, 2048 FFT)
+
+usage:
+1. change hparams.py is necessary
+2. python3 INPUT_WAV_PATH OUTPUT_MEL_PATH
+
+
