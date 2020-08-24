@@ -6,7 +6,7 @@ I am a new pytorch user. If you have any suggestions or questions, pleas email w
 ---
 ### Update
 
-1. 2020-08: Tutorial materials are added to ./tutorial. Most of the materials can be run on CPU. You can use laptop to go through the tutorial. Please check ./tutorial/README for details
+1. 2020-08: Tutorial materials are added to [./tutorials](./tutorials). Most of the materials are Jupyter notebooks and can be run on your Laptop using CPU only. You can use laptop to go through the tutorial. Please check [./tutorials/README.md](./tutorials/README.md) for details.
 
 ### General
 This repository contains pytorch codes for a few projects:
@@ -18,9 +18,10 @@ This repository contains pytorch codes for a few projects:
 3. [Harmonic-plus-noise NSF with fixed FIR filter](https://nii-yamagishilab.github.io/samples-nsf/nsf-v2.html) 
 
 All projects come with pre-trained models on CMU-arctic (4 speakers) and a demo script to run/train/inference.
-Generated samples can be found
 
-This is the re-implementation of projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. 
+Generated samples can be found in ./project/\*/__pre_trained/output.
+
+This is the re-implementation of projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/).
 
 ### Requirements
 1. python 3 (test on python3.8) 
@@ -143,13 +144,12 @@ The learning curves look similar to the CURRENNT (cuda) version.
 
 2. Xin Wang, Shinji Takaki, and Junichi Yamagishi. 2020. Neural source-filter waveform models for statistical parametric speech synthesis. IEEE/ACM Transactions on Audio, Speech, and Language Processing, 28:402–415. https://ieeexplore.ieee.org/document/8915761/
 
+3. Xin Wang, Junichi Yamagishi. 2020. Using Cyclic-noise as source for Neural source-filter waveform model. Accepted, Interspeech
 
 ### To do
 
-1. Add tutorial on Modules (to be added after SPCC 2020)
+1. Network config for 24kHz
 
-2. Network config for 24kHz
+2. Batchsize > 1
 
-3. Batchsize > 1
-
-4. ...
+3. ...
