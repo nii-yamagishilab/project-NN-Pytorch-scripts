@@ -18,6 +18,7 @@ This repository contains pytorch codes for a few projects:
 3. [Harmonic-plus-noise NSF with fixed FIR filter](https://nii-yamagishilab.github.io/samples-nsf/nsf-v2.html) 
 
 All projects come with pre-trained models on CMU-arctic (4 speakers) and a demo script to run/train/inference.
+Generated samples can be found
 
 This is the re-implementation of projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. 
 
