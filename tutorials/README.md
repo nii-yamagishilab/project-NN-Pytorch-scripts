@@ -11,7 +11,7 @@ Readers may check the materials in this order:
 
 * __Part3__: Pytorch scripts in https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts. This part will show how to train NSF models on CMU-arctic database.
 
-* __Hands-on-NSF__.pdf: a brief doc. This is to be read while working on Part1, 2, and 3. It can be [downloaded here](https://www.dropbox.com/sh/gf3zp00qvdp3row/AACicZ3df8JrUZoIQCKOJx14a/slide/pytorch-Hands-on-NSF_v202008.pdf?dl=1)
+* __Hands-on-NSF__.pdf: a brief doc. This is to be read while working on Part1, 2, and 3. It can be [downloaded here](https://www.dropbox.com/sh/gf3zp00qvdp3row/AADKGBaLfVSbQVEIEsRUw75Sa/web/pytorch-Hands-on-NSF_v202008.pdf?raw=1)
 
 
 Alternatively, readers may try this order:
