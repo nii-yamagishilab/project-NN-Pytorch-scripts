@@ -168,10 +168,18 @@ class NIIDataSet(torch.utils.data.Dataset):
                              'error')
             nii_warn.f_print("NIIDataSet not support", 'error', end='')
             nii_warn.f_die(" different input_reso")
-        if any([x != 1 for x in self.m_output_reso]):
-            nii_warn.f_print("NIIDataSet only supports", 'error', end='')
-            nii_warn.f_die(" output_reso = [1, 1, ... 1]")
-        self.m_single_reso = self.m_input_reso[0]
+
+        if any([x != self.m_output_reso[0] for x in self.m_output_reso]):
+            nii_warn.f_print("output_reso: %s" % (str(self.m_output_reso)),\
+                             'error')
+            nii_warn.f_print("NIIDataSet not support", 'error', end='')
+            nii_warn.f_die(" different input_reso")
+        # no need to contrain output_reso = 1
+        #if any([x != 1 for x in self.m_output_reso]):
+        #    nii_warn.f_print("NIIDataSet only supports", 'error', end='')
+        #    nii_warn.f_die(" output_reso = [1, 1, ... 1]")
+        #self.m_single_reso = self.m_input_reso[0]
+        self.m_single_reso = np.max(self.m_input_reso + self.m_output_reso)
         
         # To make sure that target waveform length is exactly equal
         #  to the up-sampled sequence length
@@ -246,7 +254,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         # For input data
         input_reso = self.m_input_reso[0]
         seq_len = int(tmp_seq_info.seq_length() // input_reso)
-        s_idx = (tmp_seq_info.seq_start_pos() // input_reso)
+        s_idx = int(tmp_seq_info.seq_start_pos() // input_reso)
         e_idx = s_idx + seq_len
         
         input_dim = self.m_input_all_dim
@@ -290,8 +298,9 @@ class NIIDataSet(torch.utils.data.Dataset):
 
         # load output data
         if self.m_output_dirs:
-            seq_len = tmp_seq_info.seq_length()
-            s_idx = tmp_seq_info.seq_start_pos()
+            output_reso = self.m_output_reso[0]
+            seq_len = int(tmp_seq_info.seq_length() // output_reso)
+            s_idx = int(tmp_seq_info.seq_start_pos() // output_reso)
             e_idx = s_idx + seq_len
         
             out_dim = self.m_output_all_dim
@@ -352,7 +361,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         """
         if not isinstance(self.m_file_list, list):
             nii_warn.f_print("Read file list from directories")
-            self.m_list = None            
+            self.m_file_list = None
         
         #  get a initial file list
         if self.m_file_list is None:
@@ -360,8 +369,8 @@ class NIIDataSet(torch.utils.data.Dataset):
                 self.m_input_dirs[0], self.m_input_exts[0])
 
         # check the list of files exist in all input/output directories
-        for tmp_d, tmp_e in zip(self.m_input_dirs[1:], \
-                                self.m_input_exts[1:]):
+        for tmp_d, tmp_e in zip(self.m_input_dirs, \
+                                self.m_input_exts):
             tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e)
             self.m_file_list = nii_list_tools.common_members(
                 tmp_list, self.m_file_list)
@@ -591,6 +600,13 @@ class NIIDataSet(torch.utils.data.Dataset):
             if nii_list_tools.list_identical(self.m_file_list,\
                                              self.m_data_length.keys()):
                 nii_warn.f_print("Read sequence info: %s" % (data_path))
+                flag = False
+            elif nii_list_tools.list_b_in_list_a(self.m_file_list, 
+                                                 self.m_data_length.keys()):
+                nii_warn.f_print("Read sequence info: %s" % (data_path))
+                nii_warn.f_print(
+                    "However %d samples are ignoed %d" % \
+                    (len(self.m_file_lsit)-len(self.m_data_length)))
                 flag = False
             else:
                 self.m_seq_info = []

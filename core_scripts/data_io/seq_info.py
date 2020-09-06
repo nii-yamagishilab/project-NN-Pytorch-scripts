@@ -35,10 +35,10 @@ class SeqInfo():
             start_pos: from which step does this segment start in the
                        original utterance
         """
-        self.length = length
+        self.length = int(length)
         self.seq_name = seq_name
         self.seg_idx = seg_idx
-        self.start_pos = start_pos
+        self.start_pos = int(start_pos)
         self.info_id = info_id
         
         

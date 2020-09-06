@@ -64,6 +64,17 @@ def list_identical(list_a, list_b):
     """
     return collections.Counter(list_a) == collections.Counter(list_b)
 
+def list_b_in_list_a(list_a, list_b):
+    """ list_b_in_list_a(list_a, list_b)
+    Whether list_b is subset of list_a
+
+    Parameters:
+        list_a: list
+        list_b: list
+    Return: False or True
+    """
+    return set(list_b) <= set(list_a)
+
 def read_list_from_text(filename, f_chop=True):
     """                                       
     """
