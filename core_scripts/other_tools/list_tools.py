@@ -31,10 +31,10 @@ def listdir_with_ext(file_dir, file_ext=None):
     try:
     
         if file_ext is None:
-            file_list = [x.split('.')[0] for x in os.listdir(file_dir) \
+            file_list = [os.path.splitext(x)[0] for x in os.listdir(file_dir) \
                         if not x.startswith('.')]
         else:
-            file_list = [x.split('.')[0] for x in os.listdir(file_dir) \
+            file_list = [os.path.splitext(x)[0] for x in os.listdir(file_dir) \
                          if not x.startswith('.') and x.endswith(file_ext)]
         return file_list
     except OSError:
