@@ -25,6 +25,10 @@ __copyright__ = "Copyright 2020, Xin Wang"
 
 
 class HzCentConverter(torch_nn.Module):
+    """
+    HzCentConverter: an interface to convert F0 to cent, probablity matrix
+    and do reverse conversions
+    """
     def __init__(self, 
                  u_hz = 0, 
                  hz_ref = 10, 
@@ -35,8 +39,6 @@ class HzCentConverter(torch_nn.Module):
                  cent_last = 1975.5332050244956,
     ):
         super(HzCentConverter, self).__init__()
-        """
-        """
         self.m_v_hz = u_hz
 
         self.m_hz_ref = hz_ref
@@ -92,6 +94,18 @@ class HzCentConverter(torch_nn.Module):
         self.m_viterbi_tran = _trans_mat()
 
     def hz2cent(self, hz):
+        """
+        hz2cent(self, hz)
+        Convert F0 Hz in to Cent
+        
+        Parameters
+        ----------
+        hz: torch.tensor
+        
+        Return
+        ------
+        : torch.tensor
+        """
         return 1200 * torch.log2(hz/self.m_hz_ref)
 
     def cent2hz(self, cent):
@@ -101,23 +115,88 @@ class HzCentConverter(torch_nn.Module):
         cent = self.hz2cent(hz)
         q_bin = torch.round((cent - self.m_base_cent) * self.m_bins /\
                             (self.m_top_cent - self.m_base_cent)) 
-        q_bin = torch.min([torch.max([0, self.m_bins]), self.m_bins - 1]) +1 
+        q_bin = torch.min([torch.max([0, q_bin]), self.m_bins - 1]) +1 
         return q_bin 
 
     def dequantize_hz(self, quantized_cent):
         cent = quantized_cent * self.m_quan_cent_dis + self.m_1st_cent
         return self.cent2hz(cent)    
 
-    def recover_f0(self, bin_mat):
+    def f0_to_mat(self, f0_seq):
+        """
+        f0_to_mat(self, f0_seq)
+        Convert F0 sequence (hz) into a probability matrix.
+
+           Jong Wook Kim, Justin Salamon, Peter Li, and Juan Pablo Bello. 2018. 
+           CREPE: A Convolutional Representation for Pitch Estimation. 
+           In Proc. ICASSP, 161-165
         
+        Parameters
+        ----------
+        f0_seq: torch.tensor (1, N, 1)
+
+        Return
+        ------
+        target_mat: torch.tensor (1, N, bins)
+            created probability matrix for f0
+        """
+        if f0_seq.dim() != 3:
+            print("f0 sequence loaded in tensor should be in shape (1, N, 1)")
+            sys.exit(1)
+        
+        # voiced / unvoiced indix
+        v_idx = f0_seq > self.m_v_hz
+        u_idx = ~v_idx
+
+        # convert F0 Hz to cent
+        target = torch.zeros_like(f0_seq)
+        target[v_idx] = self.hz2cent(f0_seq[v_idx])
+        target[u_idx] = 0
+
+        # target
+        # since target is (1, N, 1), the last dimension size is 1
+        # self.m_dis_cent (bins) -> propagated to (1, N, bins)
+        target_mat = torch.exp(-torch.pow(self.m_dis_cent - target, 2)/2/625)
+        
+        # set unvoiced to zero
+        target_mat[0, u_idx[0, :, 0], :] *= 0.0
+        
+        # return
+        return target_mat
+        
+    def recover_f0(self, bin_mat):
+        """ 
+        recover_f0(self, bin_mat)
+        Produce F0 from a probability matrix.
+        This is the inverse function of f0_to_mat.
+
+        By default, use Viterbi decoding to produce F0.
+        
+          Matthias Mauch, and Simon Dixon. 2014. 
+          PYIN: A Fundamental Frequency Estimator Using Probabilistic 
+          Threshold Distributions. In Proc. ICASSP, 659-663.
+
+        Parameters
+        ----------
+        bin_mat: torch.tensor (1, N, bins)
+
+        Return
+        ------
+        f0: torch.tensor(1, N, 1)
+        """
+        # check
         if bin_mat.shape[0] != 1:
             print("F0 generation only support batchsize=1")
             sys.exit(1)
 
-        # assume bin_mat (1, length, m_bins)
+        if bin_mat.dim() != 3 or bin_mat.shape[-1] != self.m_bins:
+            print("bin_mat should be in shape (1, N, bins)")
+            sys.exit(1)
+            
+        # generation
         if not self.m_viterbi_decode:
-            # normal sum
-            cent = torch.sum(bin_mat * self.m_dis_cent, axis=2) /\
+            # normal sum 
+            cent = torch.sum(bin_mat * self.m_dis_cent, axis=2) / \
                    torch.sum(bin_mat, axis=2)
             return self.cent2hz(cent)
         else:
@@ -125,27 +204,42 @@ class HzCentConverter(torch_nn.Module):
 
             # viterbi decode:
             with torch.no_grad():
+                
+                # observation probablity for unvoiced states
                 prob_u = torch.ones_like(tmp_bin_mat) \
                          - torch.mean(tmp_bin_mat, axis=2, keepdim=True)
+                
+                # concatenate to observation probability matrix 
+                #  [Timestep, m_bins * 2], 
+                #  m_bins is the number of quantized F0 bins
+                #  another m_bins is for the unvoiced states
                 tmp_bin_mat = torch.cat([tmp_bin_mat, prob_u],axis=2).squeeze(0)
+                
+                # viterbi decoding. Numpy is fast?
                 tmp_bin_mat = tmp_bin_mat.numpy()
-
-                # viterbi decoding
                 quantized_cent = nii_dy.viterbi_decode(
                     self.m_viterbi_init, self.m_viterbi_tran, tmp_bin_mat * 0.5)
-
-                # convert state to F0
+                
+                # unvoiced state sequence (states in [m_bins, m_bins*2])
                 u_idx = quantized_cent>=self.m_bins
                 
+                # based on viterbi best state, do weighted sum over a beam
+                # Equation from 
+                # https://github.com/marl/crepe/blob/master/crepe/core.py#L108
                 prob_m = torch.zeros_like(bin_mat)
                 for idx, i in enumerate(quantized_cent):
                     s_idx = np.max([i - 4, 0])
                     e_idx = np.min([i+5, self.m_bins])
                     prob_m[0, idx, s_idx:e_idx] = bin_mat[0, idx, s_idx:e_idx]
-                cent = torch.sum(prob_m * self.m_dis_cent, axis=2) /\
+                
+                cent = torch.sum(prob_m * self.m_dis_cent, axis=2) / \
                        torch.sum(prob_m, axis=2)
+
+                # from cent to f0
                 f0 = self.cent2hz(cent)
+                # unvoiced
                 f0[0, u_idx]=0
+                
             return f0
 
 if __name__ == "__main__":
