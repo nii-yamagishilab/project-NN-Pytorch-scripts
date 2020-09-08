@@ -606,7 +606,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                 nii_warn.f_print("Read sequence info: %s" % (data_path))
                 nii_warn.f_print(
                     "However %d samples are ignoed %d" % \
-                    (len(self.m_file_lsit)-len(self.m_data_length)))
+                    (len(self.m_file_list)-len(self.m_data_length)))
                 flag = False
             else:
                 self.m_seq_info = []

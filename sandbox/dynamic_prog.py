@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """
-nn_manager_gan
-
-A simple wrapper to run the training / testing process for GAN
+Functions for dynamic programming
 
 """
 from __future__ import print_function
