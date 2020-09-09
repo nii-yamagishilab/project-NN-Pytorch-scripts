@@ -546,10 +546,10 @@ class NIIDataSet(torch.utils.data.Dataset):
             if ms_input.shape[0] != (self.m_input_all_dim * 2) or \
                ms_output.shape[0] != (self.m_output_all_dim * 2):
                 if ms_input.shape[0] != (self.m_input_all_dim * 2):
-                    nii_warn.f_print("%s incompatible" % (m_input_path),
+                    nii_warn.f_print("%s incompatible" % (ms_input_path),
                                      'warning')
                 if ms_output.shape[0] != (self.m_output_all_dim * 2):
-                    nii_warn.f_print("%s incompatible" % (m_output_path),
+                    nii_warn.f_print("%s incompatible" % (ms_output_path),
                                      'warning')
                 nii_warn.f_print("mean/std will be recomputed", 'warning')
             else:

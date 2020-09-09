@@ -93,7 +93,7 @@ def viterbi_decode(init_prob, trans_prob, obser_prob,
         #    tmp_best = _argmax(trout_prob[state_idx])
         #    state_mat[time_idx, state_idx] = tmp_best
         #    prob_mat[time_idx, state_idx] = trout_prob[state_idx, tmp_best] \
-        #                                    +log_obser_prob[time_idx, state_idx]
+        #                                   +log_obser_prob[time_idx, state_idx]
     
     best_states[-1] = _argmax(prob_mat[-1, :])
     for time_idx in np.arange(n_time-2, -1, -1):

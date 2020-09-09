@@ -16,7 +16,7 @@ except ModuleNotFoundError:
     print("Please install mir_eval: http://craffel.github.io/mir_eval/")
     print("Anaconda: https://anaconda.org/conda-forge/mir_eval")
     print("Pip: https://pypi.org/project/mir_eval/")
-    sys.exist(1)
+    sys.exit(1)
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"

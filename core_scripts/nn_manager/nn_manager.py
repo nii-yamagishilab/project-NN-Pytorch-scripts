@@ -169,7 +169,10 @@ def f_run_one_epoch(args,
             if optimizer is not None:
                 loss.backward()
                 optimizer.step()
-                    
+        else:
+            # no target data 
+            nii_display.f_die("Data_tar is not loaded. Cannot do training")
+            
         # save the training process information to the monitor
         end_time = time.time()
         batchsize = len(data_info)
