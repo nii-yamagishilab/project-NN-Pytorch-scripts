@@ -132,8 +132,7 @@ def f_run_one_epoch(args,
                 # normal case for model.forward(input)
                 data_gen = pt_model(data_in)
         
-        # compute loss and do back propagate
-        loss_vals = [0]
+        # process target data
         if isinstance(data_tar, torch.Tensor):
             data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
             # there is no way to normalize the data inside loss
@@ -142,36 +141,38 @@ def f_run_one_epoch(args,
                 normed_target = pt_model.normalize_target(data_tar)
             else:
                 normed_target = target_norm_method(data_tar)
-            
-            # return the loss from loss_wrapper
-            # loss_computed may be [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
-            #   which contain multiple loss and flags indicating whether
-            #   the corresponding loss should be taken into consideration
-            #   for early stopping
-            # or 
-            # loss_computed may be simply a tensor loss 
-            loss_computed = loss_wrapper.compute(data_gen, normed_target)
-
-            # To handle cases where there are multiple loss functions
-            # when loss_comptued is [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
-            #   loss: sum of [loss_1, loss_2, ...], for backward()
-            #   loss_vals: [loss_1.item(), loss_2.item() ..], for logging
-            #   loss_flags: [True/False, ...], for logging, 
-            #               whether loss_n is used for early stopping
-            # when loss_computed is loss
-            #   loss: loss
-            #   los_vals: [loss.item()]
-            #   loss_flags: [True]
-            loss, loss_vals, loss_flags = nii_nn_tools.f_process_loss(
-                loss_computed)
-
-            # Back-propgation using the summed loss
-            if optimizer is not None:
-                loss.backward()
-                optimizer.step()
         else:
-            # no target data 
-            nii_display.f_die("Data_tar is not loaded. Cannot do training")
+            normed_target = []
+
+        # compute loss and do back propagate
+        loss_vals = [0]
+
+        # return the loss from loss_wrapper
+        # loss_computed may be [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
+        #   which contain multiple loss and flags indicating whether
+        #   the corresponding loss should be taken into consideration
+        #   for early stopping
+        # or 
+        # loss_computed may be simply a tensor loss 
+        loss_computed = loss_wrapper.compute(data_gen, normed_target)
+
+        # To handle cases where there are multiple loss functions
+        # when loss_comptued is [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
+        #   loss: sum of [loss_1, loss_2, ...], for backward()
+        #   loss_vals: [loss_1.item(), loss_2.item() ..], for logging
+        #   loss_flags: [True/False, ...], for logging, 
+        #               whether loss_n is used for early stopping
+        # when loss_computed is loss
+        #   loss: loss
+        #   los_vals: [loss.item()]
+        #   loss_flags: [True]
+        loss, loss_vals, loss_flags = nii_nn_tools.f_process_loss(
+            loss_computed)
+
+        # Back-propgation using the summed loss
+        if optimizer is not None:
+            loss.backward()
+            optimizer.step()
             
         # save the training process information to the monitor
         end_time = time.time()
