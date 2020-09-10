@@ -295,7 +295,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                         flag_multi_device))
 
             # load optimizer state
-            if cp_names.optimizer in checkpoint:
+            if cp_names.optimizer in checkpoint and \
+               not args.ignore_optimizer_statistics_in_trained_model:
                 optimizer.load_state_dict(checkpoint[cp_names.optimizer])
             
             # optionally, load training history
@@ -319,7 +320,11 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                 nii_nn_tools.f_state_dict_wrapper(
                     checkpoint, flag_multi_device))
             nii_display.f_print("Load pretrained model")
-            
+    
+    if hasattr(pt_model, "other_setups"):
+        pt_model.other_setups()
+
+    
     # other variables
     flag_early_stopped = False
     start_epoch = monitor_trn.get_epoch()

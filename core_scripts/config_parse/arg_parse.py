@@ -121,6 +121,12 @@ def f_args_parsed(argument_input = None):
                         action='store_true', \
                         default=False, help=mes)    
 
+    mes = 'do not load previous training statistics in optimizer.'
+    mes += " (default: false)"
+    parser.add_argument('--ignore-optimizer-statistics-in-trained-model', 
+                        action='store_true', \
+                        default=False, help=mes)    
+
     mes = 'run inference mode (default: False, run training script)'
     parser.add_argument('--inference', action='store_true', \
                         default=False, help=mes)    

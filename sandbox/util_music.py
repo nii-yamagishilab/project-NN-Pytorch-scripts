@@ -39,9 +39,16 @@ class HzCentConverter(torch_nn.Module):
                  cent_last = 1975.5332050244956,
     ):
         super(HzCentConverter, self).__init__()
-        self.m_v_hz = u_hz
 
+        # unvoiced F0
+        self.m_v_hz = u_hz
+        
+        # reference for cent calculation
         self.m_hz_ref = hz_ref
+
+        #####
+        # for quantization
+        #####
         # one semitone cover 100 cents
         # thus, -50 on bottom, +50 on top
         # cent2hz(hz2cent(librosa.note_to_hz('C1'))-50)
@@ -51,26 +58,36 @@ class HzCentConverter(torch_nn.Module):
         # quantization interval
         self.m_bins = bins
         
-        # for quantization
+        
         self.m_base_cent = self.hz2cent(self.m_base_hz)
         self.m_top_cent = self.hz2cent(self.m_top_hz)
         
-        # bottom bin
-
+        #####
         # for de-quantization
+        #####
         # librosa.note_to_hz('C1')
         self.m_1st_cent = self.hz2cent(torch.tensor([cent_1st]))
         # librosa.note_to_hz('B6')
         self.m_last_cent = self.hz2cent(torch.tensor([cent_last]))
-        
+        # quantized cent per bin
         self.m_quan_cent_dis = (self.m_last_cent - self.m_1st_cent)/self.m_bins
+
+        # quantized cents as a tentor
         self.m_dis_cent = torch_nn.Parameter(
             torch.linspace(self.m_1st_cent.numpy()[0], 
                            self.m_last_cent.numpy()[0], 
                            self.m_bins),
             requires_grad=False)
 
+        # quantized F0 as a tensor
+        self.m_dis_f0 = self.cent2hz(
+            torch.linspace(self.m_1st_cent.numpy()[0], 
+                           self.m_last_cent.numpy()[0], 
+                           self.m_bins))
+
+        #####
         # for viterbi decoding
+        #####
         self.m_viterbi_decode = True
         # initial state probablity
         self.m_viterbi_init = np.ones(self.m_bins * 2) / (self.m_bins * 2)
