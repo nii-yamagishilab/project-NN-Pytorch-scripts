@@ -322,6 +322,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             nii_display.f_print("Load pretrained model")
     
     if hasattr(pt_model, "other_setups"):
+        nii_display.f_print("Conduct User-defined setup")
         pt_model.other_setups()
 
     
