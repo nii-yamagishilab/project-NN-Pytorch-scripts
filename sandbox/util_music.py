@@ -139,7 +139,7 @@ class HzCentConverter(torch_nn.Module):
         cent = quantized_cent * self.m_quan_cent_dis + self.m_1st_cent
         return self.cent2hz(cent)    
 
-    def f0_to_mat(self, f0_seq):
+    def f0_to_mat(self, f0_seq, var=625):
         """
         f0_to_mat(self, f0_seq)
         Convert F0 sequence (hz) into a probability matrix.
@@ -173,7 +173,7 @@ class HzCentConverter(torch_nn.Module):
         # target
         # since target is (1, N, 1), the last dimension size is 1
         # self.m_dis_cent (bins) -> propagated to (1, N, bins)
-        target_mat = torch.exp(-torch.pow(self.m_dis_cent - target, 2)/2/625)
+        target_mat = torch.exp(-torch.pow(self.m_dis_cent - target, 2)/2/std)
         
         # set unvoiced to zero
         target_mat[0, u_idx[0, :, 0], :] *= 0.0

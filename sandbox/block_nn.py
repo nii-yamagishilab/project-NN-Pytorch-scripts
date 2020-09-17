@@ -383,5 +383,18 @@ class SincFilter(torch_nn.Module):
         return lp_coef, hp_coef
 
 
+class BatchNorm1DWrapper(torch_nn.BatchNorm1d):
+    """
+    """
+    def __init__(self, num_features, eps=1e-05, momentum=0.1,
+                 affine=True, track_running_stats=True):
+        super(BatchNorm1DWrapper, self).__init__(
+        num_features, eps, momentum, affine, track_running_stats)
+
+    def forward(self, data):
+        output = super(BatchNorm1DWrapper, self).forward(data.permute(0, 2, 1))
+        return output.permute(0, 2, 1)
+
+
 if __name__ == "__main__":
     print("Definition of block NN")
