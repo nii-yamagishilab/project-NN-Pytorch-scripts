@@ -19,19 +19,21 @@ __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
 
-def wavformRaw2MuLaw(wavdata, bit=16, signed=True, quanLevel = 255.0):
+def wavformRaw2MuLaw(wavdata, bit=16, signed=True, quanLevel = 256.0):
     """ 
     wavConverted = wavformRaw2MuLaw(wavdata, bit=16, signed=True, \
-                                    quanLevel = 255.0)
+                                    quanLevel = 256.0)
     Assume wavData is int type:
         step1. convert int wav -> float wav
         step2. convert linear scale wav -> mu-law wav
 
-    Args: wavdata: np array of int-16 or int-32 waveform 
-          bit: number of bits to encode waveform
-          signed: input is signed or not
-          quanLevel: level of quantization (default 2 ^ 8 - 1)
-    Returned wav is integer stored as float numbers
+    Args: 
+      wavdata: np array of int-16 or int-32 waveform 
+      bit: number of bits to encode waveform
+      signed: input is signed or not
+      quanLevel: level of quantization (default 2 ^ 8)
+    Returned:
+      wav: integer stored as float numbers
     """
     if wavdata.dtype != np.int16 and wavdata.dtype != np.int32:
         print("Input waveform data in not int16 or int32")
@@ -44,32 +46,33 @@ def wavformRaw2MuLaw(wavdata, bit=16, signed=True, quanLevel = 255.0):
     else:
         wavdata = np.array(wavdata, dtype=np.float32) / \
                   np.power(2.0, bit)
-        
+    
+    tmp_quan_level = quanLevel - 1
     # mu-law compansion
     wavtrans = np.sign(wavdata) * \
-               np.log(1.0 + quanLevel * np.abs(wavdata)) / \
-               np.log(1.0 + quanLevel)
-    wavtrans = np.round((wavtrans + 1.0) * quanLevel / 2.0)
+               np.log(1.0 + tmp_quan_level * np.abs(wavdata)) / \
+               np.log(1.0 + tmp_quan_level)
+    wavtrans = np.round((wavtrans + 1.0) * tmp_quan_level / 2.0)
     return wavtrans
 
 
-def wavformMuLaw2Raw(wavdata, quanLevel = 255.0):
+def wavformMuLaw2Raw(wavdata, quanLevel = 256.0):
     """ 
-    waveformMuLaw2Raw(wavdata, quanLevel = 255.0)
+    waveformMuLaw2Raw(wavdata, quanLevel = 256.0)
     
     Convert Mu-law waveform  back to raw waveform
     
     Args:
-         wavdata: np array
-         quanLevel: level of quantization (default: 2 ^ 8 - 1)
+      wavdata: np array
+      quanLevel: level of quantization (default: 2 ^ 8)
     
-    Return"
-         raw waveform: np array, float
+    Return:
+      raw waveform: np array, float
     """
-    
-    wavdata = wavdata * 2.0 / quanLevel - 1.0
-    wavdata = np.sign(wavdata) * (1.0/quanLevel) * \
-              (np.power((1+quanLevel), np.abs(wavdata)) - 1.0)
+    tmp_quan_level = quanLevel - 1
+    wavdata = wavdata * 2.0 / tmp_quan_level - 1.0
+    wavdata = np.sign(wavdata) * (1.0/ tmp_quan_level) * \
+              (np.power(quanLevel, np.abs(wavdata)) - 1.0)
     return wavdata
 
 

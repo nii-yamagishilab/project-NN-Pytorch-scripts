@@ -17,8 +17,6 @@ import torch.nn.functional as torch_nn_func
 
 import sandbox.dynamic_prog as nii_dy
 
-import config as prj_conf
-
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
