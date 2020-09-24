@@ -81,6 +81,9 @@ def float2wav(rawData, wavFile, bit=16, samplingRate = 16000):
     float2wav(rawFile, wavFile, bit=16, samplingRate = 16000)
     Convert float waveform into waveform in int
 
+    This is identitcal to waveFloatToPCMFile
+    To be removed
+
     Args: 
          rawdata: float waveform data in np-arrary
          wavFile: output file path
@@ -101,7 +104,7 @@ def float2wav(rawData, wavFile, bit=16, samplingRate = 16000):
         print("Save to int16")
         rawData  = np.asarray(rawData, dtype=np.int16)
     scipy.io.wavfile.write(wavFile, samplingRate, rawData)
-
+    return
     
 def waveReadAsFloat(wavFileIn):
     """ sr, wavData = wavReadToFloat(wavFileIn)
