@@ -61,17 +61,20 @@ def float_2_label(x, bits):
     if peak > 1.0:
         x /= peak
     x = (x + 1.) * (2**bits - 1) / 2
-    return x.clip(0, 2**bits - 1)
+    return torch.clamp(x, 0, 2**bits - 1)
 
 
-def mulaw_encode(x, quantization_channels):
+def mulaw_encode(x, quantization_channels, scale_to_int=True):
     """Adapted from torchaudio
     https://pytorch.org/audio/functional.html mu_law_encoding
 
     Args:
-        x (Tensor): Input tensor, float-valued waveforms in (-1, 1)
-        quantization_channels (int): Number of channels
-
+       x (Tensor): Input tensor, float-valued waveforms in (-1, 1)
+       quantization_channels (int): Number of channels
+       scale_to_int: Bool
+         True: scale mu-law companded to int
+         False: return mu-law in (-1, 1)
+        
     Returns:
         Tensor: Input after mu-law encoding
     """
@@ -83,10 +86,11 @@ def mulaw_encode(x, quantization_channels):
         x = x.to(torch.float)
     mu = torch.tensor(mu, dtype=x.dtype, device=x.device)
     x_mu = torch.sign(x) * torch.log1p(mu * torch.abs(x)) / torch.log1p(mu)
-    x_mu = ((x_mu + 1) / 2 * mu + 0.5).to(torch.int64)
+    if scale_to_int:
+        x_mu = ((x_mu + 1) / 2 * mu + 0.5).to(torch.int64)
     return x_mu
 
-def mulaw_decode(x_mu, quantization_channels):
+def mulaw_decode(x_mu, quantization_channels, input_int=True):
     """Adapted from torchaudio
     https://pytorch.org/audio/functional.html mu_law_encoding
 
@@ -101,7 +105,10 @@ def mulaw_decode(x_mu, quantization_channels):
     if not x_mu.is_floating_point():
         x_mu = x_mu.to(torch.float)
     mu = torch.tensor(mu, dtype=x_mu.dtype, device=x_mu.device)
-    x = ((x_mu) / mu) * 2 - 1.0
+    if input_int:
+        x = ((x_mu) / mu) * 2 - 1.0
+    else:
+        x = x_mu
     x = torch.sign(x) * (torch.exp(torch.abs(x) * torch.log1p(mu)) - 1.0) / mu
     return x
 
