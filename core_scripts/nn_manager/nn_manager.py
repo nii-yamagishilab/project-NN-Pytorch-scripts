@@ -19,6 +19,7 @@ import core_scripts.other_tools.str_tools as nii_str_tk
 import core_scripts.op_manager.op_process_monitor as nii_monitor
 import core_scripts.op_manager.op_display_tools as nii_op_display_tk
 import core_scripts.nn_manager.nn_manager_tools as nii_nn_tools
+import core_scripts.nn_manager.nn_manager_conf as nii_nn_manage_conf
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -26,14 +27,8 @@ __copyright__ = "Copyright 2020, Xin Wang"
 
 #############################################################
 
-# name for the checkpoint keys
-class CheckPointKey:
-    state_dict = 'state_dict'
-    info = 'info'
-    optimizer = 'optimizer' 
-    trnlog = 'train_log'
-    vallog = 'val_log'
-    
+
+# Functions
 def f_save_epoch_name(args, epoch_idx):
     """ 
     f_save_epoch_name(args, epoch_idx)
@@ -57,6 +52,25 @@ def f_save_trained_name(args):
                                  args.save_trained_name, \
                                  args.save_model_ext)
 
+def f_model_check(pt_model):
+    """ 
+    f_model_check(pt_model)
+    Check whether the model contains all the necessary keywords 
+    
+    Args: 
+    ----
+      pt_model, a Pytorch model
+
+    Return:
+    -------
+    """
+    for tmpkey in nii_nn_manage_conf.nn_model_keywords.keys():
+        if not hasattr(pt_model, tmpkey):
+            nii_display.f_print("Model has no method %s (%s)" % (
+                tmpkey, nii_nn_manage_conf.nn_model_keywords[tmpkey]), 'error')
+            nii_display.f_die("Please add method to  model definition")
+    return
+
 def f_model_show(pt_model):
     """ 
     f_model_show(pt_model)
@@ -64,6 +78,8 @@ def f_model_show(pt_model):
     
     Print the informaiton of the model
     """
+    f_model_check(pt_model)
+
     print(pt_model)
     num = sum(p.numel() for p in pt_model.parameters() if p.requires_grad)
     nii_display.f_print("Parameter number: {:d}".format(num), "normal")
@@ -280,7 +296,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     f_model_show(pt_model)
 
     # resume training or initialize the model if necessary
-    cp_names = CheckPointKey()
+    cp_names = nii_nn_manage_conf.CheckPointKey()
     if checkpoint is not None:
         if type(checkpoint) is dict:
             # checkpoint
@@ -431,9 +447,9 @@ def f_inference_wrapper(args, pt_model, device, \
 
     # print the network
     pt_model.to(device, dtype=nii_dconf.d_dtype)
-    print(pt_model)
+    f_model_show(pt_model)
     
-    cp_names = CheckPointKey()
+    cp_names = nii_nn_manage_conf.CheckPointKey()
     if type(checkpoint) is dict and cp_names.state_dict in checkpoint:
         pt_model.load_state_dict(checkpoint[cp_names.state_dict])
     else:
@@ -453,18 +469,24 @@ def f_inference_wrapper(args, pt_model, device, \
             
             # compute output
             start_time = time.time()
+            
+            if hasattr(pt_model, "inference"):
+                infer_func = pt_model.inference
+            else:
+                infer_func = pt_model.forward
+
             if args.model_forward_with_target:
                 # if model.forward requires (input, target) as arguments
                 # for example, for auto-encoder
                 if args.model_forward_with_file_name:
-                    data_gen = pt_model(data_in, data_tar, data_info)
+                    data_gen = infer_func(data_in, data_tar, data_info)
                 else:
-                    data_gen = pt_model(data_in, data_tar)
+                    data_gen = infer_func(data_in, data_tar)
             else:    
                 if args.model_forward_with_file_name:
-                    data_gen = pt_model(data_in, data_info)
+                    data_gen = infer_func(data_in, data_info)
                 else:
-                    data_gen = pt_model(data_in)
+                    data_gen = infer_func(data_in)
                     
             data_gen = pt_model.denormalize_output(data_gen)
             time_cost = time.time() - start_time
