@@ -2,7 +2,8 @@
 """
 data_io
 
-Interface to load data
+Interface to load data, where input and output data are not aligned
+(for example, end-2-end TTS)
 
 """
 from __future__ import absolute_import
@@ -215,7 +216,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         self.m_data_len_path = get_name(stats_path, self.m_set_name, \
                                         nii_dconf.data_len_file)
         
-        # initialize data length and mean /std, read prepared data stats
+        # initialize data length and mean /std
         flag_cal_len = self.f_init_data_len_stats(self.m_data_len_path)
         flag_cal_mean_std = self.f_init_mean_std(self.m_ms_input_path,
                                                  self.m_ms_output_path)
@@ -376,16 +377,10 @@ class NIIDataSet(torch.utils.data.Dataset):
                 tmp_list, self.m_file_list)
 
         if len(self.m_file_list) < 1:
-            nii_warn.f_print("No input features found after scannning", 'error')
-            nii_warn.f_print("Please check %s" \
-                             % (str(self.m_input_dirs)), 'error')
-            nii_warn.f_print("They should contain all files in file list", 
-                             'error')
-            nii_warn.f_print("Please also check filename extentions %s" \
-                             % (str(self.m_input_exts)), 'error')
-            nii_warn.f_print("They should be correctly specified", 'error')
-            nii_warn.f_die("Failed to read input features")
-            
+            nii_warn.f_print("No input features after scannning", 'error')
+            nii_warn.f_print("Please check input config", 'error')
+            nii_warn.f_print("Please check feature directory", 'error')
+
         # check output files if necessary
         if self.m_output_dirs:
             for tmp_d, tmp_e in zip(self.m_output_dirs, \
@@ -396,14 +391,7 @@ class NIIDataSet(torch.utils.data.Dataset):
 
             if len(self.m_file_list) < 1:
                 nii_warn.f_print("No output data found", 'error')
-                nii_warn.f_print("Please check %s" \
-                                 % (str(self.m_output_dirs)), 'error')
-                nii_warn.f_print("They should contain all files in file list", 
-                                 'error')
-                nii_warn.f_print("Please also check filename extentions %s" \
-                                 % (str(self.m_output_exts)), 'error')
-                nii_warn.f_print("They should be correctly specified", 'error')
-                nii_warn.f_die("Failed to read output features")
+                nii_warn.f_die("Please check outpupt config")
         else:
             #nii_warn.f_print("Not loading output features")
             pass
