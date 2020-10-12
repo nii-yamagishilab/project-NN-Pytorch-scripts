@@ -487,7 +487,11 @@ def f_inference_wrapper(args, pt_model, device, \
                     data_gen = infer_func(data_in, data_info)
                 else:
                     data_gen = infer_func(data_in)
-                    
+            
+            if type(data_gen) != torch.tensor:
+                nii_display.f_print("No output saved: %s" % (str(data_info)),\
+                                    'warning')
+                continue
             data_gen = pt_model.denormalize_output(data_gen)
             time_cost = time.time() - start_time
             # average time for each sequence when batchsize > 1
