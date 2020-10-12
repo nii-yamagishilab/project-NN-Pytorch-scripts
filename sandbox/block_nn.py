@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import sys
 import numpy as np
+from scipy import signal as scipy_signal
 
 import torch
 import torch.nn as torch_nn
@@ -382,7 +383,6 @@ class SincFilter(torch_nn.Module):
         # return normed coef
         return lp_coef, hp_coef
 
-
 class BatchNorm1DWrapper(torch_nn.BatchNorm1d):
     """
     """
@@ -394,6 +394,228 @@ class BatchNorm1DWrapper(torch_nn.BatchNorm1d):
     def forward(self, data):
         output = super(BatchNorm1DWrapper, self).forward(data.permute(0, 2, 1))
         return output.permute(0, 2, 1)
+
+
+class SignalFraming(torch_nn.Conv1d):
+    """ SignalFraming(w_len, h_len, w_type='Hamming')
+    
+    Do framing on the signal. The implementation is based on conv1d
+    
+    Args:
+    -----
+      w_len: window length (frame length)
+      h_len: hop length (frame shift)
+      w_type: type of window, (default='Hamming')
+         Hamming: Hamming window
+         else: square window
+    
+    Note: 
+    -----
+      input signal (batch, length, 1)
+      output signal (batch, frame_num, frame_length)
+            
+      where frame_num = length + (frame_length - frame_num)
+    
+      Compatibility with Librosa framing need to be checked
+    """                                                                   
+    def __init__(self, w_len, h_len, w_type='Hamming'):
+        super(SignalFraming, self).__init__(1, w_len, w_len, stride=h_len,
+                padding = 0, dilation = 1, groups=1, bias=False)
+        self.m_wlen = w_len
+        self.m_wtype = w_type
+        self.m_hlen = h_len
+
+        if w_type == 'Hamming':
+            self.m_win = scipy_signal.windows.hamming(self.m_wlen)
+        else:
+            self.m_win = np.ones([self.m_wlen])
+        
+        # for padding
+        if h_len > w_len:
+            print("Error: SignalFraming(w_len, h_len)")
+            print("w_len cannot be < h_len")
+            sys.exit(1)
+        self.m_mat = np.diag(self.m_win)
+        self.m_pad_len_l = (w_len - h_len)//2
+        self.m_pad_len_r = (w_len - h_len) - self.m_pad_len_l
+        
+        # filter [output_dim = frame_len, 1, input_dim=frame_len]
+        # No need to flip the filter coefficients
+        with torch.no_grad():
+            tmp_coef = torch.zeros([w_len, 1, w_len])
+            tmp_coef[:, 0, :] = torch.tensor(self.m_mat)
+            self.weight = torch.nn.Parameter(tmp_coef, requires_grad = False)
+        return
+    
+    def forward(self, signal):
+        """ 
+        signal:    (batchsize, length1, 1)
+        output:    (batchsize, num_frame, frame_length)
+        
+        Note: 
+        """ 
+        if signal.shape[-1] > 1:
+            print("Error: SignalFraming expects shape:")
+            print("signal    (batchsize, length, 1)")
+            sys.exit(1)
+
+        # 1. switch dimension from (batch, length, dim) to (batch, dim, length)
+        # 2. pad signal on the left to (batch, dim, length + pad_length)
+        signal_pad = torch_nn_func.pad(signal.permute(0, 2, 1),\
+                                       (self.m_pad_len_l, self.m_pad_len_r))
+
+        # switch dimension from (batch, dim, length) to (batch, length, dim)
+        return super(SignalFraming, self).forward(signal_pad).permute(0, 2, 1)
+
+
+class Conv1dStride(torch_nn.Conv1d):
+    """ Wrapper for normal 1D convolution with stride (optionally)
+    
+    Input tensor:  (batchsize, length, dim_in)
+    Output tensor: (batchsize, length2, dim_out)
+    
+    However, we wish that length2 = floor(length / stride)
+    Therefore, 
+    padding_total_length - dilation_s * (kernel_s - 1) -1 + stride = 0 
+    or, 
+    padding_total_length = dilation_s * (kernel_s - 1) + 1 - stride
+    
+    Conv1dBundle(input_dim, output_dim, dilation_s, kernel_s, 
+                 causal = False, stride = 1, groups=1, bias=True, \
+                 tanh = True, pad_mode='constant')
+                 
+        input_dim: int, input dimension (input channel)
+        output_dim: int, output dimension (output channel)
+        kernel_s: int, kernel size of filter        
+        dilation_s: int, dilation for convolution
+        causal: bool, whether causal convolution, default False
+        stride: int, stride size, default 1
+        groups: int, group for conv1d, default 1
+        bias: bool, whether add bias, default True
+        tanh: bool, whether use tanh activation, default True
+        pad_mode: str, padding method, default "constant"
+    """
+    def __init__(self, input_dim, output_dim, kernel_s, dilation_s=1, 
+                 causal = False, stride = 1, groups=1, bias=True, \
+                 tanh = True, pad_mode='constant'):
+        super(Conv1dStride, self).__init__(
+            input_dim, output_dim, kernel_s, stride=stride,
+            padding = 0, dilation = dilation_s, groups=groups, bias=bias)
+
+        self.pad_mode = pad_mode
+        self.causal = causal
+        
+        # padding size
+        # input & output length will be the same
+        if self.causal:
+            # left pad to make the convolution causal
+            self.pad_le = dilation_s * (kernel_s - 1) + 1 - stride
+            self.pad_ri = 0
+        else:
+            # pad on both sizes
+            self.pad_le = (dilation_s*(kernel_s-1)+1-stride) // 2
+            self.pad_ri = (dilation_s*(kernel_s-1)+1-stride) - self.pad_le
+    
+        # activation functions
+        if tanh:
+            self.l_ac = torch_nn.Tanh()
+        else:
+            self.l_ac = torch_nn.Identity()
+        
+    def forward(self, data):
+        # https://github.com/pytorch/pytorch/issues/1333
+        # permute to (batchsize=1, dim, length)
+        # add one dimension as (batchsize=1, dim, ADDED_DIM, length)
+        # pad to ADDED_DIM
+        # squeeze and return to (batchsize=1, dim, length+pad_length)
+        x = torch_nn_func.pad(
+            data.permute(0, 2, 1).unsqueeze(2), \
+            (self.pad_le, self.pad_ri,0,0), \
+            mode = self.pad_mode).squeeze(2)
+        
+        # tanh(conv1())
+        # permmute back to (batchsize=1, length, dim)
+        output = self.l_ac(super(Conv1dStride, self).forward(x))
+        return output.permute(0, 2, 1)
+
+    
+    
+class MaxPool1dStride(torch_nn.MaxPool1d):
+    """ Wrapper for maxpooling
+    
+    Input tensor:  (batchsize, length, dim_in)
+    Output tensor: (batchsize, length2, dim_in)
+    
+    However, we wish that length2 = floor(length / stride)
+    Therefore, 
+    padding_total_length - dilation_s * (kernel_s - 1) -1 + stride = 0 
+    or, 
+    padding_total_length = dilation_s * (kernel_s - 1) + 1 - stride
+    
+    MaxPool1dStride(kernel_s, stride, dilation_s=1)
+    """
+    def __init__(self, kernel_s, stride, dilation_s=1):
+        super(MaxPool1dStride, self).__init__(
+            kernel_s, stride, 0, dilation_s)
+        
+        # pad on both sizes
+        self.pad_le = (dilation_s*(kernel_s-1)+1-stride) // 2
+        self.pad_ri = (dilation_s*(kernel_s-1)+1-stride) - self.pad_le
+        
+    def forward(self, data):
+        # https://github.com/pytorch/pytorch/issues/1333
+        # permute to (batchsize=1, dim, length)
+        # add one dimension as (batchsize=1, dim, ADDED_DIM, length)
+        # pad to ADDED_DIM
+        # squeeze and return to (batchsize=1, dim, length+pad_length)
+        x = torch_nn_func.pad(
+            data.permute(0, 2, 1).unsqueeze(2), \
+            (self.pad_le, self.pad_ri,0,0)).squeeze(2).contiguous()
+        
+        # tanh(conv1())
+        # permmute back to (batchsize=1, length, dim)
+        output = super(MaxPool1dStride, self).forward(x)
+        return output.permute(0, 2, 1)
+
+    
+    
+class AvePool1dStride(torch_nn.AvgPool1d):
+    """ Wrapper for average pooling
+    
+    Input tensor:  (batchsize, length, dim_in)
+    Output tensor: (batchsize, length2, dim_in)
+    
+    However, we wish that length2 = floor(length / stride)
+    Therefore, 
+    padding_total_length - dilation_s * (kernel_s - 1) -1 + stride = 0 
+    or, 
+    padding_total_length = dilation_s * (kernel_s - 1) + 1 - stride
+    
+    MaxPool1dStride(kernel_s, stride, dilation_s=1)
+    """
+    def __init__(self, kernel_s, stride):
+        super(AvePool1dStride, self).__init__(
+            kernel_s, stride, 0)
+        
+        # pad on both sizes
+        self.pad_le = ((kernel_s-1)+1-stride) // 2
+        self.pad_ri = ((kernel_s-1)+1-stride) - self.pad_le
+        
+    def forward(self, data):
+        # https://github.com/pytorch/pytorch/issues/1333
+        # permute to (batchsize=1, dim, length)
+        # add one dimension as (batchsize=1, dim, ADDED_DIM, length)
+        # pad to ADDED_DIM
+        # squeeze and return to (batchsize=1, dim, length+pad_length)
+        x = torch_nn_func.pad(
+            data.permute(0, 2, 1).unsqueeze(2), \
+            (self.pad_le, self.pad_ri,0,0)).squeeze(2).contiguous()
+        
+        # tanh(conv1())
+        # permmute back to (batchsize=1, length, dim)
+        output = super(AvePool1dStride, self).forward(x)
+        return output.permute(0, 2, 1)
+
 
 
 if __name__ == "__main__":

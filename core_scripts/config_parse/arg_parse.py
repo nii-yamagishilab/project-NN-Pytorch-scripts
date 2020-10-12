@@ -142,6 +142,12 @@ def f_args_parsed(argument_input = None):
     mes = mes + ' (default: 1)'
     parser.add_argument('--verbose', type=int, default=1,
                         help=mes)
+
+    #######
+    # options for user defined 
+    mes = 'a temporary flag without specific purpose.'
+    mes += 'User should define args.temp_flag only for temporary usage.'
+    parser.add_argument('--temp-flag', type=str, default='', help=mes)
     
     #
     # done

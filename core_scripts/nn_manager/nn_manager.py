@@ -488,22 +488,35 @@ def f_inference_wrapper(args, pt_model, device, \
                 else:
                     data_gen = infer_func(data_in)
             
-            if type(data_gen) != torch.tensor:
-                nii_display.f_print("No output saved: %s" % (str(data_info)),\
-                                    'warning')
-                continue
-            data_gen = pt_model.denormalize_output(data_gen)
             time_cost = time.time() - start_time
             # average time for each sequence when batchsize > 1
             time_cost = time_cost / len(data_info)
+                
+            if data_gen is None:
+                nii_display.f_print("No output saved: %s" % (str(data_info)),\
+                                    'warning')
+                for idx, seq_info in enumerate(data_info):
+                    _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
+                continue
+            else:
+                try:
+                    data_gen = pt_model.denormalize_output(data_gen)
+                    data_gen_np = data_gen.to("cpu").numpy()
+                except AttributeError:
+                    mes = "Output data is not torch.tensor. Please check "
+                    mes += "model.forward or model.inference"
+                    nii_display.f_die(mes)
+                
+                # save output (in case batchsize > 1, )
+                for idx, seq_info in enumerate(data_info):
+                    _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
+                    test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
+                                                 args.output_dir, \
+                                                 seq_info)
+        
+        # done for
+    # done with
 
-            # save output (in case batchsize > 1, )
-            data_gen_np = data_gen.to("cpu").numpy()
-            for idx, seq_info in enumerate(data_info):
-                _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
-                test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
-                                             args.output_dir, \
-                                             seq_info)
     # 
     nii_display.f_print("Generated data to %s" % (args.output_dir))
     # done
