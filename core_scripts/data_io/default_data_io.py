@@ -140,13 +140,13 @@ class NIIDataSet(torch.utils.data.Dataset):
         self.m_output_reso = _tmp_f(output_reso, 1, len(output_dims))
         self.m_output_norm = _tmp_f(output_norm, True, len(output_dims))
         if len(self.m_input_reso) != len(self.m_input_dims):
-            nii_warn.f_die("Please check input_reso")
+            nii_warn.f_die("len(input_reso) != len(input_dims) in config")
         if len(self.m_output_reso) != len(self.m_output_dims):
-            nii_warn.f_die("Please check output_reso")
+            nii_warn.f_die("len(output_reso) != len(input_dims) in config")
         if len(self.m_input_norm) != len(self.m_input_dims):
-            nii_warn.f_die("Please check input_norm")
+            nii_warn.f_die("len(input_norm) != len(input_dims) in config")
         if len(self.m_output_norm) != len(self.m_output_dims):
-            nii_warn.f_die("Please check output_norm")
+            nii_warn.f_die("len(output_norm) != len(output_dims) in config")
         
         # dimensions
         self.m_input_all_dim = sum(self.m_input_dims)
@@ -173,7 +173,7 @@ class NIIDataSet(torch.utils.data.Dataset):
             nii_warn.f_print("output_reso: %s" % (str(self.m_output_reso)),\
                              'error')
             nii_warn.f_print("NIIDataSet not support", 'error', end='')
-            nii_warn.f_die(" different input_reso")
+            nii_warn.f_die(" different output_reso")
         # no need to contrain output_reso = 1
         #if any([x != 1 for x in self.m_output_reso]):
         #    nii_warn.f_print("NIIDataSet only supports", 'error', end='')
@@ -455,36 +455,48 @@ class NIIDataSet(torch.utils.data.Dataset):
         When comparing the different input/output features for the same
         file_name, only keep the shortest length
         """
-        # the length for the sequence with the fast tempoeral rate
-        # For example, acoustic-feature -> waveform 16kHz,
-        # if acoustic-feature is one frame per 5ms,
-        #  tmp_len = acoustic feature frame length * (5 * 16)
-        # where t_reso = 5*16 is the up-sampling rate of acoustic feature
-        tmp_len = t_len * t_reso
         
-        # save length when have not read the file
-        if file_name not in self.m_data_length:
-            self.m_data_length[file_name] = tmp_len
-
-        # check length
-        if t_len == 1:
-            # if this is an utterance-level feature, it has only 1 frame
-            pass
-        elif self.f_valid_len(self.m_data_length[file_name], tmp_len, \
-                            nii_dconf.data_seq_min_length):
-            # if the difference in length is small
-            if self.m_data_length[file_name] > tmp_len:
+        # We need to exclude features that should not be considered when
+        #  calculating the sequence length
+        #  1. sentence-level vector (t_len = 1)
+        #  2. unaligned feature (text in text-to-speech) (t_reso < 0)
+        valid_flag = t_len > 1 and t_reso > 0
+        
+        if valid_flag:
+            # the length for the sequence with the fast tempoeral rate
+            # For example, acoustic-feature -> waveform 16kHz,
+            # if acoustic-feature is one frame per 5ms,
+            #  tmp_len = acoustic feature frame length * (5 * 16)
+            # where t_reso = 5*16 is the up-sampling rate of acoustic feature
+            tmp_len = t_len * t_reso
+        
+            # save length when have not read the file
+            if file_name not in self.m_data_length:
                 self.m_data_length[file_name] = tmp_len
-        else:
-            nii_warn.f_print("Sequence length mismatch:", 'error')
-            self.f_check_specific_data(file_name)
-            nii_warn.f_print("Please the above features", 'error')
-            nii_warn.f_die("Possible invalid data %s" % (file_name))
 
-        # adjust the length so that, when reso is used,
-        # the sequence length will be N * reso
-        tmp = self.m_data_length[file_name]
-        self.m_data_length[file_name] = self.f_adjust_len(tmp)
+            # check length
+            if t_len == 1:
+                # if this is an utterance-level feature, it has only 1 frame
+                pass
+            elif self.f_valid_len(self.m_data_length[file_name], tmp_len, \
+                                  nii_dconf.data_seq_min_length):
+                # if the difference in length is small
+                if self.m_data_length[file_name] > tmp_len:
+                    self.m_data_length[file_name] = tmp_len
+            else:
+                nii_warn.f_print("Sequence length mismatch:", 'error')
+                self.f_check_specific_data(file_name)
+                nii_warn.f_print("Please the above features", 'error')
+                nii_warn.f_die("Possible invalid data %s" % (file_name))
+
+            # adjust the length so that, when reso is used,
+            # the sequence length will be N * reso
+            tmp = self.m_data_length[file_name]
+            self.m_data_length[file_name] = self.f_adjust_len(tmp)
+        else:
+            # do nothing for unaligned input or sentence-level input
+            pass
+        
         return
 
     def f_adjust_len(self, length):
@@ -503,6 +515,7 @@ class NIIDataSet(torch.utils.data.Dataset):
 
             # if file_name is not logged, ignore this file
             if file_name not in self.m_data_length:
+                nii_warn.f_eprint("Exclude %s from dataset" % (file_name))
                 continue
             
             # if not truncate, save the seq_info directly
@@ -610,6 +623,8 @@ class NIIDataSet(torch.utils.data.Dataset):
             self.m_data_total_length = self.f_sum_data_length()
             
             # check whether *.dic contains files in filelist
+            # note: one file is not found in self.m_data_length if it
+            #  is shorter than the truncate_seq
             if nii_list_tools.list_identical(self.m_file_list,\
                                              self.m_data_length.keys()):
                 nii_warn.f_print("Read sequence info: %s" % (data_path))
@@ -618,8 +633,13 @@ class NIIDataSet(torch.utils.data.Dataset):
                                                  self.m_data_length.keys()):
                 nii_warn.f_print("Read sequence info: %s" % (data_path))
                 nii_warn.f_print(
-                    "However %d samples are ignoed %d" % \
+                    "However %d samples are ignoed" % \
                     (len(self.m_file_list)-len(self.m_data_length)))
+                tmp = nii_list_tools.members_in_a_not_in_b(
+                    self.m_file_list, self.m_data_length.keys())
+                for tmp_name in tmp:
+                    nii_warn.f_eprint("Exclude %s from dataset" % (tmp_name))
+                                    
                 flag = False
             else:
                 self.m_seq_info = []

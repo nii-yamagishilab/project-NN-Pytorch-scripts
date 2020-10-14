@@ -75,6 +75,17 @@ def list_b_in_list_a(list_a, list_b):
     """
     return set(list_b) <= set(list_a)
 
+def members_in_a_not_in_b(list_a, list_b):
+    """ members_in_a_not_b(list_a, list_b):
+    Return a list of members that are in list_a but not in list_b
+    
+    Parameters:
+        list_a: list
+        list_b: list
+    Return: list
+    """
+    return list(set(list_a) - set(list_b))
+
 def read_list_from_text(filename, f_chop=True):
     """                                       
     """
