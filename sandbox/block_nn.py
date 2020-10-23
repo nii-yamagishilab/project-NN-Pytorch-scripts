@@ -656,5 +656,55 @@ class Maxout1D(torch_nn.Module):
         m, i = out.view(*shape).max(max_dim)
         return m
 
+
+
+class MaxFeatureMap2D(torch_nn.Module):
+    """ Max feature map (along 2D) 
+    
+    MaxFeatureMap2D(max_dim=1)
+    
+    l_conv2d = MaxFeatureMap2D(1)
+    data_in = torch.rand([1, 4, 5, 5])
+    data_out = l_conv2d(data_in)
+
+    
+    Input:
+    ------
+    data_in: tensor of shape (batch, channel, ...)
+    
+    Output:
+    -------
+    data_out: tensor of shape (batch, channel//2, ...)
+    
+    Note
+    ----
+    By default, Max-feature-map is on channel dimension,
+    and maxout is used on (channel ...)
+    """
+    def __init__(self, max_dim = 1):
+        super().__init__()
+        self.max_dim = max_dim
+        
+    def forward(self, inputs):
+        # suppose inputs (batchsize, channel, length, dim)
+        
+        shape = list(inputs.size())
+        
+        if self.max_dim >= len(shape):
+            print("MaxFeatureMap: maximize on %d dim" % (self.max_dim))
+            print("But input has %d dimensions" % (len(shape)))
+            sys.exit(1)
+        if shape[self.max_dim] // 2 * 2 != shape[self.max_dim]:
+            print("MaxFeatureMap: maximize on %d dim" % (self.max_dim))
+            print("But this dimension has an odd number of data")
+            sys.exit(1)
+        shape[self.max_dim] = shape[self.max_dim]//2
+        shape.insert(self.max_dim, 2)
+        
+        # view to (batchsize, 2, channel//2, ...)
+        # maximize on the 2nd dim
+        m, i = inputs.view(*shape).max(self.max_dim)
+        return m
+
 if __name__ == "__main__":
     print("Definition of block NN")
