@@ -618,5 +618,43 @@ class AvePool1dStride(torch_nn.AvgPool1d):
 
 
 
+class Maxout1D(torch_nn.Module):
+    """ Maxout activation (along 1D)
+    Maxout(d_in, d_out, pool_size)
+    From https://github.com/pytorch/pytorch/issues/805
+    
+    Arguments
+    ---------
+    d_in: feature input dimension
+    d_out: feature output dimension
+    pool_size: window size of max-pooling
+    
+    
+    Usage
+    -----
+    l_maxout1d = Maxout1D(d_in, d_out, pool_size)
+    data_in = torch.rand([1, T, d_in])
+    data_out = l_maxout1d(data_in)
+    """
+    def __init__(self, d_in, d_out, pool_size):
+        super().__init__()
+        self.d_in, self.d_out, self.pool_size = d_in, d_out, pool_size
+        self.lin = torch_nn.Linear(d_in, d_out * pool_size)
+
+    def forward(self, inputs):
+        # suppose inputs (batchsize, length, dim)
+        
+        # shape (batchsize, length, out-dim, pool_size)
+        shape = list(inputs.size())
+        shape[-1] = self.d_out
+        shape.append(self.pool_size)
+        max_dim = len(shape) - 1
+        # shape (batchsize, length, out-dim * pool_size)
+        out = self.lin(inputs)
+        # view to (batchsize, length, out-dim, pool_size)
+        # maximize on the last dimension
+        m, i = out.view(*shape).max(max_dim)
+        return m
+
 if __name__ == "__main__":
     print("Definition of block NN")
