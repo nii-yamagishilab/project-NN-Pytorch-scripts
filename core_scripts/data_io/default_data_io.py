@@ -174,13 +174,25 @@ class NIIDataSet(torch.utils.data.Dataset):
                              'error')
             nii_warn.f_print("NIIDataSet not support", 'error', end='')
             nii_warn.f_die(" different output_reso")
+        if np.any(np.array(self.m_output_reso) < 0):
+            nii_warn.f_print("NIIDataSet not support negative reso", 
+                             'error', end='')
+            nii_warn.f_die(" Output reso: %s" % (str(self.m_output_reso)))
+        if np.any(np.array(self.m_input_reso) < 0):
+            if truncate_seq is not None:
+                nii_warn.f_print("Input reso : %s" % (str(self.m_input_reso)))
+                nii_warn.f_print("truncate is set to None", 'warning')
+                self.m_truncate_seq = None
+                self.m_min_seq_len = None
+
+
         # no need to contrain output_reso = 1
         #if any([x != 1 for x in self.m_output_reso]):
         #    nii_warn.f_print("NIIDataSet only supports", 'error', end='')
         #    nii_warn.f_die(" output_reso = [1, 1, ... 1]")
         #self.m_single_reso = self.m_input_reso[0]
         self.m_single_reso = np.max(self.m_input_reso + self.m_output_reso)
-        
+            
         # To make sure that target waveform length is exactly equal
         #  to the up-sampled sequence length
         # self.m_truncate_seq must be changed to be N * up_sample
@@ -257,6 +269,12 @@ class NIIDataSet(torch.utils.data.Dataset):
         s_idx = int(tmp_seq_info.seq_start_pos() // input_reso)
         e_idx = s_idx + seq_len
         
+        # in case the input length not account using tmp_seq_info.seq_length
+        if seq_len < 0:
+            seq_len = 0
+            s_idx = 0
+            e_idx = 0
+
         input_dim = self.m_input_all_dim
         in_data = np.zeros([seq_len, input_dim], dtype=nii_dconf.h_dtype)
         s_dim = 0
@@ -276,7 +294,11 @@ class NIIDataSet(torch.utils.data.Dataset):
                 nii_warn.f_die("Cannot find %s" % (file_path))
 
             # write data
-            if tmp_d.shape[0] == 1:
+            if t_res < 0:
+                # if this is for input data not synchronized with output
+                in_data = tmp_d
+
+            elif tmp_d.shape[0] == 1:
                 # input data has only one frame, duplicate
                 if tmp_d.ndim > 1:
                     in_data[:,s_dim:e_dim] = tmp_d[0,:]
