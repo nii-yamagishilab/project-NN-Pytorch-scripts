@@ -357,6 +357,10 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
 
         # training one epoch
         pt_model.train()
+        # set validation flag if necessary
+        if hasattr(pt_model, 'validation'):
+            pt_model.validation = False
+
         f_run_one_epoch(args, pt_model, loss_wrapper, device, \
                         monitor_trn, train_data_loader, \
                         epoch_idx, optimizer, normtarget_f)
@@ -368,6 +372,11 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             # set eval() if necessary 
             if args.eval_mode_for_validation:
                 pt_model.eval()
+
+            # set validation flag if necessary
+            if hasattr(pt_model, 'validation'):
+                pt_model.validation = True
+
             with torch.no_grad():
                 f_run_one_epoch(args, pt_model, loss_wrapper, \
                                 device, \
