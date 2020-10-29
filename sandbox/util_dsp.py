@@ -4,8 +4,11 @@ util_dsp.py
 
 Utilities for signal processing
 
-Code adapted from
+MuLaw Code adapted from
 https://github.com/fatchord/WaveRNN/blob/master/utils/distribution.py
+
+DCT code adapted from
+https://github.com/zh217/torch-dct
 
 """
 
@@ -23,6 +26,10 @@ __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
+
+######################
+### WaveForm utilities
+######################
 
 def label_2_float(x, bits):
     """Convert integer numbers to float values
@@ -112,6 +119,132 @@ def mulaw_decode(x_mu, quantization_channels, input_int=True):
     x = torch.sign(x) * (torch.exp(torch.abs(x) * torch.log1p(mu)) - 1.0) / mu
     return x
 
+
+######################
+### DCT utilities
+######################
+
+def dct1(x):
+    """
+    Discrete Cosine Transform, Type I
+    :param x: the input signal
+    :return: the DCT-I of the signal over the last dimension
+    """
+    x_shape = x.shape
+    x = x.view(-1, x_shape[-1])
+
+    return torch.rfft(
+        torch.cat([x, x.flip([1])[:, 1:-1]], dim=1), 1)[:, :, 0].view(*x_shape)
+
+
+def idct1(X):
+    """
+    The inverse of DCT-I, which is just a scaled DCT-I
+    Our definition if idct1 is such that idct1(dct1(x)) == x
+    :param X: the input signal
+    :return: the inverse DCT-I of the signal over the last dimension
+    """
+    n = X.shape[-1]
+    return dct1(X) / (2 * (n - 1))
+
+
+def dct(x, norm=None):
+    """
+    Discrete Cosine Transform, Type II (a.k.a. the DCT)
+    For the meaning of the parameter `norm`, see:
+    https://docs.scipy.org/doc/ scipy.fftpack.dct.html
+    :param x: the input signal
+    :param norm: the normalization, None or 'ortho'
+    :return: the DCT-II of the signal over the last dimension
+    """
+    x_shape = x.shape
+    N = x_shape[-1]
+    x = x.contiguous().view(-1, N)
+
+    v = torch.cat([x[:, ::2], x[:, 1::2].flip([1])], dim=1)
+
+    Vc = torch.rfft(v, 1, onesided=False)
+
+    k = - torch.arange(N, dtype=x.dtype, device=x.device)[None, :] * np.pi/(2*N)
+    W_r = torch.cos(k)
+    W_i = torch.sin(k)
+
+    V = Vc[:, :, 0] * W_r - Vc[:, :, 1] * W_i
+
+    if norm == 'ortho':
+        V[:, 0] /= np.sqrt(N) * 2
+        V[:, 1:] /= np.sqrt(N / 2) * 2
+
+    V = 2 * V.view(*x_shape)
+
+    return V
+
+
+def idct(X, norm=None):
+    """
+    The inverse to DCT-II, which is a scaled Discrete Cosine Transform, Type III
+    Our definition of idct is that idct(dct(x)) == x
+    For the meaning of the parameter `norm`, see:
+    https://docs.scipy.org/doc/ scipy.fftpack.dct.html
+    :param X: the input signal
+    :param norm: the normalization, None or 'ortho'
+    :return: the inverse DCT-II of the signal over the last dimension
+    """
+
+    x_shape = X.shape
+    N = x_shape[-1]
+
+    X_v = X.contiguous().view(-1, x_shape[-1]) / 2
+
+    if norm == 'ortho':
+        X_v[:, 0] *= np.sqrt(N) * 2
+        X_v[:, 1:] *= np.sqrt(N / 2) * 2
+
+    k = torch.arange(x_shape[-1], dtype=X.dtype, 
+                     device=X.device)[None, :]*np.pi/(2*N)
+    W_r = torch.cos(k)
+    W_i = torch.sin(k)
+
+    V_t_r = X_v
+    V_t_i = torch.cat([X_v[:, :1] * 0, -X_v.flip([1])[:, :-1]], dim=1)
+
+    V_r = V_t_r * W_r - V_t_i * W_i
+    V_i = V_t_r * W_i + V_t_i * W_r
+
+    V = torch.cat([V_r.unsqueeze(2), V_i.unsqueeze(2)], dim=2)
+
+    v = torch.irfft(V, 1, onesided=False)
+    x = v.new_zeros(v.shape)
+    x[:, ::2] += v[:, :N - (N // 2)]
+    x[:, 1::2] += v.flip([1])[:, :N // 2]
+
+    return x.view(*x_shape)
+
+
+class LinearDCT(torch_nn.Linear):
+    """Implement any DCT as a linear layer; in practice this executes around
+    50x faster on GPU. Unfortunately, the DCT matrix is stored, which will 
+    increase memory usage.
+    :param in_features: size of expected input
+    :param type: which dct function in this file to use"""
+    def __init__(self, in_features, type, norm=None, bias=False):
+        self.type = type
+        self.N = in_features
+        self.norm = norm
+        super(LinearDCT, self).__init__(in_features, in_features, bias=bias)
+
+    def reset_parameters(self):
+        # initialise using dct function
+        I = torch.eye(self.N)
+        if self.type == 'dct1':
+            self.weight.data = dct1(I).data.t()
+        elif self.type == 'idct1':
+            self.weight.data = idct1(I).data.t()
+        elif self.type == 'dct':
+            self.weight.data = dct(I, norm=self.norm).data.t()
+        elif self.type == 'idct':
+            self.weight.data = idct(I, norm=self.norm).data.t()
+        self.weight.requires_grad = False # don't learn this!
 
 if __name__ == "__main__":
     print("util_dsp.py")
