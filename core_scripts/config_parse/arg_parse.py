@@ -50,8 +50,15 @@ def f_args_parsed(argument_input = None):
     mes = 'number of no-best epochs for early stopping (default: 5)'
     parser.add_argument('--no-best-epochs', type=int, default=5, help=mes)
     
+
     parser.add_argument('--lr', type=float, default=0.0001, 
                         help='learning rate (default: 0.0001)')
+    
+    mes = 'learning rate decaying factor, using '
+    mes += 'torch.optim.lr_scheduler.ReduceLROnPlateau(patience=no-best-epochs,'
+    mes += ' factor=lr-decay-factor). By default, no decaying is used.'
+    mes += ' Training stopped after --no-best-epochs.'
+    parser.add_argument('--lr-decay-factor', type=float, default=-1.0, help=mes)
     
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
