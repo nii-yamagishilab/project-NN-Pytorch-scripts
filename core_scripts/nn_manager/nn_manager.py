@@ -251,9 +251,14 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     
     nii_display.f_print_w_date("Start model training")
 
+    ##############
+    ## Preparation
+    ##############
+
     # get the optimizer
     optimizer_wrapper.print_info()
     optimizer = optimizer_wrapper.optimizer
+    lr_scheduler = optimizer_wrapper.lr_scheduler
     epoch_num = optimizer_wrapper.get_epoch_num()
     no_best_epoch_num = optimizer_wrapper.get_no_best_epoch_num()
     
@@ -273,7 +278,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         monitor_val = nii_monitor.Monitor(epoch_num, val_seq_num)
     else:
         monitor_val = None
-
+        
     # training log information
     train_log = ''
 
@@ -295,6 +300,10 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     # print the network
     f_model_show(pt_model)
 
+
+    ###############################
+    ## Resume training if necessary
+    ###############################
     # resume training or initialize the model if necessary
     cp_names = nii_nn_manage_conf.CheckPointKey()
     if checkpoint is not None:
@@ -326,22 +335,33 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                         checkpoint[cp_names.vallog])
                 if cp_names.info in checkpoint:
                     train_log = checkpoint[cp_names.info]
+                if cp_names.lr_scheduler in checkpoint and \
+                   checkpoint[cp_names.lr_scheduler] and lr_scheduler:
+                    lr_scheduler.load_state_dict(
+                        checkpoint[cp_names.lr_scheduler])
+                    
                 nii_display.f_print("Load check point, resume training")
             else:
                 nii_display.f_print("Load pretrained model and optimizer")
         else:
             # only model status
-            #pt_model.load_state_dict(checkpoint)
             pt_model.load_state_dict(
                 nii_nn_tools.f_state_dict_wrapper(
                     checkpoint, flag_multi_device))
             nii_display.f_print("Load pretrained model")
     
+
+    ######################
+    ### User defined setup 
+    ######################
     if hasattr(pt_model, "other_setups"):
         nii_display.f_print("Conduct User-defined setup")
         pt_model.other_setups()
 
-    
+
+    ######################
+    ### Start training
+    ######################
     # other variables
     flag_early_stopped = False
     start_epoch = monitor_trn.get_epoch()
@@ -384,6 +404,11 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                                 epoch_idx, None, normtarget_f)
             time_val = monitor_val.get_time(epoch_idx)
             loss_val = monitor_val.get_loss(epoch_idx)
+            
+            # update lr rate scheduler if necessary
+            if lr_scheduler:
+                lr_scheduler.step(loss_val)
+
         else:
             time_val, loss_val = 0, 0
                 
@@ -396,7 +421,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # print information
         train_log += nii_op_display_tk.print_train_info(
             epoch_idx, time_trn, loss_trn, time_val, loss_val, 
-            flag_new_best)
+            flag_new_best, optimizer_wrapper.get_lr_info())
+
         # save the best model
         if flag_new_best:
             tmp_best_name = f_save_trained_name(args)
@@ -405,17 +431,25 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # save intermediate model if necessary
         if not args.not_save_each_epoch:
             tmp_model_name = f_save_epoch_name(args, epoch_idx)
+            
             if monitor_val is not None:
                 tmp_val_log = monitor_val.get_state_dic()
             else:
                 tmp_val_log = None
+                
+            if lr_scheduler:
+                lr_scheduler_state = lr_scheduler.state_dict()
+            else:
+                lr_scheduler_state = None
+
             # save
             tmp_dic = {
                 cp_names.state_dict : pt_model.state_dict(),
                 cp_names.info : train_log,
                 cp_names.optimizer : optimizer.state_dict(),
                 cp_names.trnlog : monitor_trn.get_state_dic(),
-                cp_names.vallog : tmp_val_log
+                cp_names.vallog : tmp_val_log,
+                cp_names.lr_scheduler : lr_scheduler_state
             }
             torch.save(tmp_dic, tmp_model_name)
             if args.verbose == 1:
@@ -423,9 +457,12 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                 nii_display.f_eprint("Save {:s}".format(tmp_model_name),
                                      flush=True)
                 
-            
-        # early stopping
-        if monitor_val is not None and \
+        
+        # Early stopping
+        #  note: if LR scheduler is used, early stopping will be
+        #  disabled
+        if lr_scheduler is None and \
+           monitor_val is not None and \
            monitor_val.should_early_stop(no_best_epoch_num):
             flag_early_stopped = True
             break

@@ -20,7 +20,7 @@ class CheckPointKey:
     optimizer = 'optimizer' 
     trnlog = 'train_log'
     vallog = 'val_log'
-
+    lr_scheduler = 'lr_scheduler'
 
 # Methods that a Model should have 
 nn_model_keywords = {

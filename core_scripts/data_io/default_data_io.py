@@ -239,7 +239,14 @@ class NIIDataSet(torch.utils.data.Dataset):
         # check
         if self.__len__() < 1:
             nii_warn.f_print("Fail to load any data", "error")
-            nii_warn.f_die("Please check configuration")
+            nii_warn.f_print("Possible reasons: ", "error")
+            nii_warn.f_print("1. old cache data is used %s. Please delete it." 
+                             % (self.m_data_len_path), "error")
+            nii_warn.f_print("2. feature directories and extensions are wrong.",
+                             "error")
+            nii_warn.f_print("3. all data are less than minimum_len in length", 
+                             "error")
+            nii_warn.f_die("Please check configuration file")
         # done
         return                
         
