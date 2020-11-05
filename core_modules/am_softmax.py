@@ -87,7 +87,7 @@ class AMAngleLayer(torch_nn.Module):
                 
         if flag_angle_only:
             cos_x = cos_theta
-            phi_x = phi_theta
+            phi_x = cos_theta
         else:
             cos_x = self.s * cos_theta
             phi_x = self.s * (cos_theta - self.m) 

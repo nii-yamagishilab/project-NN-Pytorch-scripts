@@ -67,7 +67,7 @@ class OCAngleLayer(torch_nn.Module):
         cos_theta = cos_theta.clamp(-1, 1)
                 
         if flag_angle_only:
-            pos_score = -1 * cos_theta
+            pos_score = cos_theta
             neg_score = None
         else:
             pos_score = self.alpha * (self.w_posi - cos_theta)
