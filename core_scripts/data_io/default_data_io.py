@@ -21,6 +21,7 @@ import core_scripts.data_io.wav_tools as nii_wav_tk
 import core_scripts.data_io.conf as nii_dconf
 import core_scripts.data_io.seq_info as nii_seqinfo
 import core_scripts.math_tools.stats as nii_stats
+import core_scripts.data_io.customize_collate_fn as nii_collate_fn
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -969,8 +970,14 @@ class NIIDataSetLoader:
             tmp_params = nii_dconf.default_loader_conf
         else:
             tmp_params = params
-        self.m_loader = torch.utils.data.DataLoader(self.m_dataset,
-                                                    **tmp_params)
+        # collate function
+        if 'batch_size' in params and params['batch_size'] > 1:
+            collate_fn = nii_collate_fn.customize_collate
+        else:
+            collate_fn = None
+            
+        self.m_loader = torch.utils.data.DataLoader(
+            self.m_dataset, collate_fn=collate_fn, **tmp_params)
         # done
         return
         

@@ -161,7 +161,7 @@ def f_run_one_epoch(args,
             normed_target = []
 
         # compute loss and do back propagate
-        loss_vals = [0]
+        loss_values = [0]
 
         # return the loss from loss_wrapper
         # loss_computed may be [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
@@ -175,14 +175,14 @@ def f_run_one_epoch(args,
         # To handle cases where there are multiple loss functions
         # when loss_comptued is [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
         #   loss: sum of [loss_1, loss_2, ...], for backward()
-        #   loss_vals: [loss_1.item(), loss_2.item() ..], for logging
+        #   loss_values: [loss_1.item(), loss_2.item() ..], for logging
         #   loss_flags: [True/False, ...], for logging, 
         #               whether loss_n is used for early stopping
         # when loss_computed is loss
         #   loss: loss
         #   los_vals: [loss.item()]
         #   loss_flags: [True]
-        loss, loss_vals, loss_flags = nii_nn_tools.f_process_loss(
+        loss, loss_values, loss_flags = nii_nn_tools.f_process_loss(
             loss_computed)
 
         # Back-propgation using the summed loss
@@ -197,7 +197,7 @@ def f_run_one_epoch(args,
             # loss_value is supposed to be the average loss value
             # over samples in the the batch, thus, just loss_value
             # rather loss_value / batchsize
-            monitor.log_loss(loss_vals, loss_flags, \
+            monitor.log_loss(loss_values, loss_flags, \
                              (end_time-start_time) / batchsize, \
                              data_seq_info, idx_orig.numpy()[idx], \
                              epoch_idx)
