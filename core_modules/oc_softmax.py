@@ -68,7 +68,7 @@ class OCAngleLayer(torch_nn.Module):
                 
         if flag_angle_only:
             pos_score = cos_theta
-            neg_score = None
+            neg_score = cos_theta
         else:
             pos_score = self.alpha * (self.w_posi - cos_theta)
             neg_score = -1 * self.alpha * (self.w_nega - cos_theta)
@@ -91,8 +91,9 @@ class OCSoftmaxWithLoss(torch_nn.Module):
         """
         # assume target is binary, positive = 1, negaitve = 0
         # inputs[0] positive score, inputs[1] negative score
-        output = inputs[0] * target + inputs[1] * (1-target)
-        loss = self.m_loss(output)
+        output = inputs[0] * target.view(-1, 1) + \
+                 inputs[1] * (1-target.view(-1, 1))
+        loss = self.m_loss(output).mean()
 
         return loss
 
