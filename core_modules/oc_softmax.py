@@ -29,13 +29,15 @@ class OCAngleLayer(torch_nn.Module):
     def __init__(self, in_planes, w_posi=0.9, w_nega=0.2, alpha=20.0):
         super(OCAngleLayer, self).__init__()
         self.in_planes = in_planes
-        self.w_posi = 0.9
-        self.w_nega = 0.5
+        self.w_posi = w_posi
+        self.w_nega = w_nega
         self.out_planes = 1
         
         self.weight = Parameter(torch.Tensor(in_planes, self.out_planes))
-        self.weight.data.uniform_(-1, 1).renorm_(2,1,1e-5).mul_(1e5)
-        
+        #self.weight.data.uniform_(-1, 1).renorm_(2,1,1e-5).mul_(1e5)
+        torch_nn.init.kaiming_uniform_(self.weight, 0.25)
+        self.weight.data.renorm_(2,1,1e-5).mul_(1e5)
+
         self.alpha = alpha
 
     def forward(self, input, flag_angle_only=False):
