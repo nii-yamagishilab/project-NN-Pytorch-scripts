@@ -20,6 +20,7 @@ import core_scripts.other_tools.display as nii_warn
 import core_scripts.other_tools.str_tools as nii_str_tk
 import core_scripts.op_manager.conf as nii_op_config
 import core_scripts.op_manager.op_process_monitor as nii_op_monitor
+import core_scripts.op_manager.lr_scheduler as nii_lr_scheduler
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -55,20 +56,7 @@ class OptimizerWrapper():
         self.no_best_epochs = args.no_best_epochs
         
         # lr scheduler
-        self.lr_decay = args.lr_decay_factor
-        if self.lr_decay > 0:
-            
-            if self.no_best_epochs < 0:
-                self.no_best_epochs = 5
-                nii_warn.f_print("--no-best-epochs is set to 5 ")
-                nii_warn.f_print("for learning rate decaying")
-
-            self.lr_scheduler = torch_optim_steplr.ReduceLROnPlateau(
-                optimizer=self.optimizer, factor=self.lr_decay, 
-                patience=self.no_best_epochs)
-        else:
-            self.lr_scheduler = None
-
+        self.lr_scheduler = nii_lr_scheduler.LRScheduler(self.optimizer, args)
         return
 
     def print_info(self):
@@ -78,8 +66,8 @@ class OptimizerWrapper():
         mes += "\n  Learing rate: {:2.6f}".format(self.lr)
         mes += "\n  Epochs: {:d}".format(self.epochs)
         mes += "\n  No-best-epochs: {:d}".format(self.no_best_epochs)
-        if self.lr_scheduler:
-            mes += "\n  LR decay with factor={:2.3f}".format(self.lr_decay)
+        if self.lr_scheduler.f_valid():
+            mes += self.lr_scheduler.f_print_info()
         nii_warn.f_print_message(mes)
 
     def get_epoch_num(self):
@@ -90,11 +78,11 @@ class OptimizerWrapper():
 
     def get_lr_info(self):
         
-        if self.lr_scheduler:
+        if self.lr_scheduler.f_valid():
             # no way to look into the updated lr rather than using _last_lr
             tmp = ''
-            for updated_lr in self.lr_scheduler._last_lr:
-                if np.abs(self.lr - updated_lr) > self.lr_scheduler.eps:
+            for updated_lr in self.lr_scheduler.f_last_lr():
+                if np.abs(self.lr - updated_lr) > 0.0000001:
                     tmp += "{:.2e} ".format(updated_lr)
             if tmp:
                 tmp = " LR -> " + tmp

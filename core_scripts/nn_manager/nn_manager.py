@@ -336,8 +336,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                 if cp_names.info in checkpoint:
                     train_log = checkpoint[cp_names.info]
                 if cp_names.lr_scheduler in checkpoint and \
-                   checkpoint[cp_names.lr_scheduler] and lr_scheduler:
-                    lr_scheduler.load_state_dict(
+                   checkpoint[cp_names.lr_scheduler] and lr_scheduler.f_valid():
+                    lr_scheduler.f_load_state_dict(
                         checkpoint[cp_names.lr_scheduler])
                     
                 nii_display.f_print("Load check point, resume training")
@@ -406,8 +406,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             loss_val = monitor_val.get_loss(epoch_idx)
             
             # update lr rate scheduler if necessary
-            if lr_scheduler:
-                lr_scheduler.step(loss_val)
+            if lr_scheduler.f_valid():
+                lr_scheduler.f_step(loss_val)
 
         else:
             time_val, loss_val = 0, 0
@@ -437,8 +437,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             else:
                 tmp_val_log = None
                 
-            if lr_scheduler:
-                lr_scheduler_state = lr_scheduler.state_dict()
+            if lr_scheduler.f_valid():
+                lr_scheduler_state = lr_scheduler.f_state_dict()
             else:
                 lr_scheduler_state = None
 
@@ -461,7 +461,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # Early stopping
         #  note: if LR scheduler is used, early stopping will be
         #  disabled
-        if lr_scheduler is None and \
+        if lr_scheduler.f_allow_early_stopping() and \
            monitor_val is not None and \
            monitor_val.should_early_stop(no_best_epoch_num):
             flag_early_stopped = True

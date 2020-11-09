@@ -60,6 +60,12 @@ def f_args_parsed(argument_input = None):
     mes += ' Training stopped after --no-best-epochs.'
     parser.add_argument('--lr-decay-factor', type=float, default=-1.0, help=mes)
     
+    mes = 'lr scheduler: 0: ReduceLROnPlateau (default); 1: StepLR; '
+    mes += 'this option is set on only when --lr-decay-factor > 0. '
+    mes += 'Please check core_scripts/op_manager/lr_scheduler.py '
+    mes += 'for detailed hyper config for each type of lr scheduler'
+    parser.add_argument('--lr-scheduler-type', type=int, default=0, help=mes)
+
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     
