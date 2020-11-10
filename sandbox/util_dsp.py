@@ -122,6 +122,9 @@ def mulaw_decode(x_mu, quantization_channels, input_int=True):
 
 ######################
 ### DCT utilities
+### https://github.com/zh217/torch-dct
+### LICENSE: MIT
+### 
 ######################
 
 def dct1(x):

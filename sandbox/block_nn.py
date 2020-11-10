@@ -13,7 +13,7 @@ from scipy import signal as scipy_signal
 import torch
 import torch.nn as torch_nn
 import torch.nn.functional as torch_nn_func
-
+import torch.nn.init as torch_init
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -705,6 +705,70 @@ class MaxFeatureMap2D(torch_nn.Module):
         # maximize on the 2nd dim
         m, i = inputs.view(*shape).max(self.max_dim)
         return m
+
+
+
+class SelfWeightedPooling(torch_nn.Module):
+    """ SelfWeightedPooling module
+    Inspired by
+    https://github.com/joaomonteirof/e2e_antispoofing/blob/master/model.py
+
+    To avoid confusion, I will call it self weighted pooling
+    """
+    
+    def __init__(self, feature_dim, mean_only=False):
+        super(SelfWeightedPooling, self).__init__()
+
+        self.feature_dim = feature_dim
+        self.mean_only = mean_only
+        self.noise_std = 1e-5
+
+        self.mm_weights = torch_nn.Parameter(
+            torch.Tensor(1, feature_dim), requires_grad=True)
+        torch_init.kaiming_uniform_(self.mm_weights)
+
+    def forward(self, inputs):
+        """
+        inputs
+        ------
+          tensor of shape (batchsize, length, feature_dim)
+        
+        output
+        ------
+          tensor of shape (batchsize, feature_dim * 2) if mean_only is False
+          tensor of shape (batchsize, feature_dim) if mean_only is True
+        """
+        
+        # batch matrix multiplication
+        batch_size = inputs.size(0)
+        # change mm_weights to (batchsize, feature_dim, 1)
+        # weights in shape (batchsize, length, 1)
+        weights = torch.bmm(
+            inputs, 
+            self.mm_weights.permute(1, 0).unsqueeze(0).repeat(batch_size, 1, 1))
+        
+        # attention (batchsize, length, 1)
+        attentions = torch_nn_func.softmax(torch.tanh(weights),dim=1)
+
+        # pooling
+        # weighted (batchsize, length, feature_dim)
+        weighted = torch.mul(inputs, attentions.expand_as(inputs))
+        
+        if self.mean_only:
+            # only output the mean vector
+            return weighted.sum(1)
+        else:
+            # output the mean and std vector
+            noise = self.noise_std * torch.randn(
+                weighted.size(), dtype=weighted.dtype, device=weighted.device)
+
+            avg_repr, std_repr = weighted.sum(1), (weighted+noise).std(1)
+
+            # concatenate mean and std
+            representations = torch.cat((avg_repr,std_repr),1)
+            return representations
+        
+
 
 if __name__ == "__main__":
     print("Definition of block NN")
