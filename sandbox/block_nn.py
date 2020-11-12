@@ -745,7 +745,8 @@ class SelfWeightedPooling(torch_nn.Module):
         # weights in shape (batchsize, length, 1)
         weights = torch.bmm(
             inputs, 
-            self.mm_weights.permute(1, 0).unsqueeze(0).repeat(batch_size, 1, 1))
+            self.mm_weights.permute(1, 0).contiguous()\
+            .unsqueeze(0).repeat(batch_size, 1, 1))
         
         # attention (batchsize, length, 1)
         attentions = torch_nn_func.softmax(torch.tanh(weights),dim=1)
