@@ -76,7 +76,8 @@ def compute_eer(target_scores, nontarget_scores):
     return eer, thresholds[min_index]
 
 def compute_tDCF_legacy(bonafide_score_cm, spoof_score_cm, Pfa_asv, \
-                        Pmiss_asv, Pmiss_spoof_asv, cost_model, print_cost=False):
+                        Pmiss_asv, Pmiss_spoof_asv, cost_model, 
+                        print_cost=False):
     """
     Compute Tandem Detection Cost Function (t-DCF) [1] for a fixed ASV system.
     In brief, t-DCF returns a detection cost of a cascaded system of this form,
@@ -96,7 +97,7 @@ def compute_tDCF_legacy(bonafide_score_cm, spoof_score_cm, Pfa_asv, \
 
       bonafide_score_cm   A vector of POSITIVE CLASS (bona fide or human)
                           detection scores obtained by executing a spoofing
-                          countermeasure (CM) on some positive evaluation trials.
+                          countermeasure (CM) on some positive evaluation trials
                           trial represents a bona fide case.
       spoof_score_cm      A vector of NEGATIVE CLASS (spoofing attack)
                           detection scores obtained by executing a spoofing
@@ -115,7 +116,8 @@ def compute_tDCF_legacy(bonafide_score_cm, spoof_score_cm, Pfa_asv, \
                           with the following fields.
 
                           Ptar        Prior probability of target speaker.
-                          Pnon        Prior probability of nontarget speaker (zero-effort impostor)
+                          Pnon        Prior probability of nontarget speaker 
+                                      (zero-effort impostor)
                           Psoof       Prior probability of spoofing attack.
                           Cmiss_asv   Cost of ASV falsely rejecting target.
                           Cfa_asv     Cost of ASV falsely accepting nontarget.
@@ -152,8 +154,10 @@ def compute_tDCF_legacy(bonafide_score_cm, spoof_score_cm, Pfa_asv, \
           M. Sahidullah, J. Yamagishi, D.A. Reynolds: "t-DCF: a Detection
           Cost Function for the Tandem Assessment of Spoofing Countermeasures
           and Automatic Speaker Verification", Proc. Odyssey 2018: the
-          Speaker and Language Recognition Workshop, pp. 312--319, Les Sables d'Olonne,
-          France, June 2018 (https://www.isca-speech.org/archive/Odyssey_2018/pdfs/68.pdf)
+          Speaker and Language Recognition Workshop, pp. 312--319, 
+          Les Sables d'Olonne,
+          France, June 2018 
+          https://www.isca-speech.org/archive/Odyssey_2018/pdfs/68.pdf)
 
       [2] ASVspoof 2019 challenge evaluation plan
           TODO: <add link>
@@ -165,8 +169,9 @@ def compute_tDCF_legacy(bonafide_score_cm, spoof_score_cm, Pfa_asv, \
             cost_model['Cfa_cm'] < 0 or cost_model['Cmiss_cm'] < 0:
         print('WARNING: Usually the cost values should be positive!')
 
-    if cost_model['Ptar'] < 0 or cost_model['Pnon'] < 0 or cost_model['Pspoof'] < 0 or \
-            np.abs(cost_model['Ptar'] + cost_model['Pnon'] + cost_model['Pspoof'] - 1) > 1e-10:
+    if cost_model['Ptar'] < 0 or cost_model['Pnon'] < 0 or \
+       cost_model['Pspoof'] < 0 or \
+       np.abs(cost_model['Ptar'] + cost_model['Pnon'] + cost_model['Pspoof'] - 1) > 1e-10:
         sys.exit('ERROR: Your prior probabilities should be positive and sum up to one.')
 
     # Unless we evaluate worst-case model, we need to have some spoof tests against asv
@@ -393,7 +398,7 @@ def tDCF_wrapper(bonafide_cm_scores, spoof_cm_scores,
     if tar_asv_scores is None or non_asv_scores is None or \
        spoof_asv_scores is None:
         file_name = os.path.dirname(__file__)+ \
-            '/data/ASVspoof2019.LA.asv.eval.gi.trl.scores.bin'
+            '/data/asvspoof2019/ASVspoof2019.LA.asv.eval.gi.trl.scores.bin'
         data = nii_io.f_read_raw_mat(file_name, 2)
         tar_asv_scores = data[data[:, 1] == 2, 0]
         non_asv_scores = data[data[:, 1] == 1, 0]
@@ -422,9 +427,128 @@ def tDCF_wrapper(bonafide_cm_scores, spoof_cm_scores,
     return min_tDCF, eer_cm, eer_threshold
 
 
+def ASVspoof2019_evaluate(bonafide_cm_scores, bonafide_cm_file_names,
+                           spoof_cm_scores, spoof_cm_file_names, verbose=False):
+    """ Decompose scores for each attack. For ASVspoof2019
+    
+    ASVspoof2019_decompose(bonafide_cm_scores, bonafide_cm_file_names,
+                           spoof_cm_scores, spoof_cm_file_names, verbose=False)
+    input
+    -----
+      bonafide_cm_scores: np.array of bonafide scores
+      bonafide_cm_file_names: file name list corresponding to bonafide_cm_scores
+      spoof_cm_scores: np.array of spoofed scores (all attack types)
+      spoof_cm_file_names: file name list corresponding to spoof_cm_scores
+    
+    output
+    ------
+      min_tDCF: np.array of min tDCF for each attack
+      eer_cm: np.array of EER for each attack
+      eer_threshold: np.array of threshold for EER (not min tDCF threshod)
+      spoof_attack_types: list of attack types
+    """
+    file_name = os.path.dirname(__file__)+ '/data/asvspoof2019/protocol.txt'
+    
+    protocol_data = np.genfromtxt(file_name, 
+                                  dtype=[('spk', 'U10'), ('file', 'U20'),
+                                         ('misc', 'U5'), ('spoof', 'U5'),
+                                         ('type','U10')], delimiter=" ")
+    spoof_type_dic = {protocol_data[x][1]:protocol_data[x][3] for x in \
+                      range(protocol_data.shape[0])}
+
+    spoof_attack_types = list(set([x[3] for x in protocol_data]))
+    spoof_attack_types.sort()
+    
+    # default set to -1
+    min_tDCF = np.zeros([len(spoof_attack_types) + 1]) - 1
+    eer_cm = np.zeros([len(spoof_attack_types) + 1]) - 1
+    eer_threshold = np.zeros([len(spoof_attack_types) + 1])
+    
+    # decompose results
+    for idx, spoof_attack_type in enumerate(spoof_attack_types):
+        tmp_spoof_scores = [spoof_cm_scores[x] for x, y in \
+                            enumerate(spoof_cm_file_names) \
+                            if spoof_type_dic[y] == spoof_attack_type]
+        tmp_spoof_scores = np.array(tmp_spoof_scores)
+        
+        if len(tmp_spoof_scores):
+            x1, x2, x3 = tDCF_wrapper(bonafide_cm_scores, tmp_spoof_scores)
+            min_tDCF[idx] = x1
+            eer_cm[idx] = x2
+            eer_threshold[idx] = x3
+
+    # pooled results
+    x1, x2, x3 = tDCF_wrapper(bonafide_cm_scores, spoof_cm_scores)
+    min_tDCF[-1] = x1
+    eer_cm[-1] = x2
+    eer_threshold[-1] = x3
+    spoof_attack_types.append("pooled")
+
+    for idx in range(len(spoof_attack_types)):
+        if verbose and eer_cm[idx] >= 0.0:
+            print("{:s}\tmin-tDCF: {:2.5f}\tEER: {:2.3f}%\t Thre:{:f}".format(
+                spoof_attack_types[idx], min_tDCF[idx], eer_cm[idx] * 100, 
+                eer_threshold[idx]))
+        
+    return min_tDCF, eer_cm, eer_threshold, spoof_attack_types
+    
+##############
+# for Pytorch models in this project
+##############
+
+def parse_pytorch_output_txt(score_file_path):
+    """ parse_pytorch_output_txt(file_path)
+    parse the score files generated by the pytorch models
+    
+    input
+    -----
+      file_path: path to the log file
+    
+    output
+    ------
+      bonafide: np.array, bonafide scores
+      bonafide_names: list of file names corresponding to bonafide scores
+      spoofed: np.array, spoofed scores
+      spoofed_names: list of file names corresponding to spoofed scores
+    
+    """
+    bonafide = []
+    spoofed = []
+    bonafide_names = []
+    spoofed_names = []
+    with open(score_file_path, 'r') as file_ptr:
+        for line in file_ptr:
+            if line.startswith('Output,'):
+                temp = line.split(',')
+                flag = int(temp[2])
+                if flag:
+                    bonafide.append(float(temp[-1]))
+                    bonafide_names.append(temp[1].strip())
+                else:
+                    spoofed.append(float(temp[-1]))
+                    spoofed_names.append(temp[1].strip())
+    bonafide = np.array(bonafide)
+    spoofed = np.array(spoofed)
+    return bonafide, bonafide_names, spoofed, spoofed_names
+
+
+def ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False):
+    """ Get the results from input score log file
+    """
+    bona, b_names, spoofed, s_names = parse_pytorch_output_txt(score_file_path)
+    
+    mintDCF_buf, eer_buf, cm_thre_buf, spoof_types = ASVspoof2019_evaluate(
+        bona, b_names, spoofed, s_names, True)
+    
+    if flag_return_results:
+        return mintDCF_buf, eer_buf, cm_thre_buf, spoof_types
+    else:
+        return
+
 ##############
 # for testing using ./data/cm_dev.txt and asv_dev.txt
 ##############
+
 def read_asv_txt_file(file_path):
     data = np.genfromtxt(
         file_path, dtype=[('class', 'U10'),('type', 'U10'),
