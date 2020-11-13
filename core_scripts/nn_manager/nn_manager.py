@@ -357,8 +357,14 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     if hasattr(pt_model, "other_setups"):
         nii_display.f_print("Conduct User-defined setup")
         pt_model.other_setups()
-
-
+    
+    if hasattr(pt_model, "g_pretrained_model_path") and \
+       hasattr(pt_model, "g_pretrained_model_prefix"):
+        nii_display.f_print("Load pret-rained models as part of this mode")
+        nii_nn_tools.f_load_pretrained_model_partially(
+            pt_model, pt_model.g_pretrained_model_path, 
+            pt_model.g_pretrained_model_prefix)
+        
     ######################
     ### Start training
     ######################

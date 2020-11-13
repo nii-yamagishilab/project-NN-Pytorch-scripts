@@ -2,7 +2,7 @@
 """
 nn_manager
 
-A simple wrapper to run the training / testing process
+utilities used by nn_manager
 
 """
 from __future__ import print_function
@@ -75,3 +75,56 @@ def f_process_loss(loss):
     else:
         return loss, [loss.item()], [True]
 
+
+def f_load_pretrained_model_partially(model, model_paths, model_name_prefix):
+    """ f_load_pretrained_model_partially(model, model_paths, model_name_prefix)
+    
+    Initialize part of the model with pre-trained models
+    
+    Input:
+    -----
+       model: torch model
+       model_paths: list of path to pre-trained models
+       model_prefix: list of model name prefix used by model
+            for example, pre_trained_model.*** may be referred to as 
+            model.m_part1.*** in the new model. The prefix is "m_part1."
+    
+    Output:
+    ------
+       None
+    """
+    if type(model_paths) is str:
+        model_path_tmp = [model_paths]
+    else:
+        model_path_tmp = model_paths
+    if type(model_name_prefix) is str:
+        model_prefix_tmp = [model_name_prefix]
+    else:
+        model_prefix_tmp = model_name_prefix
+
+    model_dict = model.state_dict()
+
+    for model_path, prefix in zip(model_path_tmp, model_prefix_tmp):
+        if prefix[-1] != '.':
+            # m_part1. not m_part
+            prefix += '.'
+        
+        pretrained_dict = torch.load(model_path)
+        
+        # 1. filter out unnecessary keys
+        pretrained_dict = {prefix + k: v \
+                           for k, v in pretrained_dict.items() \
+                           if prefix + k in model_dict}
+        print("Load model {:s} as {:s} ({:d} parameter buffers)".format(
+            model_path, prefix, len(pretrained_dict.keys())))
+        
+        # 2. overwrite entries in the existing state dict
+        model_dict.update(pretrained_dict)
+        
+        # 3. load the new state dict
+        model.load_state_dict(model_dict)
+    return
+
+
+if __name__ == "__main__":
+    print("nn_manager_tools")
