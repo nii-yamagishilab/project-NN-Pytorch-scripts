@@ -21,44 +21,97 @@ __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
+############
+## Utilities
+############
+_marker_bag = ["*","o","v","^","<",">","x","s","p","P","h","H","+",".","D","d","|","_"]
+_line_style_bag = ['-','--', '-.', ':']
+_color_bag = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 
-# initialization
+def get_marker(idx):
+    return _marker_bag[idx % len(_marker_bag)]
 
+
+#################
+## initialization
+#################
 # figure size
 default_fig_size = (10, 5)
 matplotlib.rcParams['figure.figsize'] = default_fig_size
 
-def plot_API(data, plot_func, split_mode='single', config_dic={}):
+
+
+###############
+## function API
+###############
+def plot_API(data, plot_func, split_mode='single', config_dic={}, verbose=False):
+    """
+    fig, axis = plot_API(data, plot_func, split_mode='single', config_dic={})
+    
+    Plot a figure on data, using plot_func with config_dic
+    
+    input
+    -----
+      data: either a np.array or a list of np.array
+      plot_func: the function to plot a single figure. see plot_lib
+      split_mode: 'single': plot data in a single figure 
+                  'v': plot data in separate rows. data must be a list
+                  'h': plot data in separate columns. data must be a list
+                  'grid': plot in a grid. config_dic['ncols'] and config_dic['nrows']
+                          are used to decide the number of rows and columns for gridspec
+      config_dic: configuration dictionary
+      verbose: whether print out the config_dic information for each figure (default: False)
+    
+    output
+    ------
+      fig: fig handler
+      axis: axis handler of the last figure
+      
+    """
+    
+    # figure size
     if "figsize" not in config_dic or config_dic["figsize"] is None:
         figsize = default_fig_size
     else:
         figsize = config_dic["figsize"]
-    
     fig = plt.figure(figsize=figsize)
     
+    
+    # 
     if split_mode == 'single':
+        # plot in a single figure
+        
         axis = fig.add_subplot(111)
         if type(data) is list:
-            for data_entry in data:
-                fig, axis = plot_func(data_entry, fig, axis, config_dic)
-                util_options(fig, axis, config_dic)
+            for idx, data_entry in enumerate(data):
+                tmp_config = process_config_dic(config_dic, idx)
+                fig, axis = plot_func(data_entry, fig, axis, tmp_config)
+                util_options(fig, axis, tmp_config)
         else:
             fig, axis = plot_func(data, fig, axis, config_dic)
             util_options(fig, axis, config_dic)
+        if verbose:
+            print(str(config_dic))
             
     elif split_mode == 'grid' or split_mode == 'h' or split_mode == 'v':
+        # plot in a grid
+        
+        # data must be a list
         if type(data) is not list:
             print("split_mode == h requires list of input data")
             sys.exit(1)
         
-        # decide row and col numbers
+        # decide number of row and col
         if split_mode == 'h':
+            # horizontol mode
             nrows = 1
             ncols = len(data)
         elif split_mode == 'v':
+            # vertical mode
             ncols = 1
             nrows = len(data)
         else:
+            # grid mode
             if "ncols" in config_dic and "nrows" not in config_dic:
                 ncols = config_dic["ncols"]
                 nrows = int(np.ceil(len(data) * 1.0 / ncols))    
@@ -99,6 +152,8 @@ def plot_API(data, plot_func, split_mode='single', config_dic={}):
             tmp_config = process_config_dic(config_dic, idx)
             fig, axis = plot_func(data_entry, fig, axis, tmp_config)
             util_options(fig, axis, tmp_config)
+            if verbose:
+                print(str(tmp_config))
             
             axis_bags.append(axis)
             xlim_bag = [min(xlim_bag[0], axis.get_xlim()[0]),
@@ -148,6 +203,8 @@ def util_options(fig, axis, config_dic):
         axis.set_yticks(config_dic["yticks"])
         if "yticklabels" in config_dic:
             axis.set_yticklabels(config_dic["yticklabels"])
+    if "grid" in config_dic:
+        axis.grid(**config_dic["grid"])
     return fig, axis
 
 
