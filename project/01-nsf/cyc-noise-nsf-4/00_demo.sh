@@ -2,6 +2,7 @@
 
 DATALINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AABceXAc2W61d6V_rsBEYpy5a/cmu-arctic-data-set.tar
 FILENAME=cmu-arctic-data-set
+ENVFILE=../../../env.sh
 
 RED='\033[0;32m'
 NC='\033[0m'
@@ -27,11 +28,10 @@ fi
 # try pre-trained model
 if [ -e "../DATA/${FILENAME}" ];then
     echo -e "${RED}Try pre-trained model${NC}"
-    source ../../env.sh
+    source ${ENVFILE}
     python main.py --inference --trained-model __pre_trained/trained_network.pt --output-dir __pre_trained/output
     echo -e "${RED}Please check generated waveforms from pre-trained model in ./__pre_trained/output"
     echo -e "----"
-
 else
     echo "Cannot find ../DATA/${FILENAME}. Please contact the author"
 fi
@@ -42,11 +42,13 @@ if [ -e "../DATA/${FILENAME}" ];then
     echo -e "${RED}Train a new model${NC}"
     echo -e "${RED}Training will take several hours. Please don't quit this job. ${NC}"
     echo -e "${RED}Please check log_train and log_err for monitoring the training process.${NC}"
-    source ../../env.sh
-    python main.py --num-workers 10 --lr 0.00003 --epochs 100 > log_train 2>log_err
+    source ${ENVFILE}
+    python main.py --num-workers 10 > log_train 2>log_err
+    
 else
     echo "Cannot find ../DATA/${FILENAME}. Please contact the author"
 fi
+
 
 # generate using trained model
 if [ -e "../DATA/${FILENAME}" ];then
