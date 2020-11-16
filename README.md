@@ -3,13 +3,17 @@ By Xin Wang, National Institute of Informatics, 2020
 
 I am a new pytorch user. If you have any suggestions or questions, pleas email wangxin at nii dot ac dot jp
 
----
-### Update
+------
+## 1. Update
 
-1. 2020-08: Tutorial materials are added to [./tutorials](./tutorials). Most of the materials are Jupyter notebooks and can be run on your Laptop using CPU only. You can use laptop to go through the tutorial. Please check [./tutorials/README.md](./tutorials/README.md) for details.
+* 2020-11: Default Pytorch is updated to 1.6
+* 2020-11: Projects on speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
+* 2020-08: Tutorial materials are added to [./tutorials](./tutorials). Most of the materials are Jupyter notebooks and can be run on your Laptop using CPU. 
 
-### General
-This repository contains pytorch codes for a few projects:
+## 2. Overview
+This repository hosts pytorch codes for a few projects:
+
+### 2.1 Neural waveform model [./project/01-nsf](./project/01-nsf)
 
 1. [Cyclic-noise neural source-filter waveform model (NSF)](https://nii-yamagishilab.github.io/samples-nsf/nsf-v4.html)
 
@@ -17,53 +21,70 @@ This repository contains pytorch codes for a few projects:
 
 3. [Harmonic-plus-noise NSF with fixed FIR filter](https://nii-yamagishilab.github.io/samples-nsf/nsf-v2.html) 
 
-All projects come with pre-trained models on CMU-arctic (4 speakers) and a demo script to run/train/inference.
+All NSF projects come with pre-trained models on CMU-arctic (4 speakers) and a one-click demo script to run, train, do inference.
 
-Generated samples can be found in ./project/\*/__pre_trained/output.
+Generated samples from pre-trained models can be found in ./project/01-nsf/\*/__pre_trained/output.
 
-This is the re-implementation of projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/).
+Note that this is the re-implementation of projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/).
 
-### Requirements
+### 2.2 Speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
+1. Baseline LFCC + LCNN-binary-classifier
+2. LFCC + LCNN + one-class / argular / additive margin softmax 
+3. LFCC + ResNet18 + one-class / argular / additive margin  softmax 
+
+(to be finished)
+
+## 3. Python environment
+
+Only a few packages are required:
 1. python 3 (test on python3.8) 
-2. Pytorch (test on pytorch-1.4)
+2. Pytorch 1.6 and above (test on pytorch-1.6)
 3. numpy (test on  1.18.1)
 4. scipy (test on 1.4.1)
+5. torchaudio (test on 0.6.0)
+6. librosa (0.8.0) with numba (0.48.0) and mir_eval (0.6) for some music projects 
 
 I use miniconda to manage python environment. You may use [./env.yml](./env.yml) or [./env2.yml](./env2.yml) to create the environment on our server by: 
 
 ```
 # create environment
 $: conda env create -f env.yml
-# load environment (whose name is pytorch-1.4)
-$: conda activate pytorch-1.4
+# load environment (whose name is pytorch-1.6)
+$: conda activate pytorch-1.6
 ```
 
-### Usage
+## 4. Usage
 Take cyc-noise-nsf as an example:
 
 ```
+# Load python environment
+$: conda activate pytorch-1.6
+
 # cd into one project
-$: cd project/cyc-noise-nsf-4
+$: cd project/01-nsf/cyc-noise-nsf-4
 
 # add PYTHONPATH and activate conda environment
-$: source ../../env.sh 
+$: source ../../../env.sh 
 
-# run 
+# run the script
 $: bash 00_demo.sh
 ``` 
 
-You may also put the job to background rather wait for the job on terminal.
+The printed info will tell you what is happening. The script may need 1 day or more to finish.
+
+You may also put the job to background rather than waiting for the job while keeping the terminal open:
+
 ```
-# run 
+# run the script in background
 $: bash 00_demo.sh > log_batch 2>&1 &
 ``` 
 
-
-
 The above steps will download the CMU-arctic data, run waveform generation using a pre-trained model, and train a new model (which may take 1 day or more on Nvidia V100 GPU). 
 
-### Notes
 
+## 5. Notes 
+
+### 5.1 On NSF projects (./project/01-nsf)
 * Input data: 00_demo.sh above will download a data package for the CMU-arctic corpus, including wav (normalized), f0, and Mel-spectrogram. If you want to train the model on your own data, please prepare the input/output data by yourself. There are scripts to extract features from 16kHz in the CMU-arctic data package (in ./project/DATA after running 00_demo.sh)
 
 * Batch size: implementation works only for batchsize = 1. My previous experiments only used batchsize = 1. I haven't update the data I/O to load varied length utterances
@@ -75,7 +96,9 @@ The above steps will download the CMU-arctic data, run waveform generation using
     2. in hn-sinc-nsf and cyc-noise-nsf: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
 
 
-### Explanation
+### 5.2 Project organization and design
+
+Here are some details on the data format and project file structure:
 
 #### Data format
 
@@ -100,6 +123,7 @@ There are helper functions in ./core_scripts/data_io/io_tools.py to read and wri
 >>> readwrite.f_write_raw_mat(data, './temp.bin')
 >>> data2 = readwrite.f_read_raw_mat('./temp.bin', 3)
 >>> data - data2
+# result should 0
 ```
 
 #### Files
@@ -107,20 +131,19 @@ There are helper functions in ./core_scripts/data_io/io_tools.py to read and wri
 Directory | Function
 ------------ | -------------
 ./core_scripts | scripts to manage the training process, data io, and so on
-./sandbox | directories to test new functions and models
+./core_modules | finished pytorch modules 
+./sandbox | new functions and modules to be test
 ./project | project directories, and each folder correspond to one model for one dataset
-./project/*/main.py | script to load data and run training and inference
-./project/*/model.py | model definition based on Pytorch APIs
-./project/*/config.py | configurations for training/val/test set data
+./project/\*/\*/main.py | script to load data and run training and inference
+./project/\*/\*/model.py | model definition based on Pytorch APIs
+./project/\*/\*/config.py | configurations for training/val/test set data
 
 The motivation is to separate the training and inference process, the model definition, and the data configuration. For example:
 
 * To define a new model, change model.py only
-
 * To run on a new database, change config.py only
 
----
-### Differences from CURRENNT implementation
+### 5.3 Differences from CURRENNT NSF implementation
 There may be more, but here are the important ones:
 
 * "Batch-normalization": in CURRENNT, "batch-normalization" is conducted along the length sequence, i.e., assuming each frame as one sample. There is no equivalent implementation on this Pytorch repository;
@@ -138,18 +161,10 @@ There may be more, but here are the important ones:
 The learning curves look similar to the CURRENNT (cuda) version.
 ![learning_curve](./misc/fig1_curve.png)
 
-### Reference
+## Reference
 
 1. Xin Wang and Junichi Yamagishi. 2019. Neural Harmonic-plus-Noise Waveform Model with Trainable Maximum Voice Frequency for Text-to-Speech Synthesis. In Proc. SSW, pages 1–6, ISCA, September. ISCA. http://www.isca-speech.org/archive/SSW_2019/abstracts/SSW10_O_1-1.html
 
 2. Xin Wang, Shinji Takaki, and Junichi Yamagishi. 2020. Neural source-filter waveform models for statistical parametric speech synthesis. IEEE/ACM Transactions on Audio, Speech, and Language Processing, 28:402–415. https://ieeexplore.ieee.org/document/8915761/
 
 3. Xin Wang, Junichi Yamagishi. 2020. Using Cyclic-noise as source for Neural source-filter waveform model. Accepted, Interspeech
-
-### To do
-
-1. Network config for 24kHz
-
-2. Batchsize > 1
-
-3. ...

@@ -3,7 +3,7 @@
 #eval "$(conda shell.bash hook)"
 #conda activate pytorch-1.6
 
-# when running in ./projects/*, add this top directory
+# when running in ./projects/*/*, add this top directory
 # to python path
-export PYTHONPATH=$PWD/../../:$PYTHONPATH
+export PYTHONPATH=$PWD/../../../:$PYTHONPATH
 
