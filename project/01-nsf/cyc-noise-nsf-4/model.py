@@ -941,7 +941,6 @@ class Model(torch_nn.Module):
     def __init__(self, in_dim, out_dim, args, mean_std=None):
         super(Model, self).__init__()
 
-        torch.manual_seed(1)
         # mean std of input and output
         in_m, in_s, out_m, out_s = self.prepare_mean_std(in_dim,out_dim,\
                                                          args, mean_std)
