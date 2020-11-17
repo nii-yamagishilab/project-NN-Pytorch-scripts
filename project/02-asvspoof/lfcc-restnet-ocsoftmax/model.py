@@ -41,7 +41,7 @@ class Model(torch_nn.Module):
         super(Model, self).__init__()
 
         ##### required part, no need to change #####
-        torch.manual_seed(1)
+        
         # mean std of input and output
         in_m, in_s, out_m, out_s = self.prepare_mean_std(in_dim,out_dim,\
                                                          args, mean_std)
