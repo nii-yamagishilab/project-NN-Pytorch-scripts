@@ -28,11 +28,16 @@ Generated samples from pre-trained models can be found in ./project/01-nsf/\*/__
 Note that this is the re-implementation of projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/).
 
 ### 2.2 Speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
-1. Baseline LFCC + LCNN-binary-classifier
-2. LFCC + LCNN + one-class / argular / additive margin softmax 
-3. LFCC + ResNet18 + one-class / argular / additive margin  softmax 
+1. Baseline LFCC + LCNN-binary-classifier (lfcc-lcnn-sigmoid)
+2. LFCC + LCNN + angular softmax (lfcc-lcnn-a-softmax)
+3. LFCC + LCNN + one-class softmax (lfcc-lcnn-ocsoftmax)
+4. LFCC + ResNet18 + one-class softmax (lfcc-restnet-ocsoftmax)
 
-(to be finished)
+On ASVspoof2019 LA, EER is around 3%, and min-tDCF (legacy-version) is around 0.06~0.08. Results are obtained on Nvidia DGX station, single V100 card. 
+
+However, the results may vary a lot when training using different initial random seends. Even with the same random seed, Pytorch environment, and [deterministic algorithm selected](https://pytorch.org/docs/stable/notes/randomness.html), the trained model may be different due to the CUDA and GPU. It is encouraged to run the model multiple times with different random seeds and show the variance of the evaluation results.
+
+For LCNN, please check (Lavrentyeva 2019); for LFCC, please check (Sahidullah 2015); for one-class softmax in ASVspoof, please check (Zhang 2020).
 
 ## 3. Python environment
 
@@ -168,3 +173,9 @@ The learning curves look similar to the CURRENNT (cuda) version.
 2. Xin Wang, Shinji Takaki, and Junichi Yamagishi. 2020. Neural source-filter waveform models for statistical parametric speech synthesis. IEEE/ACM Transactions on Audio, Speech, and Language Processing, 28:402–415. https://ieeexplore.ieee.org/document/8915761/
 
 3. Xin Wang, Junichi Yamagishi. 2020. Using Cyclic-noise as source for Neural source-filter waveform model. Accepted, Interspeech
+
+4. Galina Lavrentyeva, Sergey Novoselov, Andzhukaev Tseren, Marina Volkova, Artem Gorlanov, and Alexandr Kozlov. 2019. STC Antispoofing Systems for the ASVspoof2019 Challenge. In Proc. Interspeech, 1033–1037.
+
+5. You Zhang, Fei Jiang, and Zhiyao Duan. 2020. One-Class Learning towards Generalized Voice Spoofing Detection. ArXiv Preprint ArXiv:2010.13995.
+
+6. Md Sahidullah, Tomi Kinnunen, and Cemal Hanilçi. 2015. A Comparison of Features for Synthetic Speech Detection. In Proc. Interspeech, 2087–2091.

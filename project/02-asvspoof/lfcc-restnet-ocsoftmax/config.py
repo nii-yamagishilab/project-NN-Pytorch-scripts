@@ -96,7 +96,7 @@ test_list = tmp + '/scp/test.lst'
 # Directories for input features
 # input_dirs = [path_of_feature_1, path_of_feature_2, ..., ]
 #  we assume train and validation data are put in the same sub-directory
-test_input_dirs = ['/Database/ASVspoof2019/logical_access_condition/ASVspoof2019_LA_eval/wav/']
+test_input_dirs = ['../DATA/asvspoof2019_LA/eval']
 
 # Directories for output features, which are []
 test_output_dirs = []
