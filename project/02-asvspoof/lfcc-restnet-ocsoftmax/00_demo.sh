@@ -7,7 +7,7 @@ source ../../../env.sh
 
 echo -e "\n${RED}This project is supposed to be used on NII internal server${NC}"
 
-echo -e "\n${RED}Try pre-trained model (running for ~10 minutes) ${NC}"
+echo -e "\n${RED}Try pre-trained model (running for ~20 minutes) ${NC}"
 
 LOGFILE=log_output_testset_pretrained
 python main.py --inference --model-forward-with-file-name --trained-model __pretrained/trained_network.pt > ${LOGFILE} 2>&1
@@ -15,7 +15,7 @@ python main.py --inference --model-forward-with-file-name --trained-model __pret
 echo -e "\n${RED}This is the result using pre-trained model on your machine ${NC}"
 python ../00_evaluate.py ${LOGFILE}
 
-echo -e "\n${RED}This is the result produced by the author ${NC}"
+echo -e "\n${RED}This is the result produced by Xin Wang ${NC}"
 LOGFILE=__pretrained/log_output_testset
 python ../00_evaluate.py ${LOGFILE}
 
@@ -29,5 +29,5 @@ echo -e "\n${RED}Evaluating the trained model (running ...) ${NC}"
 LOGFILE=log_output_testset
 python main.py --inference --model-forward-with-file-name > ${LOGFILE} 2>&1
 
-echo -e "\n${RED}This is the result produced by the trained model ${NC}"
+echo -e "\n${RED}This is the result produced by your trained model  ${NC}"
 python ../00_evaluate.py ${LOGFILE}
