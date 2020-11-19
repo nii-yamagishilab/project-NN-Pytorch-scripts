@@ -60,6 +60,11 @@ def f_args_parsed(argument_input = None):
     mes += ' Training stopped after --no-best-epochs.'
     parser.add_argument('--lr-decay-factor', type=float, default=-1.0, help=mes)
     
+
+    mes = 'L2 penalty on weight (default: not use). '
+    mes += 'It corresponds to the weight_decay option in Adam'
+    parser.add_argument('--l2-penalty', type=float, default=-1.0, help=mes)
+
     mes = 'lr scheduler: 0: ReduceLROnPlateau (default); 1: StepLR; '
     mes += 'this option is set on only when --lr-decay-factor > 0. '
     mes += 'Please check core_scripts/op_manager/lr_scheduler.py '

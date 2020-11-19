@@ -81,6 +81,27 @@ def plot_scatter(data, fig, axis, config_dic):
     return fig, axis
 
 
+def plot_bar(data, fig, axis, config_dic):
+    
+    if "plot_bar" in config_dic and "x" in config_dic["plot_bar"]:
+        x_pos = config_dic["plot_bar"]
+    else:
+        x_pos = np.arange(len(data))
+        
+    if "plot_bar" in config_dic:
+        axis.bar(x_pos, data, **config_dic["plot_bar"])
+    else:
+        # default configuration
+        axis.bar(x_pos, data)
+        
+    if "show_number" in config_dic:
+        tmp_format = config_dic["show_number"]
+        for x, y in zip(x_pos, data):
+            axis.text(x, y*1.01, "{num:{form}}".format(num=y, form=tmp_format),
+                      horizontalalignment="center")
+    return fig, axis
+
+
 ############################
 ## Specific functions
 ##  classification

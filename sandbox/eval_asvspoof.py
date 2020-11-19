@@ -465,12 +465,13 @@ def ASVspoof2019_evaluate(bonafide_cm_scores, bonafide_cm_file_names,
     eer_threshold = np.zeros([len(spoof_attack_types) + 1])
     
     # decompose results
+    decomposed_spoof_scores = []
     for idx, spoof_attack_type in enumerate(spoof_attack_types):
         tmp_spoof_scores = [spoof_cm_scores[x] for x, y in \
                             enumerate(spoof_cm_file_names) \
                             if spoof_type_dic[y] == spoof_attack_type]
         tmp_spoof_scores = np.array(tmp_spoof_scores)
-        
+        decomposed_spoof_scores.append(tmp_spoof_scores.copy())
         if len(tmp_spoof_scores):
             x1, x2, x3 = tDCF_wrapper(bonafide_cm_scores, tmp_spoof_scores)
             min_tDCF[idx] = x1
@@ -483,14 +484,25 @@ def ASVspoof2019_evaluate(bonafide_cm_scores, bonafide_cm_file_names,
     eer_cm[-1] = x2
     eer_threshold[-1] = x3
     spoof_attack_types.append("pooled")
+    decomposed_spoof_scores.append(spoof_cm_scores)
 
     for idx in range(len(spoof_attack_types)):
-        if verbose and eer_cm[idx] >= 0.0:
+        if verbose and eer_cm[idx] > -1:
             print("{:s}\tmin-tDCF: {:2.5f}\tEER: {:2.3f}%\t Thre:{:f}".format(
                 spoof_attack_types[idx], min_tDCF[idx], eer_cm[idx] * 100, 
                 eer_threshold[idx]))
+
+    decomposed_spoof_scores = [decomposed_spoof_scores[x] \
+                               for x, y in enumerate(min_tDCF) if y > -1]
+    spoof_attack_types = [spoof_attack_types[x] \
+                               for x, y in enumerate(min_tDCF) if y > -1]
+    eer_threshold = [eer_threshold[x] \
+                               for x, y in enumerate(min_tDCF) if y > -1]
+    eer_cm = [eer_cm[x] for x, y in enumerate(min_tDCF) if y > -1]
+    min_tDCF = [y for x, y in enumerate(min_tDCF) if y > -1]
         
-    return min_tDCF, eer_cm, eer_threshold, spoof_attack_types
+    return min_tDCF, eer_cm, eer_threshold, spoof_attack_types, \
+        decomposed_spoof_scores
     
 ##############
 # for Pytorch models in this project
@@ -534,14 +546,30 @@ def parse_pytorch_output_txt(score_file_path):
 
 def ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False):
     """ Get the results from input score log file
+    ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False)
+
+    input
+    -----
+      score_file_path: path to the score file produced by the Pytorch code
+      flag_return_results: whether return the results (default False)
+    
+    output
+    ------
+      if flag_return_results is True:
+        mintDCFs: list of min tDCF, for each attack
+        eers: list of EER, for each attack
+        cm_thres: list of threshold for EER, for each attack
+        spoof_types: list of spoof attack types
+        spoof_scores: list of spoof file scores (np.array)
+        bona: bonafide score
     """
     bona, b_names, spoofed, s_names = parse_pytorch_output_txt(score_file_path)
     
-    mintDCF_buf, eer_buf, cm_thre_buf, spoof_types = ASVspoof2019_evaluate(
+    mintDCFs, eers, cm_thres, spoof_types, spoof_scores = ASVspoof2019_evaluate(
         bona, b_names, spoofed, s_names, True)
     
     if flag_return_results:
-        return mintDCF_buf, eer_buf, cm_thre_buf, spoof_types
+        return mintDCFs, eers, cm_thres, spoof_types, spoof_scores, bona 
     else:
         return
 

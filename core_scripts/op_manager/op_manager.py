@@ -41,11 +41,18 @@ class OptimizerWrapper():
         # set optimizer type
         self.op_flag = args.optimizer
         self.lr = args.lr
-
+        self.l2_penalty = args.l2_penalty
+        
         # create optimizer
         if self.op_flag == "Adam":
-            self.optimizer = torch_optim.Adam(model.parameters(), \
-                                              lr = self.lr)
+            if self.l2_penalty > 0:
+                self.optimizer = torch_optim.Adam(model.parameters(), 
+                                                  lr=self.lr, 
+                                                  weight_decay=self.l2_penalty)
+            else:
+                self.optimizer = torch_optim.Adam(model.parameters(),
+                                                  lr=self.lr)
+
         else:
             nii_warn.f_print("%s not availabel" % (self.op_flag),
                              "error")
@@ -68,6 +75,8 @@ class OptimizerWrapper():
         mes += "\n  No-best-epochs: {:d}".format(self.no_best_epochs)
         if self.lr_scheduler.f_valid():
             mes += self.lr_scheduler.f_print_info()
+        if self.l2_penalty > 0:
+            mes += "\n  With weight penalty {:f}".format(self.l2_penalty)
         nii_warn.f_print_message(mes)
 
     def get_epoch_num(self):
