@@ -390,8 +390,15 @@ class NIIDataSet(torch.utils.data.Dataset):
             in every input/output directory
         """
         if not isinstance(self.m_file_list, list):
-            nii_warn.f_print("Read file list from directories")
-            self.m_file_list = None
+            if isinstance(self.m_file_list, str) and \
+               os.path.isfile(self.m_file_list):
+                # read the list if m_file_list is a str
+                self.m_file_list = nii_list_tools.read_list_from_text(
+                    self.m_file_list)
+            else:
+                nii_warn.f_print("Cannot read {:s}".format(self.m_file_list))
+                nii_warn.f_print("Read file list from directories")
+                self.m_file_list = None
         
         #  get a initial file list
         if self.m_file_list is None:
@@ -881,6 +888,21 @@ class NIIDataSet(torch.utils.data.Dataset):
         return the total dimension of output features
         """
         return self.m_output_all_dim
+
+    def f_adjust_idx(self, data_tuple, idx_shift):
+        """
+        f_adjust_idx
+
+        This is to be used by customize_dataset for idx adjustment.
+        When multiple data sets are merged, the idx from __getitem__
+        should be adjusted.
+
+        Only data_io itselts knows how to identify idx from the output of
+        __getitem__, we need to define the function here
+        """
+        for idx in np.arange(len(data_tuple[-1])):
+            data_tuple[-1][idx] += idx_shift
+        return data_tuple
     
 class NIIDataSetLoader:
     """ NIIDataSetLoader:
@@ -1024,6 +1046,12 @@ class NIIDataSetLoader:
         """ Return the number of sequences (after truncation)
         """ 
         return self.m_dataset.f_get_num_seq()
+
+    def adjust_utt_idx(self, data_tuple, utt_idx_shift):
+        """ Return data tuple with adjusted utterance index in merged dataset
+        To be used by customize_dataset
+        """
+        return self.m_dataset.f_adjust_idx(data_tuple, utt_idx_shift)
     
 if __name__ == "__main__":
     pass

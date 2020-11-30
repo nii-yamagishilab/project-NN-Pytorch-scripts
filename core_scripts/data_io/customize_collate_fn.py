@@ -137,3 +137,63 @@ def customize_collate(batch):
         return [customize_collate(samples) for samples in transposed]
 
     raise TypeError(customize_collate_err_msg.format(elem_type))
+
+
+
+def customize_collate_from_batch(batch):
+    """ customize_collate_existing_batch
+    Similar to customize_collate, but input is a list of batch data that have
+    been collated through customize_collate.
+    The difference is use torch.cat rather than torch.stack to merge tensors.
+    Also, list of data is directly concatenated
+
+    This is used in customize_dataset when merging data from multiple datasets.
+    It is better to separate this function from customize_collate
+    """
+
+    elem = batch[0]
+    elem_type = type(elem)
+    if isinstance(elem, torch.Tensor):
+        batch_new = pad_sequence(batch)        
+        out = None
+        if torch.utils.data.get_worker_info() is not None:
+            numel = max([x.numel() for x in batch_new]) * len(batch_new)
+            storage = elem.storage()._new_shared(numel)
+            out = elem.new(storage)
+        # here is the difference
+        return torch.cat(batch_new, 0, out=out)
+
+    elif elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_' \
+            and elem_type.__name__ != 'string_':
+        if elem_type.__name__ == 'ndarray' or elem_type.__name__ == 'memmap':
+            if np_str_obj_array_pattern.search(elem.dtype.str) is not None:
+                raise TypeError(customize_collate_err_msg.format(elem.dtype))
+            return customize_collate_from_batch(
+                [torch.as_tensor(b) for b in batch])
+        elif elem.shape == ():  # scalars
+            return torch.as_tensor(batch)
+    elif isinstance(elem, float):
+        return torch.tensor(batch, dtype=torch.float64)
+    elif isinstance(elem, int_classes):
+        return torch.tensor(batch)
+    elif isinstance(elem, string_classes):
+        return batch
+    elif isinstance(elem, tuple):
+        # concatenate two tuples
+        tmp = elem
+        for tmp_elem in batch[1:]:
+            tmp += tmp_elem 
+        return tmp
+    elif isinstance(elem, container_abcs.Sequence):
+        it = iter(batch)
+        elem_size = len(next(it))
+        if not all(len(elem) == elem_size for elem in it):
+            raise RuntimeError('each element in batch should be of equal size')
+        transposed = zip(*batch)
+        return [customize_collate_from_batch(samples) for samples in transposed]
+
+    raise TypeError(customize_collate_err_msg.format(elem_type))
+
+
+if __name__ == "__main__":
+    print("Definition of customized collate function")
