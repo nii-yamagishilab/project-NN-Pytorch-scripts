@@ -43,6 +43,11 @@ class HzCentConverter(torch_nn.Module):
         
         # reference for cent calculation
         self.m_hz_ref = hz_ref
+        
+        # quantized resolution
+        # originally, bins = 360 -> 12 * 6 * 5, 12 semitones, 6 octaves
+        # each semitone is further divided to 5 intervals
+        self.m_fine_interval = 5
 
         #####
         # for quantization
@@ -174,7 +179,9 @@ class HzCentConverter(torch_nn.Module):
         target_mat = torch.exp(-torch.pow(self.m_dis_cent - target, 2)/2/std)
         
         # set unvoiced to zero
-        target_mat[0, u_idx[0, :, 0], :] *= 0.0
+        for idx in range(target_mat.shape[0]):
+            target_mat[idx, u_idx[idx, :, 0], :] *= 0.0
+        #target_mat[0, u_idx[0, :, 0], :] *= 0.0
         
         # return
         return target_mat
@@ -257,5 +264,48 @@ class HzCentConverter(torch_nn.Module):
                 
             return f0
 
+    def f0_probmat_postprocessing(self, f0_prob_mat):
+        """
+        f0_prob_mat = f0_prob_mat_post(f0_prob_mat)
+
+        input
+        -----
+          f0_prob_mat: torch tensor of shape (bathcsize, length, bins)
+        
+        output
+        ------
+          f0_prob_mat_new: same shape as f0_prob_mat
+        """
+        if f0_prob_mat.shape[-1] != self.m_bins:
+            print("Last dimension of F0 prob mat != {:d}".format(self.m_bins))
+            sys.exit(1)
+
+        if f0_prob_mat.shape[0] > 1:
+            print("Cannot support batchsize > 1 for dynamic programming")
+            sys.exit(1)
+        
+        
+        # observation probablity for unvoiced states
+        prob_u = torch.ones_like(f0_prob_mat) \
+                 - torch.mean(f0_prob_mat, axis=2, keepdim=True)    
+        tmp_bin_mat = torch.cat([f0_prob_mat, prob_u],axis=2).squeeze(0)
+
+        # viterbi decoding. Numpy is fast?
+        tmp_bin_mat = tmp_bin_mat.to('cpu').numpy()
+        quantized_cent = nii_dy.viterbi_decode(
+            self.m_viterbi_init, self.m_viterbi_tran, tmp_bin_mat * 0.5)
+        u_idx = quantized_cent>=self.m_bins
+
+        mat_new = torch.zeros_like(f0_prob_mat)
+        for idx, i in enumerate(quantized_cent):
+            if i < self.m_bins:
+                sidx = np.max([i - 4, 0])
+                eidx = np.min([i+5, self.m_bins])
+                mat_new[0, idx, sidx:eidx] = f0_prob_mat[0,idx,sidx:eidx]
+                mat_new[0, idx, sidx:eidx] /= mat_new[0, idx, sidx:eidx].sum()
+                
+        return mat_new
+        
 if __name__ == "__main__":
     print("util_music")
+    

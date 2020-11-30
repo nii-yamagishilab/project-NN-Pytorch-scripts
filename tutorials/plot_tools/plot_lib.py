@@ -284,7 +284,7 @@ def plot_spec(data, fig, axis, config_dic):
     
     axis.set_yticks(yticks_to_use)
     if sr is not None:
-        freq_str = ["{:2.1f}kHz".format(x * sr // 2 // 1000 / (fn//2+1)) \
+        freq_str = ["{:4.1f}".format(x * sr // 2 // 1000 / (fn//2+1)) \
                     for x in yticks_to_use]
         axis.set_yticklabels(freq_str)
         
