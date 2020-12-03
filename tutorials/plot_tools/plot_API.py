@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib.pyplot import cm
 
 # turn of latex and set font type
 from matplotlib import rc
@@ -32,6 +33,9 @@ _color_bag = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 def get_marker(idx):
     return _marker_bag[idx % len(_marker_bag)]
 
+def get_color(idx, total, colormap='jet'):
+    color=cm.rainbow(np.linspace(0,1,total))
+    return color[idx]
 
 #################
 ## initialization

@@ -74,7 +74,10 @@ def plot_scatter(data, fig, axis, config_dic):
             s = None
     
     if "plot_scatter" in config_dic:
-        axis.scatter(x, y, s, **config_dic["plot_scatter"])
+        if "s" in config_dic["plot_scatter"]:
+            axis.scatter(x, y, **config_dic["plot_scatter"])
+        else:
+            axis.scatter(x, y, s, **config_dic["plot_scatter"])
     else:
         # default configuration
         axis.scatter(x, y, s)
