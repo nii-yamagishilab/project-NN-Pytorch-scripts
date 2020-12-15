@@ -75,8 +75,8 @@ def delta(x):
 #################
 
 class LFCC(torch_nn.Module):
-    """ Based on asvspoof.org baseline Matlab code
-    Difference: 1. with_energy is added to set the first dimension as energy
+    """ Based on asvspoof.org baseline Matlab code.
+    Difference: with_energy is added to set the first dimension as energy
     
     """
     def __init__(self, fl, fs, fn, sr, filter_num, 
@@ -107,7 +107,14 @@ class LFCC(torch_nn.Module):
     
     def forward(self, x):
         """
-        x: tensor(batch, length)
+        
+        input:
+        ------
+         x: tensor(batch, length), where length is waveform length
+        
+        output:
+        -------
+         lfcc_output: tensor(batch, frame_num, dim_num)
         """
         # pre-emphsis 
         if self.with_emphasis:
@@ -120,12 +127,12 @@ class LFCC(torch_nn.Module):
         # amplitude
         sp_amp = torch.norm(x_stft, 2, -1).pow(2).permute(0, 2, 1).contiguous()
         
-        # CEP
-        cep = torch.log10(torch.matmul(sp_amp, self.lfcc_fb) + 
-                          torch.finfo(torch.float32).eps)
+        # filter bank
+        fb_feature = torch.log10(torch.matmul(sp_amp, self.lfcc_fb) + 
+                                 torch.finfo(torch.float32).eps)
         
         # DCT
-        lfcc = self.l_dct(cep)
+        lfcc = self.l_dct(fb_feature)
         
         # Add energy 
         if self.with_energy:
@@ -133,11 +140,17 @@ class LFCC(torch_nn.Module):
             energy = torch.log10(power_spec.sum(axis=2)+ 
                                  torch.finfo(torch.float32).eps)
             lfcc[:, :, 0] = energy
-            
+
+        # Add delta coefficients
         if self.with_delta:
             lfcc_delta = delta(lfcc)
             lfcc_delta_delta = delta(lfcc_delta)
             lfcc_output = torch.cat((lfcc, lfcc_delta, lfcc_delta_delta), 2)
         else:
             lfcc_output = lfcc
+
+        # done
         return lfcc_output
+
+if __name__ == "__main__":
+    print("Definition of front-end for Anti-spoofing")
