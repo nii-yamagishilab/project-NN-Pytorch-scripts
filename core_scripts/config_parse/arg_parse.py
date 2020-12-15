@@ -106,6 +106,12 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--multi-gpu-data-parallel', \
                         action='store_true', default=False, help=mes)
 
+    mes = 'way to concatenate multiple datasets: '
+    mes += 'concatenate: simply merge two datasets as one large dataset. '
+    mes += 'batch_merge: make a minibatch by drawing one sample from each set. '
+    mes += '(default: concatenate)'
+    parser.add_argument('--way-to-merge-datasets', type=str, \
+                        default='concatenate', help=mes)
     ######
     # options to save model / checkpoint
     parser.add_argument('--save-model-dir', type=str, \

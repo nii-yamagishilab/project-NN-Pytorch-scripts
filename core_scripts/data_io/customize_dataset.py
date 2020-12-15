@@ -2,9 +2,11 @@
 """
 customized dataset
 
-NII_MergeDataSetLoader: 
- We want to load dataset 1, 2, 3, and we want to draw sample from each dataset.
+NII_MergeDataSetLoader (to one minibatch): 
+ We want to load dataset 1, 2, and 3, 
+ We also want to draw sample from each dataset for one minibatch.
  One epoch over the merged datasets will be decided by the smallest dataset
+
 """
 
 from __future__ import absolute_import
@@ -18,6 +20,7 @@ import torch.utils.data
 import core_scripts.other_tools.display as nii_warn
 import core_scripts.data_io.default_data_io as nii_default_dset
 import core_scripts.data_io.customize_collate_fn as nii_collate_fn
+import core_scripts.data_io.conf as nii_dconf
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -73,6 +76,47 @@ class merge_loader():
         except StopIteration:
             raise StopIteration
 
+class ConcatDataset(torch.utils.data.Dataset):
+    """ Adopted from 
+    https://discuss.pytorch.org/t/train-simultaneously-on-two-datasets/649/2
+
+    But here we concatenate data not in minibatch.
+    """
+    def __init__(self, datasets):
+        """ datasets must be torch.utils.data.Dataset
+        """
+        # all the sub sets
+        self.datasets = datasets
+        self.num_subset = len(datasets)
+        # len of each sub set
+        self.len_buffer = [x.__len__() for x in self.datasets]
+        # for later use, to decide from which subset we draw the sample
+        self.len_top = np.cumsum(self.len_buffer)
+        self.len_bot = np.cumsum([0] + self.len_buffer[:-1])
+        # done
+        return
+
+    def __getitem__(self, i):
+        # for example, data1 = [a], data2 = [b, c]
+        # self.len_buffer = [1, 2]
+        # self.len_top = [1, 3] 
+        # self.len_bot = [0, 1]
+        #  __getitem__(0) -> data1[0-0] = a
+        #  __getitem__(1) -> data2[1-1] = b
+        #  __getitem__(2) -> data2[2-1] = c
+        for idx_u, idx_d, subset in \
+            zip(self.len_top, self.len_bot, self.datasets):
+            if i < idx_u:
+                return subset.__getitem__(i - idx_d)
+            else:
+                # keep going to the next subset
+                pass
+        nii_warn.f_die("Merge dataset: fatal error in __getitem__")
+        return None
+
+    def __len__(self):
+        return sum(self.len_buffer)
+
 class NII_MergeDataSetLoader():
     """ 
     """
@@ -89,7 +133,8 @@ class NII_MergeDataSetLoader():
                  truncate_seq = None, \
                  min_seq_len = None,
                  save_mean_std = True, \
-                 wav_samp_rate = None):
+                 wav_samp_rate = None,
+                 way_to_merge = 'batch_merge'):
         
         # check whether input_dirs and output_dirs are lists
         if type(list_input_dirs[0]) is list and \
@@ -126,11 +171,11 @@ class NII_MergeDataSetLoader():
                 
 
         # create individual datasets
-        tmp_dataset = []
+        lst_dset = []
         for sub_input_dirs, sub_output_dirs, sub_file_list, tmp_name in \
             zip(list_input_dirs, list_output_dirs, list_file_list, tmp_dnames):
             
-            tmp_dataset.append(
+            lst_dset.append(
                 nii_default_dset.NIIDataSetLoader(
                     tmp_name,
                     sub_file_list,
@@ -140,9 +185,33 @@ class NII_MergeDataSetLoader():
                     output_norm, \
                     stats_path, data_format, params, truncate_seq, min_seq_len,
                     save_mean_std, wav_samp_rate))
+        
+        # list of the datasets
+        self.m_datasets = lst_dset
+        
+        self.way_to_merge = way_to_merge
+        # create data loader
+        if way_to_merge == 'concatenate':
+            # to create DataLoader, we need the pytorch.dataset
+            py_datasets = ConcatDataset([x.get_dataset() for x in lst_dset])
+            
+            # create new loader after merge the datasets
+            #  copied from default IO
+            if params is None:
+                tmp_params = nii_dconf.default_loader_conf
+            else:
+                tmp_params = params
+            # collate function
+            if 'batch_size' in params and params['batch_size'] > 1:
+                collate_fn = nii_collate_fn.customize_collate
+            else:
+                collate_fn = None
+            
+            self.m_loader = torch.utils.data.DataLoader(
+                py_datasets, collate_fn=collate_fn, **tmp_params)
 
-        self.m_datasets = tmp_dataset
-        self.m_loader = merge_loader(tmp_dataset)
+        else:
+            self.m_loader = merge_loader(lst_dset)
         return
 
     def get_loader(self):
@@ -166,6 +235,7 @@ class NII_MergeDataSetLoader():
     def print_info(self):
         """
         """
+        nii_warn.f_print_message("Merge datasets by: " + self.way_to_merge)
         for dset in self.m_datasets:
             dset.print_info()
         return
