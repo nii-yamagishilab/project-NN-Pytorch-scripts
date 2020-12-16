@@ -4,7 +4,7 @@ Functions for evaluation - asvspoof and related binary classification tasks
 
 Python Function from min tDCF on asvspoof.org
 
-Currently, only EER is added
+All functions before tDCF_wrapper are licensed by Creative Commons.
 
 ----- License ----
 This work is licensed under the Creative Commons
@@ -17,6 +17,7 @@ Mountain View, California, 94041, USA.
 ------------------
 
 """
+
 from __future__ import print_function
 import os
 import sys
@@ -75,9 +76,9 @@ def compute_eer(target_scores, nontarget_scores):
     eer = np.mean((frr[min_index], far[min_index]))
     return eer, thresholds[min_index]
 
-def compute_tDCF_legacy(bonafide_score_cm, spoof_score_cm, Pfa_asv, \
-                        Pmiss_asv, Pmiss_spoof_asv, cost_model, 
-                        print_cost=False):
+def compute_tDCF_legacy(
+        bonafide_score_cm, spoof_score_cm, 
+        Pfa_asv, Pmiss_asv, Pmiss_spoof_asv, cost_model, print_cost=False):
     """
     Compute Tandem Detection Cost Function (t-DCF) [1] for a fixed ASV system.
     In brief, t-DCF returns a detection cost of a cascaded system of this form,
@@ -229,7 +230,9 @@ def compute_tDCF_legacy(bonafide_score_cm, spoof_score_cm, Pfa_asv, \
 
 
 
-def compute_tDCF(bonafide_score_cm, spoof_score_cm, Pfa_asv, Pmiss_asv, Pfa_spoof_asv, cost_model, print_cost):
+def compute_tDCF(
+        bonafide_score_cm, spoof_score_cm, 
+        Pfa_asv, Pmiss_asv, Pfa_spoof_asv, cost_model, print_cost):
     """
     Compute Tandem Detection Cost Function (t-DCF) [1] for a fixed ASV system.
     In brief, t-DCF returns a detection cost of a cascaded system of this form,
@@ -417,7 +420,7 @@ def tDCF_wrapper(bonafide_cm_scores, spoof_cm_scores,
             bonafide_cm_scores, spoof_cm_scores, 
             Pfa_asv, Pmiss_asv, Pmiss_spoof_asv, cost_model, flag_verbose)
     else:
-        tDCF_curve, CM_thresholds = compute_tDCF_legacy(
+        tDCF_curve, CM_thresholds = compute_tDCF(
             bonafide_cm_scores, spoof_cm_scores, 
             Pfa_asv, Pmiss_asv, Pfa_spoof_asv, cost_model, flag_verbose)
     
@@ -428,7 +431,8 @@ def tDCF_wrapper(bonafide_cm_scores, spoof_cm_scores,
 
 
 def ASVspoof2019_evaluate(bonafide_cm_scores, bonafide_cm_file_names,
-                           spoof_cm_scores, spoof_cm_file_names, verbose=False):
+                          spoof_cm_scores, spoof_cm_file_names, verbose=False,
+                          protocol_alternative=None):
     """ Decompose scores for each attack. For ASVspoof2019
     
     ASVspoof2019_decompose(bonafide_cm_scores, bonafide_cm_file_names,
@@ -439,7 +443,9 @@ def ASVspoof2019_evaluate(bonafide_cm_scores, bonafide_cm_file_names,
       bonafide_cm_file_names: file name list corresponding to bonafide_cm_scores
       spoof_cm_scores: np.array of spoofed scores (all attack types)
       spoof_cm_file_names: file name list corresponding to spoof_cm_scores
-    
+
+      verbose: print information from tDCF computation (default: False)
+      protocol_alternative: alternative protocol to ASVspoof2019 (default: None)
     output
     ------
       min_tDCF: np.array of min tDCF for each attack
@@ -447,7 +453,13 @@ def ASVspoof2019_evaluate(bonafide_cm_scores, bonafide_cm_file_names,
       eer_threshold: np.array of threshold for EER (not min tDCF threshod)
       spoof_attack_types: list of attack types
     """
-    file_name = os.path.dirname(__file__)+ '/data/asvspoof2019/protocol.txt'
+    if protocol_alternative is not None:
+        # if provided alternative procotol, use it. 
+        # this is for protocol tweaking
+        file_name = protocol_alternative
+    else:
+        # official protocol
+        file_name = os.path.dirname(__file__)+ '/data/asvspoof2019/protocol.txt'
     
     protocol_data = np.genfromtxt(file_name, 
                                   dtype=[('spk', 'U10'), ('file', 'U20'),
@@ -573,6 +585,21 @@ def ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False):
     else:
         return
 
+def ASVspoofNNN_decomposed_results(score_file_path, 
+                                   flag_return_results=False,
+                                   protocol_alternative=None):
+    """ Similar to ASVspoof2019_decomposed_results, but use alternative protocol
+    """
+    bona, b_names, spoofed, s_names = parse_pytorch_output_txt(score_file_path)
+
+    mintDCFs, eers, cm_thres, spoof_types, spoof_scores = ASVspoof2019_evaluate(
+        bona, b_names, spoofed, s_names, True, protocol_alternative)
+    
+    if flag_return_results:
+        return mintDCFs, eers, cm_thres, spoof_types, spoof_scores, bona 
+    else:
+        return
+
 ##############
 # for testing using ./data/cm_dev.txt and asv_dev.txt
 ##############
@@ -613,8 +640,8 @@ def read_cm_txt_file(file_path):
 
 if __name__ == "__main__":
     
-    asv_scores = read_asv_txt_file('./data/asv_dev.txt')
-    cm_scores = read_cm_txt_file('./data/cm_dev.txt')
+    asv_scores = read_asv_txt_file('./data/asvspoof2019/asv_dev.txt')
+    cm_scores = read_cm_txt_file('./data/asvspoof2019/cm_dev.txt')
 
     tar_asv = asv_scores[asv_scores[:, 1]==2, 0]
     non_asv = asv_scores[asv_scores[:, 1]==1, 0]
@@ -623,8 +650,8 @@ if __name__ == "__main__":
     bona_cm = cm_scores[cm_scores[:, 1]==1, 0]
     spoof_cm = cm_scores[cm_scores[:, 1]==0, 0]
 
-    mintdcf, eer = tDCF_wrapper(
+    mintdcf, eer, eer_threshold = tDCF_wrapper(
         bona_cm, spoof_cm, tar_asv, non_asv, spoof_asv)
 
-    print(mintdcf)
-    print(eer)
+    print("min tDCF: {:f}".format(mintdcf))
+    print("EER: {:f}%".format(eer*100))

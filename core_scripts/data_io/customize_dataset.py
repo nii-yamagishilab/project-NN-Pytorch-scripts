@@ -134,7 +134,7 @@ class NII_MergeDataSetLoader():
                  min_seq_len = None,
                  save_mean_std = True, \
                  wav_samp_rate = None,
-                 way_to_merge = 'batch_merge'):
+                 way_to_merge = 'concatenate'):
         
         # check whether input_dirs and output_dirs are lists
         if type(list_input_dirs[0]) is list and \
