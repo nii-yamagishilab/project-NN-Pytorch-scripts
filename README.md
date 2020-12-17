@@ -33,9 +33,10 @@ Note that this is the re-implementation of projects based on [CURRENNT](https://
 3. LFCC + LCNN + one-class softmax (lfcc-lcnn-ocsoftmax)
 4. LFCC + ResNet18 + one-class softmax (lfcc-restnet-ocsoftmax)
 
-On ASVspoof2019 LA, EER is around 3%, and min-tDCF (legacy-version) is around 0.06~0.08. Results are obtained on Nvidia DGX station, single V100 card. 
+On ASVspoof2019 LA, EER is around 3%, and min-tDCF (legacy-version) is around 0.06~0.08. I trained each system for 6 times on various GPU devices (single V100 or P100 card), each time with a different random initial seed. Figure below shows the DET curves for these systems:
+![det_curve](./misc/fig_det_baselines.png)
 
-However, the results may vary a lot when training using different initial random seends. Even with the same random seed, Pytorch environment, and [deterministic algorithm selected](https://pytorch.org/docs/stable/notes/randomness.html), the trained model may be different due to the CUDA and GPU. It is encouraged to run the model multiple times with different random seeds and show the variance of the evaluation results.
+As you can see how the results vary a lot when simply changing the initial random seends. Even with the same random seed, Pytorch environment, and [deterministic algorithm selected](https://pytorch.org/docs/stable/notes/randomness.html), the trained model may be different due to the CUDA and GPU. It is encouraged to run the model multiple times with different random seeds and show the variance of the evaluation results.
 
 For LCNN, please check (Lavrentyeva 2019); for LFCC, please check (Sahidullah 2015); for one-class softmax in ASVspoof, please check (Zhang 2020).
 
