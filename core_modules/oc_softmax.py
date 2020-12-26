@@ -90,9 +90,23 @@ class OCSoftmaxWithLoss(torch_nn.Module):
 
     def forward(self, inputs, target):
         """ 
+        input:
+        ------
+          input: tuple of tensors ((batchsie, out_dim), (batchsie, out_dim))
+                 output from OCAngle
+                 inputs[0]: positive class score
+                 inputs[1]: negative class score
+          target: tensor (batchsize, 1)
+                 tensor of target index
+        output:
+        ------
+          loss: scalar
         """
-        # assume target is binary, positive = 1, negaitve = 0
-        # inputs[0] positive score, inputs[1] negative score
+        # Assume target is binary, positive = 1, negaitve = 0
+        # 
+        # Equivalent to select the scores using if-elese
+        # if target = 1, use inputs[0]
+        # else, use inputs[1]
         output = inputs[0] * target.view(-1, 1) + \
                  inputs[1] * (1-target.view(-1, 1))
         loss = self.m_loss(output).mean()

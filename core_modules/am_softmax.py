@@ -107,20 +107,37 @@ class AMSoftmaxWithLoss(torch_nn.Module):
 
     def forward(self, input, target):
         """ 
+        input:
+        ------
+          input: tuple of tensors ((batchsie, out_dim), (batchsie, out_dim))
+                 output from AMAngleLayer
+        
+          target: tensor (batchsize, 1)
+                 tensor of target index
+        output:
+        ------
+          loss: scalar
         """
         # target (batchsize, 1)
         target = target.long() #.view(-1, 1)
         
+        # create an index matrix, i.e., one-hot vectors
         with torch.no_grad():
             index = torch.zeros_like(input[0])
             # index[i][target[i][j]] = 1
             index.scatter_(1, target.data.view(-1, 1), 1)
             index = index.bool()
-    
+        
+        # use the one-hot vector as index to select
+        # input[0] -> cos
+        # input[1] -> phi
+        # if target_i = j, ouput[i][j] = phi[i][j], otherwise cos[i][j]
+        # 
         output = input[0] * 1.0
         output[index] -= input[0][index] * 1.0
         output[index] += input[1][index] * 1.0
         
+        # cross entropy loss
         loss = self.m_loss(output, target)
 
         return loss
