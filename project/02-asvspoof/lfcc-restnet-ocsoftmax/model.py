@@ -30,10 +30,34 @@ __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
 ##############
-## 
+## util
+##############
 
+def protocol_parse(protocol_filepath):
+    """ Parse protocol of ASVspoof2019 and get bonafide/spoof for each trial
+    
+    input:
+    -----
+      protocol_filepath: string, path to the protocol file
+        for convenience, I put train/dev/eval trials into a single protocol file
+    
+    output:
+    -------
+      data_buffer: dic, data_bufer[filename] -> 1 (bonafide), 0 (spoof)
+    """ 
+    data_buffer = {}
+    temp_buffer = np.loadtxt(protocol_filepath, dtype='str')
+    for row in temp_buffer:
+        if row[-1] == 'bonafide':
+            data_buffer[row[1]] = 1
+        else:
+            data_buffer[row[1]] = 0
+    return data_buffer
 
+##############
 ## FOR MODEL
+##############
+
 class Model(torch_nn.Module):
     """ Model definition
     """
@@ -41,7 +65,7 @@ class Model(torch_nn.Module):
         super(Model, self).__init__()
 
         ##### required part, no need to change #####
-        
+
         # mean std of input and output
         in_m, in_s, out_m, out_s = self.prepare_mean_std(in_dim,out_dim,\
                                                          args, mean_std)
@@ -55,14 +79,20 @@ class Model(torch_nn.Module):
         self.validation = False
         #####
 
-
-        # target data
+        ####
+        # on input waveform and output target
+        ####
+        # Load protocol and prepare the target data for network training
         protocol_file = prj_conf.optional_argument[0]
-        self.protocol_parser = self._protocol_parse(protocol_file)
+        self.protocol_parser = protocol_parse(protocol_file)
         
-        # working sampling rate, torchaudio is used to change sampling rate
+        # Working sampling rate
+        #  torchaudio may be used to change sampling rate
         self.m_target_sr = 16000
                 
+        ####
+        # optional configs (not used)
+        ####                
         # re-sampling (optional)
         self.m_resampler = torchaudio.transforms.Resample(
             prj_conf.wav_samp_rate, self.m_target_sr)
@@ -73,7 +103,12 @@ class Model(torch_nn.Module):
         # flag for balanced class (temporary use)
         self.v_flag = 1
     
-        # frame shift (number of points)
+        ####
+        # front-end configuration
+        #  multiple front-end configurations may be used
+        #  by default, use a single front-end
+        ####    
+        # frame shift (number of waveform points)
         self.frame_hops = [160]
         # frame length
         self.frame_lens = [320]
@@ -86,23 +121,30 @@ class Model(torch_nn.Module):
 
         # window type
         self.win = torch.hann_window
-        # floor in log-spectrum-amplitude calculating
+        # floor in log-spectrum-amplitude calculating (not used)
         self.amp_floor = 0.00001
         
-        # manual choose the first 600 frames in the data
+        # number of frames to be kept for each trial
+        # 750 frames are quite long for ASVspoof2019 LA with frame_shift = 10ms
         self.v_truncate_lens = [10 * 16 * 750 // x for x in self.frame_hops]
 
-        # number of sub-models
+        # number of sub-models (by default, a single model)
         self.v_submodels = len(self.frame_lens)        
 
-        # dimension of embedding vectors
+        # dimension of embedding vectors, which will be into to oc-softmax layer
         self.v_emd_dim = 256
 
-        # output class (for OC-softmax)
+        # output class (1 for one-class softmax)
         self.v_out_class = 1
 
+        ####
+        # create network
+        ####
+        # backend
         self.m_model = []
+        # fronend
         self.m_frontend = []
+        # softmax layer for backend
         self.m_a_softmax = []
 
         for idx, (trunc_len, fft_n, lfcc_dim) in enumerate(zip(
@@ -136,7 +178,8 @@ class Model(torch_nn.Module):
         return
     
     def prepare_mean_std(self, in_dim, out_dim, args, data_mean_std=None):
-        """
+        """ prepare mean and std for data processing
+        This is required for the Pytorch project, but not relevant to this code
         """
         if data_mean_std is not None:
             in_m = torch.from_numpy(data_mean_std[0])
@@ -157,50 +200,49 @@ class Model(torch_nn.Module):
                 sys.exit(1)
         else:
             in_m = torch.zeros([in_dim])
-            in_s = torch.zeros([in_dim])
-            out_m = torch.ones([out_dim])
+            in_s = torch.ones([in_dim])
+            out_m = torch.zeros([out_dim])
             out_s = torch.ones([out_dim])
             
         return in_m, in_s, out_m, out_s
         
     def normalize_input(self, x):
         """ normalizing the input data
+        This is required for the Pytorch project, but not relevant to this code
         """
         return (x - self.input_mean) / self.input_std
 
     def normalize_target(self, y):
         """ normalizing the target data
+        This is required for the Pytorch project, but not relevant to this code
         """
         return (y - self.output_mean) / self.output_std
 
     def denormalize_output(self, y):
         """ denormalizing the generated output from network
+        This is required for the Pytorch project, but not relevant to this code
         """
         return y * self.output_std + self.output_mean
 
-    def _protocol_parse(self, protocol_filepath):
-        data_buffer = {}
-        temp_buffer = np.loadtxt(protocol_filepath, dtype='str')
-        for row in temp_buffer:
-            if row[-1] == 'bonafide':
-                data_buffer[row[1]] = 1
-            else:
-                data_buffer[row[1]] = 0
-        return data_buffer
-
     def _front_end(self, wav, idx, trunc_len, datalength):
         """ simple fixed front-end to extract features
-        fs: frame shift
-        fl: frame length
-        fn: fft points
-        trunc_len: number of frames per file (by truncating)
-        datalength: original length of data
+        
+        input:
+        ------
+          wav: waveform
+          idx: idx of the trial in mini-batch
+          trunc_len: number of frames to be kept after truncation
+          datalength: list of data length in mini-batch
+
+        output:
+        -------
+          x_sp_amp: front-end featues, (batch, frame_num, frame_feat_dim)
         """
         
         with torch.no_grad():
             x_sp_amp = self.m_frontend[idx](wav.squeeze(-1))
             
-            #  permute to (batch, fft_bin, frame_length)
+            #  permute to (batch, frame_feat_dim, frame_num)
             x_sp_amp = x_sp_amp.permute(0, 2, 1)
             
             # make sure the buffer is long enough
@@ -225,7 +267,7 @@ class Model(torch_nn.Module):
                     tmp = x_sp_amp[fileidx, :, 0:true_frame_num].repeat(1, rep)
                     x_sp_amp_buff[fileidx] = tmp[:, 0:trunc_len]
 
-            #  permute to (batch, frame_length, fft_bin)
+            #  permute to (batch, frame_num, frame_feat_dim)
             x_sp_amp = x_sp_amp_buff
             
         # return
@@ -243,8 +285,8 @@ class Model(torch_nn.Module):
         batch_size = x.shape[0]
 
         # buffer to store output scores from sub-models
-        output_score = torch.zeros([batch_size * self.v_submodels, 
-                                   self.v_emd_dim], 
+        output_emb = torch.zeros([batch_size * self.v_submodels, 
+                                  self.v_emd_dim], 
                                   device=x.device, dtype=x.dtype)
         
         # compute scores for each sub-models
@@ -260,18 +302,22 @@ class Model(torch_nn.Module):
             #  2. compute hidden features
             features, final_output = m_model(x_sp_amp.unsqueeze(1))
             
-            output_score[idx * batch_size : (idx+1) * batch_size] = features
+            output_emb[idx * batch_size : (idx+1) * batch_size] = features
 
-        return output_score
+        return output_emb
 
     def _compute_score(self, feature_vec, angle=False):
         """
         """
         # compute a-softmax output for each feature configuration
         batch_size  = feature_vec.shape[0] // self.v_submodels
+
+        # negaitve class scores
         x_cos_val = torch.zeros(
             [feature_vec.shape[0], self.v_out_class], 
             dtype=feature_vec.dtype, device=feature_vec.device)
+
+        # positive class scores
         x_phi_val = torch.zeros_like(x_cos_val)
         
         for idx in range(self.v_submodels):
