@@ -180,8 +180,9 @@ class NIIDataSet(torch.utils.data.Dataset):
                              'error', end='')
             nii_warn.f_die(" Output reso: %s" % (str(self.m_output_reso)))
         if np.any(np.array(self.m_input_reso) < 0):
+            nii_warn.f_print("Input resolution: %s" % (str(self.m_input_reso)))
+            nii_warn.f_print("Data IO for unaligned input and output pairs")
             if truncate_seq is not None:
-                nii_warn.f_print("Input reso : %s" % (str(self.m_input_reso)))
                 nii_warn.f_print("truncate is set to None", 'warning')
                 self.m_truncate_seq = None
                 self.m_min_seq_len = None
@@ -992,6 +993,7 @@ class NIIDataSetLoader:
             tmp_params = nii_dconf.default_loader_conf
         else:
             tmp_params = params
+
         # collate function
         if 'batch_size' in params and params['batch_size'] > 1:
             collate_fn = nii_collate_fn.customize_collate
