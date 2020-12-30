@@ -50,7 +50,7 @@ class merge_loader():
         index for dataset 3: index += dataset_1 + dataset_2.get_seq_num()
         
         We have to call dataset.f_adjust_idx because it is the dataset itself
-        that knows how to pause the data_tuple
+        that knows how to parse the data_tuple
         """
         return self.m_datasets[dataset_idx].get_dataset().f_adjust_idx(
             data_tuple, self.m_idx_shift[dataset_idx])
@@ -80,7 +80,8 @@ class ConcatDataset(torch.utils.data.Dataset):
     """ Adopted from 
     https://discuss.pytorch.org/t/train-simultaneously-on-two-datasets/649/2
 
-    But here we concatenate data not in minibatch.
+    But here we concatenate data corpora directly. Minibatch may contain data
+    from each sub corpus
     """
     def __init__(self, datasets):
         """ datasets must be torch.utils.data.Dataset
@@ -97,6 +98,8 @@ class ConcatDataset(torch.utils.data.Dataset):
         return
 
     def __getitem__(self, i):
+        """ getitem from the corresponding subcorpus
+        """
         # for example, data1 = [a], data2 = [b, c]
         # self.len_buffer = [1, 2]
         # self.len_top = [1, 3] 
@@ -118,7 +121,10 @@ class ConcatDataset(torch.utils.data.Dataset):
         return sum(self.len_buffer)
 
 class NII_MergeDataSetLoader():
-    """ 
+    """ Dataset loader that supports loading multiple data corpora into a single
+    Dataset object.
+
+    Similar to NIIDataSetLoader.
     """
     def __init__(self,
                  dataset_name, \
@@ -128,14 +134,63 @@ class NII_MergeDataSetLoader():
                  list_output_dirs, output_exts, output_dims, output_reso, \
                  output_norm, \
                  stats_path, \
-                 data_format = '<f4', \
+                 data_format = nii_dconf.h_dtype_str, \
                  params = None, \
                  truncate_seq = None, \
                  min_seq_len = None,
                  save_mean_std = True, \
-                 wav_samp_rate = None,
+                 wav_samp_rate = None, \
+                 flag_lang = 'EN', \
                  way_to_merge = 'concatenate'):
-        
+        """ Signature is similar to default_io.NIIDataSetLoader.
+        file_list, input_dirs, and output_dirs are different.
+        One additional optional argument is way_to_merge.
+
+        Args
+        ----
+            data_set_name: a string to name this dataset
+                           this will be used to name the statistics files
+                           such as the mean/std for this dataset
+            list_file_list: a list of file_name path
+            list_input_dirs: a list of lists of dirs for input features
+            input_exts: a list of input feature name extentions
+            input_dims: a list of input feature dimensions
+            input_reso: a list of input feature temporal resolution,
+                        or None
+            input_norm: a list of bool, whether normalize input feature or not
+
+            list_output_dirs: a list of lists of dirs for output features
+            output_exts: a list of output feature name extentions
+            output_dims: a list of output feature dimensions
+            output_reso: a list of output feature temporal resolution, 
+                         or None
+            output_norm: a list of bool, whether normalize target feature or not
+
+            stats_path: path to the directory of statistics(mean/std)
+            data_format: method to load the data
+                    '<f4' (default): load data as float32m little-endian
+                    'htk': load data as htk format
+            params: parameter for torch.utils.data.DataLoader
+
+            truncate_seq: None or int, 
+                          truncate data sequence into smaller truncks
+                          truncate_seq > 0 specifies the trunck length
+            min_seq_len: None (default) or int, minimum length of an utterance
+                         utterance shorter than min_seq_len will be ignored
+            save_mean_std: bool, True (default): save mean and std 
+            wav_samp_rate: None (default) or int, if input data has  waveform, 
+                         please set sampling rate. It is used by _data_writer
+            flag_lang: str, 'EN' (default), if input data has text, text will
+                       be converted into code indices. flag_lang indicates the 
+                     language for the text processer. It is used by _data_reader
+          wav_to_merge: string, 'concatenate' (default) or 'merge'
+                    'concatenate': simply concatenate multiple corpora
+                    'merge': create minibatch by merging data from each copora
+        Methods
+        -------
+            get_loader(): return a torch.util.data.DataLoader
+            get_dataset(): return a torch.util.data.DataSet
+        """ 
         # check whether input_dirs and output_dirs are lists
         if type(list_input_dirs[0]) is list and \
            type(list_output_dirs[0]) is list and \
@@ -184,7 +239,7 @@ class NII_MergeDataSetLoader():
                     sub_output_dirs, output_exts, output_dims, output_reso, \
                     output_norm, \
                     stats_path, data_format, params, truncate_seq, min_seq_len,
-                    save_mean_std, wav_samp_rate))
+                    save_mean_std, wav_samp_rate, flag_lang))
         
         # list of the datasets
         self.m_datasets = lst_dset

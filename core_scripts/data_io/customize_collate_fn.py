@@ -5,7 +5,7 @@ customize_collate_fn
 Customized collate functions for DataLoader, based on 
 github.com/pytorch/pytorch/blob/master/torch/utils/data/_utils/collate.py
 
-PyTorch is a BSD-style licensed, as found in the LICENSE file.
+PyTorch is BSD-style licensed, as found in the LICENSE file.
 """
 
 from __future__ import absolute_import

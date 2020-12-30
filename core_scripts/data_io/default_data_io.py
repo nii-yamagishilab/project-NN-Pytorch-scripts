@@ -18,7 +18,9 @@ import core_scripts.other_tools.display as nii_warn
 import core_scripts.other_tools.str_tools as nii_str_tk
 import core_scripts.data_io.io_tools as nii_io_tk
 import core_scripts.data_io.wav_tools as nii_wav_tk
+import core_scripts.data_io.text_process.text_io as nii_text_tk
 import core_scripts.data_io.conf as nii_dconf
+
 import core_scripts.data_io.seq_info as nii_seqinfo
 import core_scripts.math_tools.stats as nii_stats
 import core_scripts.data_io.customize_collate_fn as nii_collate_fn
@@ -30,22 +32,26 @@ __copyright__ = "Copyright 2020, Xin Wang"
 ###
 ## functions wrappers to read/write data for this data_io
 ###
-def _data_reader(file_path, dim):
-    """ A wrapper to read raw data or waveform
+def _data_reader(file_path, dim, flag_lang):
+    """ A wrapper to read raw binary data, waveform, or text
     """
     file_name, file_ext = os.path.splitext(file_path)
     if file_ext == '.wav':
         sr, data = nii_wav_tk.waveReadAsFloat(file_path)
+    elif file_ext == '.txt':
+        data = nii_text_tk.textloader(file_path, flag_lang)
     else:
         data = nii_io_tk.f_read_raw_mat(file_path, dim)
     return data
 
 def _data_writer(data, file_path, sr = 16000):
-    """ A wrapper to write raw data or waveform
+    """ A wrapper to write raw binary data or waveform
     """
     file_name, file_ext = os.path.splitext(file_path)
     if file_ext == '.wav':
         nii_wav_tk.waveFloatToPCMFile(data, file_path, sr = sr)
+    elif file_ext == '.txt':
+        nii_warn.f_die("Cannot write to %s" % (file_path))
     else:
         nii_io_tk.f_write_raw_mat(data, file_path)
     return
@@ -57,6 +63,8 @@ def _data_len_reader(file_path):
     if file_ext == '.wav':
         sr, data = nii_wav_tk.waveReadAsFloat(file_path)
         length = data.shape[0]
+    elif file_ext == '.txt':
+        nii_warn.f_die("Cannot measure length of %s" % (file_path))
     else:
         length = nii_io_tk.f_read_raw_mat_length(file_path)
     return length
@@ -77,30 +85,43 @@ class NIIDataSet(torch.utils.data.Dataset):
                  output_dirs, output_exts, output_dims, output_reso, \
                  output_norm, \
                  stats_path, \
-                 data_format = '<f4', \
+                 data_format = nii_dconf.h_dtype_str, \
                  truncate_seq = None, \
                  min_seq_len = None, \
                  save_mean_std = True, \
-                 wav_samp_rate = None):
+                 wav_samp_rate = None, \
+                 flag_lang = 'EN'):
         """
-        Args:
-            dataset_name: name of this data set
-            file_list: a list of file name strings (without extension)
-            input_dirs: a list of dirs from each input feature is loaded
-            input_exts: a list of input feature name extentions
-            input_dims: a list of input feature dimensions
-            input_reso: a list of input feature temporal resolutions
-            output_dirs: a list of dirs from each output feature is loaded
-            output_exts: a list of output feature name extentions
-            output_dims: a list of output feature dimensions
-            output_reso: a list of output feature temporal resolutions
-            stat_path: path to the directory that saves mean/std, 
-                       utterance length
-            data_format: method to load the data
+        args
+        ----
+          dataset_name: name of this data set
+          file_list: a list of file name strings (without extension)
+                     or, path to the file that contains the file names
+          input_dirs: a list of dirs from which input feature is loaded
+          input_exts: a list of input feature name extentions
+          input_dims: a list of input feature dimensions
+          input_reso: a list of input feature temporal resolutions
+          input_norm: a list of bool, whether normalize input feature or not
+          output_dirs: a list of dirs from which output feature is loaded
+          output_exts: a list of output feature name extentions
+          output_dims: a list of output feature dimensions
+          output_reso: a list of output feature temporal resolutions
+          output_norm: a list of bool, whether normalize target feature or not
+          stat_path: path to the directory that saves mean/std, 
+                     utterance length
+          data_format: method to load the data
                     '<f4' (default): load data as float32m little-endian
                     'htk': load data as htk format
-            truncate_seq: None or int, truncate sequence into truncks.
-                          truncate_seq > 0 specifies the trunck length
+          truncate_seq: None (default) or int, truncate sequence into truncks.
+                        truncate_seq > 0 specifies the trunck length 
+          min_seq_len: None (default) or int, minimum length of an utterance
+                        utterance shorter than min_seq_len will be ignored
+          save_mean_std: bool, True (default): save mean and std 
+          wav_samp_rate: None (default) or int, if input data has  waveform, 
+                         please set sampling rate. It is used by _data_writer
+          flag_lang: str, 'EN' (default), if input data has text, the text will
+                     be converted into code indices. flag_lang indicates the 
+                     language for the text processer. It is used by _data_reader
         """
         # initialization
         self.m_set_name = dataset_name
@@ -160,7 +181,10 @@ class NIIDataSet(torch.utils.data.Dataset):
 
         # in case there is waveform data in input or output features 
         self.m_wav_sr = wav_samp_rate
-            
+        
+        # in case there is text data in input or output features
+        self.m_flag_lang = flag_lang
+
         # sanity check on resolution configuration
         # currently, only input features can have different reso,
         # and the m_input_reso must be the same for all input features
@@ -203,14 +227,13 @@ class NIIDataSet(torch.utils.data.Dataset):
             self.m_truncate_seq = self.f_adjust_len(self.m_truncate_seq)
 
         # method to load/write raw data
-        if data_format == '<f4':
-            self.f_load_data = _data_reader
+        if data_format == nii_dconf.h_dtype_str:
+            self.f_load_data = lambda x, y: _data_reader(x, y, self.m_flag_lang)
             self.f_length_data = _data_len_reader
-            self.f_write_data = lambda x, y: _data_writer(x, y, \
-                                                          self.m_wav_sr)
+            self.f_write_data = lambda x, y: _data_writer(x, y, self.m_wav_sr)
         else:
             nii_warn.f_print("Unsupported dtype %s" % (data_format))
-            nii_warn.f_die("Only supports np.float32 <f4")
+            nii_warn.f_die("Only supports %s " % (nii_dconf.h_dtype_str))
             
         # check the validity of data
         self.f_check_file_list()
@@ -920,56 +943,69 @@ class NIIDataSetLoader:
                  output_dirs, output_exts, output_dims, output_reso, \
                  output_norm, \
                  stats_path, \
-                 data_format = '<f4', \
+                 data_format = nii_dconf.h_dtype_str, \
                  params = None, \
                  truncate_seq = None, \
                  min_seq_len = None,
                  save_mean_std = True, \
-                 wav_samp_rate = None):
+                 wav_samp_rate = None, \
+                 flag_lang = 'EN'):
         """
         NIIDataSetLoader(
-                 data_set_name,
-                 file_list,
-                 input_dirs,
-                 input_exts,
-                 input_dims,
-                 input_reso,
-                 input_norm,
-                 output_dirs,
-                 output_exts,
-                 output_dims,
-                 output_reso,
-                 output_norm,
-                 stats_path,
-                 data_format = '<f4',
-                 params = None,
-                 truncate_seq = None):
-        Args:
+               data_set_name,
+               file_list,
+               input_dirs, input_exts, input_dims, input_reso, input_norm,
+               output_dirs, output_exts, output_dims, output_reso, output_norm,
+               stats_path,
+               data_format = '<f4',
+               params = None,
+               truncate_seq = None,
+               min_seq_len = None,
+               save_mean_std = True, \
+               wav_samp_rate = None, \
+               flag_lang = 'EN'):
+        Args
+        ----
             data_set_name: a string to name this dataset
                            this will be used to name the statistics files
                            such as the mean/std for this dataset
             file_list: a list of file name strings (without extension)
-            input_dirs: a list of dirs from each input feature is loaded
+                     or, path to the file that contains the file names
+            input_dirs: a list of dirs from which input feature is loaded
             input_exts: a list of input feature name extentions
             input_dims: a list of input feature dimensions
             input_reso: a list of input feature temporal resolution,
                         or None
-            output_dirs: a list of dirs from each output feature is loaded
+            input_norm: a list of bool, whether normalize input feature or not
+
+            output_dirs: a list of dirs from which output feature is loaded
             output_exts: a list of output feature name extentions
             output_dims: a list of output feature dimensions
             output_reso: a list of output feature temporal resolution, 
                          or None
+            output_norm: a list of bool, whether normalize target feature or not
+
             stats_path: path to the directory of statistics(mean/std)
             data_format: method to load the data
                     '<f4' (default): load data as float32m little-endian
                     'htk': load data as htk format
             params: parameter for torch.utils.data.DataLoader
+
             truncate_seq: None or int, 
                           truncate data sequence into smaller truncks
                           truncate_seq > 0 specifies the trunck length
-        Methods:
-        get_loader(): return a torch.util.data.DataLoader
-        get_dataset(): return a torch.util.data.DataSet
+            min_seq_len: None (default) or int, minimum length of an utterance
+                         utterance shorter than min_seq_len will be ignored
+            save_mean_std: bool, True (default): save mean and std 
+            wav_samp_rate: None (default) or int, if input data has  waveform, 
+                         please set sampling rate. It is used by _data_writer
+            flag_lang: str, 'EN' (default), if input data has text, text will
+                       be converted into code indices. flag_lang indicates the 
+                     language for the text processer. It is used by _data_reader
+        Methods
+        -------
+            get_loader(): return a torch.util.data.DataLoader
+            get_dataset(): return a torch.util.data.DataSet
         """
         nii_warn.f_print_w_date("Loading dataset %s" % (dataset_name),
                                 level="h")
@@ -986,7 +1022,8 @@ class NIIDataSetLoader:
                                     stats_path, data_format, \
                                     truncate_seq, min_seq_len,\
                                     save_mean_std, \
-                                    wav_samp_rate)
+                                    wav_samp_rate, \
+                                    flag_lang)
         
         # create torch.util.data.DataLoader
         if params is None:
@@ -1051,7 +1088,8 @@ class NIIDataSetLoader:
 
     def adjust_utt_idx(self, data_tuple, utt_idx_shift):
         """ Return data tuple with adjusted utterance index in merged dataset
-        To be used by customize_dataset
+        
+        This is used by customize_dataset.
         """
         return self.m_dataset.f_adjust_idx(data_tuple, utt_idx_shift)
     

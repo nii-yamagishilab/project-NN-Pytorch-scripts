@@ -45,11 +45,18 @@ _arpabet_symbols = [_arpabet_symbol_marker + x for x in _arpabet_symbols_raw]
 _symbols = [_pad] + list(_special) + list(_punctuation) \
            + list(_letters) + _arpabet_symbols
 
-_symbol_to_index = {y: x for x, y in enumerate(_symbols)}
-
+# create the mapping table
+#  x+1 so that 0 can be reserved for other purposes
+_symbol_to_index = {y: x+1 for x, y in enumerate(_symbols)}
 
 def symbol_num():
     return len(_symbols)
+
+def symbol2index(x):
+    return _symbol_to_index[x]
+
+def index2symbol(x):
+    return _symbols[x-1]
 
 #####
 ## Functions for text normalization
@@ -124,7 +131,7 @@ def rawtext2indices(text):
 
     for example, 'text' -> [23, 16, 28, 23]
     """
-    return [_symbol_to_index[x] for x in text if flag_convert_symbol(x)]
+    return [symbol2index(x) for x in text if flag_convert_symbol(x)]
 
 def arpabet2indices(arpa_text):
     """ Look up the table and return the index for input symbol in input text
@@ -140,7 +147,7 @@ def arpabet2indices(arpa_text):
     for example, 'AH HH' -> [12 19]
     """
     tmp = [_arpabet_symbol_marker + x for x in arpa_text.split()]
-    return [_symbol_to_index[x] for x in tmp if flag_convert_symbol(x)]
+    return [symbol2index(x) for x in tmp if flag_convert_symbol(x)]
     
 #####
 ## Main function
@@ -161,7 +168,8 @@ def text2code(text):
     # done
 
 def code2text(codes):
-    txt_tmp = [_symbols[x] for x in codes]
+    # x-1 because  _symbol_to_index
+    txt_tmp = [index2symbol(x) for x in codes]
     txt_tmp = ''.join(txt_tmp)
     return text_whitespace_convert(txt_tmp.replace(_arpabet_symbol_marker, ' '))
     

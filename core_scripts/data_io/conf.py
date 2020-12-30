@@ -22,6 +22,8 @@ __copyright__ = "Copyright 2020, Xin Wang"
 # ---------------------------
 # data type for host
 h_dtype = np.float32
+# data type string format for numpy
+h_dtype_str = '<f4'
 
 # data type for device (GPU)
 d_dtype = torch.float32
