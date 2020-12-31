@@ -64,7 +64,9 @@ def _data_len_reader(file_path):
         sr, data = nii_wav_tk.waveReadAsFloat(file_path)
         length = data.shape[0]
     elif file_ext == '.txt':
-        nii_warn.f_die("Cannot measure length of %s" % (file_path))
+        # txt, no need to account length
+        # note that this is for tts task
+        length = 0
     else:
         length = nii_io_tk.f_read_raw_mat_length(file_path)
     return length
