@@ -31,5 +31,15 @@ def qw(data, path=None):
     except OSError:
         pass
     
-    nii_io.f_write_raw_mat(data.detach().to('cpu').numpy(), path)
+    if hasattr(data, 'detach'):
+        nii_io.f_write_raw_mat(data.detach().to('cpu').numpy(), path)
+    elif hasattr(data, 'cpu'):
+        nii_io.f_write_raw_mat(data.to('cpu').numpy(), path)
+    elif hasattr(data, 'numpy'):
+        nii_io.f_write_raw_mat(data.numpy(), path)
+    else:
+        nii_io.f_write_raw_mat(data, path)
 
+
+if __name__ == '__main__':
+    print("Debugging tools")

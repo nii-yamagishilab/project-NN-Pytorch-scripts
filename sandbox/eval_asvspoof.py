@@ -546,10 +546,10 @@ def parse_pytorch_output_txt(score_file_path):
                 temp = line.split(',')
                 flag = int(temp[2])
                 if flag:
-                    bonafide.append(float(temp[-1]))
+                    bonafide.append(float(temp[3]))
                     bonafide_names.append(temp[1].strip())
                 else:
-                    spoofed.append(float(temp[-1]))
+                    spoofed.append(float(temp[3]))
                     spoofed_names.append(temp[1].strip())
     bonafide = np.array(bonafide)
     spoofed = np.array(spoofed)
