@@ -327,9 +327,15 @@ class NIIDataSet(torch.utils.data.Dataset):
 
             # write data
             if t_res < 0:
-                # if this is for input data not synchronized with output
-                in_data = tmp_d
-
+                # if this is for input data not aligned with output
+                # make sure that the input is in shape (seq_len, dim)
+                #  f_load_data should return data in shape (seq_len, dim)
+                if tmp_d.ndim == 1:
+                    in_data = np.expand_dims(tmp_d, axis=1)
+                elif tmp_d.ndim == 2:
+                    in_data = tmp_d
+                else:
+                    nii_warn.f_die("Default IO cannot handle %s" % (file_path))
             elif tmp_d.shape[0] == 1:
                 # input data has only one frame, duplicate
                 if tmp_d.ndim > 1:
