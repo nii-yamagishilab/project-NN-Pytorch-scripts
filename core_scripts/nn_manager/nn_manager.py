@@ -522,6 +522,7 @@ def f_inference_wrapper(args, pt_model, device, \
             # compute output
             start_time = time.time()
             
+            # in case the model defines inference function explicitly
             if hasattr(pt_model, "inference"):
                 infer_func = pt_model.inference
             else:

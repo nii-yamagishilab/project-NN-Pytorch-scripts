@@ -545,6 +545,7 @@ class NIIDataSet(torch.utils.data.Dataset):
 
             # check length
             if t_len == 1:
+                # cannot come here, keep this line as history
                 # if this is an utterance-level feature, it has only 1 frame
                 pass
             elif self.f_valid_len(self.m_data_length[file_name], tmp_len, \
@@ -575,6 +576,23 @@ class NIIDataSet(torch.utils.data.Dataset):
         For data without up-sampling m_single_reso = 1
         """
         return length // self.m_single_reso * self.m_single_reso
+
+    def f_precheck_data_length(self):
+        """ For unaligned input and output, there is no way to know the 
+        target sequence length before hand during inference stage
+        
+        self.m_data_length will be empty
+        """
+        
+        if not self.m_data_length and not self.m_output_dirs and \
+           all([x < 0 for x in self.m_input_reso]):
+            # inference stage, when only input is given
+            # manually create a fake data length for each utterance
+            for file_name in self.m_file_list:
+                self.m_data_length[file_name] = 0
+        return
+
+        
     
     def f_log_seq_info(self):
         """ After m_data_length has been created, create seq_info
@@ -852,8 +870,11 @@ class NIIDataSet(torch.utils.data.Dataset):
                     self.m_output_std[tmp_s:tmp_e] = std_i
 
         if flag_cal_data_len:
+            # 
+            self.f_precheck_data_length()
             # create seq_info
             self.f_log_seq_info()
+            # save len information
             self.f_save_data_len(self.m_data_len_path)
             
         if flag_cal_mean_std:
