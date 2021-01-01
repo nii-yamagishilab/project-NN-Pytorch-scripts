@@ -42,7 +42,10 @@ class OptimizerWrapper():
         self.op_flag = args.optimizer
         self.lr = args.lr
         self.l2_penalty = args.l2_penalty
-        
+
+        # grad clip norm is directly added in nn_manager
+        self.grad_clip_norm = args.grad_clip_norm
+
         # create optimizer
         if self.op_flag == "Adam":
             if self.l2_penalty > 0:
@@ -77,6 +80,8 @@ class OptimizerWrapper():
             mes += self.lr_scheduler.f_print_info()
         if self.l2_penalty > 0:
             mes += "\n  With weight penalty {:f}".format(self.l2_penalty)
+        if self.grad_clip_norm > 0:
+            mes += "\n  With grad clip norm {:f}".format(self.grad_clip_norm)
         nii_warn.f_print_message(mes)
 
     def get_epoch_num(self):

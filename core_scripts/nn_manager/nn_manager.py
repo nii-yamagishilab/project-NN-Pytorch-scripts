@@ -187,7 +187,15 @@ def f_run_one_epoch(args,
 
         # Back-propgation using the summed loss
         if optimizer is not None:
+            # backward propagation
             loss.backward()
+
+            # apply gradient clip 
+            if args.grad_clip_norm > 0:
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    pt_model.parameters(), args.grad_clip_norm)
+                
+            # update parameters
             optimizer.step()
             
         # save the training process information to the monitor
