@@ -49,7 +49,10 @@ def f_args_parsed(argument_input = None):
     
     mes = 'number of no-best epochs for early stopping (default: 5)'
     parser.add_argument('--no-best-epochs', type=int, default=5, help=mes)
-    
+
+    mes = 'sampler (default: None). Default sampler is random shuffler'
+    mes += 'default'
+    parser.add_argument('--sampler', type=str, default='None', help=mes)
 
     parser.add_argument('--lr', type=float, default=0.0001, 
                         help='learning rate (default: 0.0001)')

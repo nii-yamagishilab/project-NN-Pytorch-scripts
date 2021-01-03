@@ -20,6 +20,7 @@ import torch.utils.data
 import core_scripts.other_tools.display as nii_warn
 import core_scripts.data_io.default_data_io as nii_default_dset
 import core_scripts.data_io.customize_collate_fn as nii_collate_fn
+import core_scripts.data_io.customize_sampler as nii_sampler_fn
 import core_scripts.data_io.conf as nii_dconf
 
 __author__ = "Xin Wang"
@@ -119,6 +120,12 @@ class ConcatDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return sum(self.len_buffer)
+
+    def f_get_seq_len_list(self):
+        tmp = []
+        for sub_dataset in self.datasets:
+            tmp += sub_dataset.f_get_seq_len_list()
+        return tmp
 
 class NII_MergeDataSetLoader():
     """ Dataset loader that supports loading multiple data corpora into a single
@@ -247,17 +254,40 @@ class NII_MergeDataSetLoader():
         self.way_to_merge = way_to_merge
         # create data loader
         if way_to_merge == 'concatenate':
+            
             # to create DataLoader, we need the pytorch.dataset
             py_datasets = ConcatDataset([x.get_dataset() for x in lst_dset])
-            
-            # create new loader after merge the datasets
-            #  copied from default IO
+
+            ####
+            # Although members in l_dset have Dataloader, we need to 
+            # create a dataloder for the concatenate dataset
+            ###
             if params is None:
                 tmp_params = nii_dconf.default_loader_conf
             else:
-                tmp_params = params
+                tmp_params = params.copy()
+                            
+            # save parameters
+            self.m_params = tmp_params.copy()
+
+            # 
+            if 'sampler' in tmp_params:
+                tmp_sampler = None
+                if tmp_params['sampler'] == nii_sampler_fn.g_str_sampler_bsbl:
+                    if 'batch_size' in tmp_params:
+                        # initialize the sampler
+                        tmp_sampler = nii_sampler_fn.SamplerBlockShuffleByLen(
+                            py_datasets.f_get_seq_len_list(), 
+                            tmp_params['batch_size'])
+                        # turn off automatic shuffle
+                        tmp_params['shuffle'] = False
+                    else:
+                        nii_warn.f_die("Sampler requires batch size > 1")
+                tmp_params['sampler'] = tmp_sampler
+
             # collate function
-            if 'batch_size' in params and params['batch_size'] > 1:
+            if 'batch_size' in tmp_params and tmp_params['batch_size'] > 1:
+                # use customize_collate to handle data with unequal length
                 collate_fn = nii_collate_fn.customize_collate
             else:
                 collate_fn = None
@@ -265,9 +295,14 @@ class NII_MergeDataSetLoader():
             self.m_loader = torch.utils.data.DataLoader(
                 py_datasets, collate_fn=collate_fn, **tmp_params)
 
+
         else:
             self.m_loader = merge_loader(lst_dset)
+            self.m_params = lst_dset[0].get_loader_params()
         return
+
+    def get_loader_params(self):
+        return self.m_params
 
     def get_loader(self):
         """ get_loader():

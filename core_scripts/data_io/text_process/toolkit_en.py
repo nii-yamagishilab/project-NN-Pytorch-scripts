@@ -27,6 +27,9 @@ _letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 _skip_symbols = ['_', '~']
 
 # ARPAbet symbols 
+# http://www.speech.cs.cmu.edu/cgi-bin/cmudict?in=C+M+U+Dictionary
+# vowels are combined with the three possible lexical stree symbols 0 1 2
+# see http://svn.code.sf.net/p/cmusphinx/code/trunk/cmudict/cmudict-0.7b.symbols
 _arpabet_symbols_raw = [
     'AA', 'AA0', 'AA1', 'AA2', 'AE', 'AE0', 'AE1', 'AE2', 
     'AH', 'AH0', 'AH1', 'AH2', 'AO', 'AO0', 'AO1', 'AO2', 

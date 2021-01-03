@@ -24,6 +24,7 @@ import core_scripts.data_io.conf as nii_dconf
 import core_scripts.data_io.seq_info as nii_seqinfo
 import core_scripts.math_tools.stats as nii_stats
 import core_scripts.data_io.customize_collate_fn as nii_collate_fn
+import core_scripts.data_io.customize_sampler as nii_sampler_fn
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -407,6 +408,10 @@ class NIIDataSet(torch.utils.data.Dataset):
         """
         return len(self.m_seq_info)
 
+    def f_get_seq_len_list(self):
+        """ Return length of each sequence as list
+        """
+        return [x.seq_length() for x in self.m_seq_info]
     
     def f_get_mean_std_tuple(self):
         return (self.m_input_mean, self.m_input_std,
@@ -1058,19 +1063,43 @@ class NIIDataSetLoader:
         if params is None:
             tmp_params = nii_dconf.default_loader_conf
         else:
-            tmp_params = params
+            tmp_params = params.copy()
+            
+        # save parameters
+        self.m_params = tmp_params.copy()
+        
+        # initialize sampler if necessary
+        if 'sampler' in tmp_params:
+            tmp_sampler = None
+            if tmp_params['sampler'] == nii_sampler_fn.g_str_sampler_bsbl:
+                if 'batch_size' in tmp_params:
+                    # initialize the sampler
+                    tmp_sampler = nii_sampler_fn.SamplerBlockShuffleByLen(
+                        self.m_dataset.f_get_seq_len_list(), 
+                        tmp_params['batch_size'])
+                    # turn off automatic shuffle
+                    tmp_params['shuffle'] = False                    
+                else:
+                    nii_warn.f_die("Sampler requires batch size > 1")
+            tmp_params['sampler'] = tmp_sampler
+            
 
         # collate function
-        if 'batch_size' in params and params['batch_size'] > 1:
+        if 'batch_size' in tmp_params and tmp_params['batch_size'] > 1:
+            # for batch-size > 1, use customize_collate to handle
+            # data with different length
             collate_fn = nii_collate_fn.customize_collate
         else:
             collate_fn = None
             
         self.m_loader = torch.utils.data.DataLoader(
             self.m_dataset, collate_fn=collate_fn, **tmp_params)
+
         # done
         return
         
+    def get_loader_params(self):
+        return self.m_params
     
     def get_loader(self):
         """ get_loader():
@@ -1093,6 +1122,8 @@ class NIIDataSetLoader:
         """
         """
         self.m_dataset.f_print_info()
+        print(str(self.m_params))
+        return
 
     def putitem(self, output_data, save_dir, data_infor_str):
         """ Decompose the output_data from network into
