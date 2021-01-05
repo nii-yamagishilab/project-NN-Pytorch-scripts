@@ -712,11 +712,23 @@ class SelfWeightedPooling(torch_nn.Module):
     """ SelfWeightedPooling module
     Inspired by
     https://github.com/joaomonteirof/e2e_antispoofing/blob/master/model.py
-
     To avoid confusion, I will call it self weighted pooling
     """
     
     def __init__(self, feature_dim, mean_only=False):
+        """ SelfWeightedPooling(feature_dim, mean_only)
+        Attention-based pooling
+        
+        input (batchsize, length, feature_dim) ->
+        output (batchsize, feature_dim) or (batchsize, feature_dim*2)
+        
+        args
+        ----
+          feature_dim: dimension of input tensor
+          mean_only: whether compute mean or mean with std
+                     False: output will be (batchsize, feature_dim*2)
+                     True: output will be (batchsize, feature_dim)
+        """
         super(SelfWeightedPooling, self).__init__()
 
         self.feature_dim = feature_dim

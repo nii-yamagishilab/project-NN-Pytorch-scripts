@@ -384,7 +384,30 @@ def tDCF_wrapper(bonafide_cm_scores, spoof_cm_scores,
                  tar_asv_scores=None, non_asv_scores=None, 
                  spoof_asv_scores=None, 
                  flag_verbose=False, flag_legacy=True):
+    """ 
+    mintDCF, eer, eer_thre = tDCF_wrapper(bonafide_cm_scores, spoof_cm_scores, 
+                 tar_asv_scores=None, non_asv_scores=None, 
+                 spoof_asv_scores=None, flag_verbose=False, flag_legacy=True)
     
+    
+    input
+    -----
+      bonafide_cm_scores: np.array of bona fide scores
+      spoof_cm_scores: np.array of spoof scores
+      tar_asv_scores: np.array of ASV target scores, or None
+      non_asv_scores: np.array of ASV non-target scores, or None
+      spoof_asv_scores: np.array of ASV spoof trial scores, or None,
+      flag_verbose: print detailed messages
+      flag_legacy: True: use legacy min-tDCF in ASVspoof2019
+                   False: use min-tDCF revised
+
+    output
+    ------
+      mintDCF: scalar,  value of min-tDCF
+      eer: scalar, value of EER
+      eer_thre: scalar, value of threshold corresponding to EER
+    
+    """
     Pspoof = 0.05
     cost_model = {
         'Pspoof': Pspoof,  # Prior probability of a spoofing attack

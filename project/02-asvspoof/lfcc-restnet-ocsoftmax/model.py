@@ -267,7 +267,7 @@ class Model(torch_nn.Module):
                     tmp = x_sp_amp[fileidx, :, 0:true_frame_num].repeat(1, rep)
                     x_sp_amp_buff[fileidx] = tmp[:, 0:trunc_len]
 
-            #  permute to (batch, frame_num, frame_feat_dim)
+            #  input to resnet should be (batch, frame_feat_dim, frame_num)
             x_sp_amp = x_sp_amp_buff
             
         # return
