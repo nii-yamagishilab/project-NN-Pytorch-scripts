@@ -652,7 +652,12 @@ class NIIDataSet(torch.utils.data.Dataset):
         
         flag = True
         if not self.m_save_ms:
-            # assume mean/std will be in the network
+            # assume mean/std will be loaded from the network
+            # for example, for validation and test sets
+            flag = False
+
+        if not any(self.m_input_norm + self.m_output_norm):
+            # none of the input / output features needs norm
             flag = False
 
         if os.path.isfile(ms_input_path) and \

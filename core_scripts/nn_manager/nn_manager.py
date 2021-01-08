@@ -518,14 +518,18 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     nii_display.f_print("{}".format(f_save_trained_name(args)))
     return
 
+
 def f_inference_wrapper(args, pt_model, device, \
                         test_dataset_wrapper, checkpoint):
+    """ Wrapper for inference
     """
-    """
+
+    # prepare dataloader
     test_data_loader = test_dataset_wrapper.get_loader()
     test_seq_num = test_dataset_wrapper.get_seq_num()
     test_dataset_wrapper.print_info()
     
+    # cuda device
     if torch.cuda.device_count() > 1 and args.multi_gpu_data_parallel:
         nii_display.f_print(
             "DataParallel for inference is not implemented", 'warning')
@@ -536,12 +540,15 @@ def f_inference_wrapper(args, pt_model, device, \
     pt_model.to(device, dtype=nii_dconf.d_dtype)
     f_model_show(pt_model)
     
+    # load trained model parameters from checkpoint
     cp_names = nii_nn_manage_conf.CheckPointKey()
     if type(checkpoint) is dict and cp_names.state_dict in checkpoint:
         pt_model.load_state_dict(checkpoint[cp_names.state_dict])
     else:
         pt_model.load_state_dict(checkpoint)
 
+    # start generation
+    nii_display.f_print("Start inference (generation):", 'highlight')
     
     pt_model.eval() 
     with torch.no_grad():

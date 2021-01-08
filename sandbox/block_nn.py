@@ -69,10 +69,12 @@ class Conv1dKeepLength(torch_nn.Conv1d):
             self.pad_le = dilation_s * (kernel_s - 1) // 2
             self.pad_ri = dilation_s * (kernel_s - 1) - self.pad_le
 
+        # we may wrap other functions too
         if tanh:
             self.l_ac = torch_nn.Tanh()
         else:
             self.l_ac = torch_nn.Identity()
+
         self.pad_mode = pad_mode
         #
         return

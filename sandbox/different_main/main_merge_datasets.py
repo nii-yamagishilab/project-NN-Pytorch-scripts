@@ -55,7 +55,8 @@ def main():
     if not args.inference:
         params = {'batch_size':  args.batch_size,
                   'shuffle':  args.shuffle,
-                  'num_workers': args.num_workers}
+                  'num_workers': args.num_workers, 
+                  'sampler': args.sampler}
         
         # Load file list and create data loader
         trn_lst = prj_conf.trn_list
