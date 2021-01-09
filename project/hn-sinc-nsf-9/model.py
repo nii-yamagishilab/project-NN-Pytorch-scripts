@@ -784,7 +784,6 @@ class Model(torch_nn.Module):
     def __init__(self, in_dim, out_dim, args, mean_std=None):
         super(Model, self).__init__()
 
-        torch.manual_seed(1)
         # mean std of input and output
         in_m, in_s, out_m, out_s = self.prepare_mean_std(in_dim,out_dim,\
                                                          args, mean_std)
@@ -952,16 +951,20 @@ class Loss():
         loss = 0
         for frame_shift, frame_len, fft_p in \
             zip(self.frame_hops, self.frame_lens, self.fft_n):
-            x_stft = torch.stft(output, fft_p, frame_shift, frame_len, \
-                                window=self.win(frame_len), onesided=True,
-                                pad_mode="constant")
-            y_stft = torch.stft(target, fft_p, frame_shift, frame_len, \
-                                window=self.win(frame_len), onesided=True,
-                                pad_mode="constant")
+            x_stft = torch.stft(
+                output, fft_p, frame_shift, frame_len, \
+                window=self.win(frame_len, dtype=output.dtype, 
+                                device=output.device), 
+                onesided=True, pad_mode="constant")
+            y_stft = torch.stft(
+                target, fft_p, frame_shift, frame_len, \
+                window=self.win(frame_len, dtype=output.dtype, 
+                                device=output.device), 
+                onesided=True, pad_mode="constant")
             x_sp_amp = torch.log(torch.norm(x_stft, 2, -1).pow(2) + \
-                                   self.amp_floor)
+                                 self.amp_floor)
             y_sp_amp = torch.log(torch.norm(y_stft, 2, -1).pow(2) + \
-                                   self.amp_floor)
+                                 self.amp_floor)
             loss += self.loss(x_sp_amp, y_sp_amp)
         
         # A norm on cut_f, which forces sinc-cut-off-frequency

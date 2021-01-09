@@ -941,7 +941,6 @@ class Model(torch_nn.Module):
     def __init__(self, in_dim, out_dim, args, mean_std=None):
         super(Model, self).__init__()
 
-        torch.manual_seed(1)
         # mean std of input and output
         in_m, in_s, out_m, out_s = self.prepare_mean_std(in_dim,out_dim,\
                                                          args, mean_std)
@@ -1111,9 +1110,11 @@ class Loss():
         Signal (batchsize, length)
         Output (batchsize, fft_p/2+1, frame_num, 2)
         """ 
-        return torch.stft(signal, fft_p, frame_shift, frame_len, \
-                          window=self.win(frame_len), \
-                          onesided=True, pad_mode="constant")
+        return torch.stft(
+            signal, fft_p, frame_shift, frame_len, \
+            window=self.win(
+                frame_len, dtype=signal.dtype, device=signal.device), \
+            onesided=True, pad_mode="constant")
     
     def _amp(self, x):
         """  _amp(stft)
