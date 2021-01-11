@@ -785,5 +785,167 @@ class SelfWeightedPooling(torch_nn.Module):
         
 
 
+class Conv1DForARModel(Conv1dKeepLength):
+    """ Definition of dilated Convolution for autoregressive model
+
+    This module is based on block_nn.py/Conv1DKeepLength.
+    However, Conv1DKeepLength doesn't assume step-by-step generation
+    for autogressive model.
+
+    This Module further adds the method to generate output in AR model
+
+    Example:
+
+        import torch
+        import torch.nn as torch_nn
+        import torch.nn.functional as torch_nn_func
+        import sandbox.block_nn as nii_nn
+        import tutorials.plot_lib as nii_plot
+
+        # Compare the results of two layers
+        batchsize = 1
+        input_dim = 1
+        output_dim = 1
+        length = 5
+        dilation = 2
+        kernel_s = 3
+
+        # Layers
+        conv1 = nii_nn.Conv1dKeepLength(
+               input_dim, output_dim, dilation, kernel_s,
+               causal=True, tanh=False, bias=True)
+        conv2 = Conv1DForARModel(input_dim, output_dim, dilation, kernel_s,
+                                 tanh=False, bias=True)
+        conv2.weight = conv1.weight
+        conv2.bias = conv1.bias
+
+        # Test
+        input = torch.rand([batchsize, length, input_dim])
+        with torch.no_grad():
+            output = conv1(input)
+            output2 = conv2(input)
+
+            out = torch.zeros([batchsize, length, output_dim])
+            for step in range(length):
+                out[:, step:step+1, :] = conv2(input[:, step:step+1, :], step)
+
+        print(output - output2)
+        print(output - out)
+        #nii_plot.plot_tensor(input, deci_width=2)
+        #nii_plot.plot_tensor(output, deci_width=2)
+        #nii_plot.plot_tensor(output2, deci_width=2)
+        #nii_plot.plot_tensor(out, deci_width=2)
+    """
+    def __init__(self, input_dim, output_dim, dilation_s, kernel_s,
+                 bias=True, tanh = True):
+        """ Conv1DForARModel(input_dim, output_dim, dilation_s, kernel_s,
+            bias=True, tanh=True)
+
+        args
+        ----
+          input_dim: int, input tensor should be (batchsize, length, input_dim)
+          output_dim: int, output tensor will be (batchsize, length, output_dim)
+          dilation_s: int, dilation size
+          kernel_s: int, kernel size
+          bias: bool, whether use bias term, default True
+          tanh: bool, whether apply tanh on the output, default True
+
+        """
+        super(Conv1DForARModel, self).__init__(
+            input_dim, output_dim, dilation_s, kernel_s, \
+            causal = True, stride = 1, groups=1, bias=bias, tanh = tanh)
+
+        # configuration options
+        self.use_bias = bias
+        self.use_tanh = tanh
+        self.kernel_s = kernel_s
+        self.dilation_s = dilation_s
+        self.out_dim = output_dim
+
+        # See slide http://tonywangx.github.io/slide.html#misc CURRENNT WaveNet,
+        # page 50-56 for example on kernel_s = 2
+        #
+        # buffer length, depends on kernel size and dilation size
+        # kernel_size = 3, dilation_size = 1 -> * * * -> buffer_len = 3
+        # kernel_size = 3, dilation_size = 2 -> * . * . * -> buffer_len = 5
+        self.buffer_len = (kernel_s - 1) * dilation_s + 1
+        self.buffer_data = None
+        return
+
+    def forward(self, x, step_idx = None):
+        """ output = forward(x, step_idx)
+
+        input
+        -----
+          x: tensor, in shape (batchsize, length, input_dim)
+          step_idx: int, the index of the current time step
+                    or None
+        output
+        ------
+          output: tensor, in shape (batchsize, length, output_dim)
+
+        If step_idx is True
+        ------------------------
+          this is same as common conv1d forward method
+
+        If self.training is False
+        ------------------------
+          This method assumes input and output tensors
+          are for one time step, i.e., length = 1 for both x and output.
+          This method should be used in a loop, for example:
+
+          model.eval()
+          for idx in range(total_time_steps):
+              ...
+              output[:, idx:idx+1, :] = forward(x[:, idx:idx+1, :])
+              ...
+
+          This Module will use a buffer to store the intermediate results.
+          See slide http://tonywangx.github.io/slide.html#misc CURRENNT WaveNet,
+           page 50-56 for example on kernel_s = 2
+        """
+        if step_idx is None:
+            # normal training mode, use the common conv forward method
+            return super(Conv1DForARModel, self).forward(x)
+        else:
+            # step-by-step for generation in AR model
+
+            # initialize buffer if necessary
+            if step_idx == 0:
+                self.buffer_data = torch.zeros(
+                    [x.shape[0], self.buffer_len, x.shape[-1]],
+                    dtype=x.dtype, device=x.device)
+
+            # Put new input data into buffer
+            #  the position index to put the input data
+            tmp_ptr_save = step_idx % self.buffer_len
+            #  assume x is (batchsize, length=1, input_dim), thus
+            #  only take x[:, 0, :]
+            self.buffer_data[:, tmp_ptr_save, :] = x[:, 0, :]
+
+            # Do multiplication and summing
+            #  initialize
+            output_tensor = torch.zeros(
+                [x.shape[0], self.out_dim], dtype=x.dtype, device=x.device)
+            #  loop over the kernel
+            for ker_idx in range(self.kernel_s):
+                # which buffer should be retrieved for this kernel idx
+                tmp_data_idx = (step_idx - ker_idx * self.dilation_s) \
+                               % self.buffer_len
+                # apply the kernel and sum the product
+                # note that self.weight[:, :, -1] is the 1st kernel
+                output_tensor += torch.matmul(
+                    self.buffer_data[:, tmp_data_idx, :],
+                    self.weight[:, :, self.kernel_s - ker_idx - 1].T)
+
+            # apply bias and tanh if necessary
+            if self.use_bias:
+                output_tensor += self.bias
+            if self.use_tanh:
+                output_tensor = torch.tanh(output_tensor)
+
+            # make it to (batch, length=1, output_dim)
+            return output_tensor.unsqueeze(1)
+
 if __name__ == "__main__":
     print("Definition of block NN")
