@@ -785,7 +785,7 @@ class SelfWeightedPooling(torch_nn.Module):
         
 
 
-class Conv1DForARModel(Conv1dKeepLength):
+class Conv1dForARModel(Conv1dKeepLength):
     """ Definition of dilated Convolution for autoregressive model
 
     This module is based on block_nn.py/Conv1DKeepLength.
@@ -814,7 +814,7 @@ class Conv1DForARModel(Conv1dKeepLength):
         conv1 = nii_nn.Conv1dKeepLength(
                input_dim, output_dim, dilation, kernel_s,
                causal=True, tanh=False, bias=True)
-        conv2 = Conv1DForARModel(input_dim, output_dim, dilation, kernel_s,
+        conv2 = Conv1dForARModel(input_dim, output_dim, dilation, kernel_s,
                                  tanh=False, bias=True)
         conv2.weight = conv1.weight
         conv2.bias = conv1.bias
@@ -838,7 +838,7 @@ class Conv1DForARModel(Conv1dKeepLength):
     """
     def __init__(self, input_dim, output_dim, dilation_s, kernel_s,
                  bias=True, tanh = True):
-        """ Conv1DForARModel(input_dim, output_dim, dilation_s, kernel_s,
+        """ Conv1dForARModel(input_dim, output_dim, dilation_s, kernel_s,
             bias=True, tanh=True)
 
         args
@@ -851,7 +851,7 @@ class Conv1DForARModel(Conv1dKeepLength):
           tanh: bool, whether apply tanh on the output, default True
 
         """
-        super(Conv1DForARModel, self).__init__(
+        super(Conv1dForARModel, self).__init__(
             input_dim, output_dim, dilation_s, kernel_s, \
             causal = True, stride = 1, groups=1, bias=bias, tanh = tanh)
 
@@ -906,7 +906,7 @@ class Conv1DForARModel(Conv1dKeepLength):
         """
         if step_idx is None:
             # normal training mode, use the common conv forward method
-            return super(Conv1DForARModel, self).forward(x)
+            return super(Conv1dForARModel, self).forward(x)
         else:
             # step-by-step for generation in AR model
 

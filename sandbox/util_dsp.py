@@ -24,66 +24,77 @@ import torch.nn.functional as torch_nn_func
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
-__copyright__ = "Copyright 2020, Xin Wang"
-
+__copyright__ = "Copyright 2020-2021, Xin Wang"
 
 ######################
 ### WaveForm utilities
 ######################
 
 def label_2_float(x, bits):
-    """Convert integer numbers to float values
+    """output = label_2_float(x, bits)
     
+    Assume x is code index for N-bits, then convert x to float values
     Note: dtype conversion is not handled
 
-    Args:
+    inputs:
     -----
        x: data to be converted Tensor.long or int, any shape. 
+          x value should be [0, 2**bits-1]
        bits: number of bits, int
     
     Return:
     -------
-       tensor.float
+       output: tensor.float, [-1, 1]
     
+    output = 2 * x / (2**bits - 1.) - 1.
     """
     return 2 * x / (2**bits - 1.) - 1.
 
 def float_2_label(x, bits):
-    """Convert float wavs back to integer (quantization)
+    """output = float_2_label(x, bits)
     
-    Note: dtype conversion is not handled
+    Assume x is a float value, do N-bits quantization and 
+    return the code index.
 
-    Args:
+    input
     -----
-       x: data to be converted Tensor.float, any shape. 
+       x: data to be converted, any shape
+          x value should be [-1, 1]
        bits: number of bits, int
     
-    Return:
-    -------
-       tensor.float
+    output
+    ------
+       output: tensor.float, [0, 2**bits-1]
     
+    Although output is quantized, we use torch.float to save
+    the quantized values
     """
     #assert abs(x).max() <= 1.0
+    # scale the peaks
     peak = torch.abs(x).max()
     if peak > 1.0:
         x /= peak
+    # quantize
     x = (x + 1.) * (2**bits - 1) / 2
     return torch.clamp(x, 0, 2**bits - 1)
 
-
 def mulaw_encode(x, quantization_channels, scale_to_int=True):
-    """Adapted from torchaudio
+    """x_mu = mulaw_encode(x, quantization_channels, scale_to_int=True)
+
+    Adapted from torchaudio
     https://pytorch.org/audio/functional.html mu_law_encoding
 
-    Args:
+    input
+    -----
        x (Tensor): Input tensor, float-valued waveforms in (-1, 1)
        quantization_channels (int): Number of channels
        scale_to_int: Bool
-         True: scale mu-law companded to int
+         True: scale mu-law to int
          False: return mu-law in (-1, 1)
         
-    Returns:
-        Tensor: Input after mu-law encoding
+    output
+    ------
+       x_mu: tensor, int64, Input after mu-law encoding
     """
     # mu 
     mu = quantization_channels - 1.0
@@ -104,7 +115,10 @@ def mulaw_decode(x_mu, quantization_channels, input_int=True):
     Args:
         x_mu (Tensor): Input tensor
         quantization_channels (int): Number of channels
-
+        input_int: Bool
+          True: convert x_mu (int) from int to float, before mu-law decode
+          False: directly decode x_mu (float) 
+           
     Returns:
         Tensor: Input after mu-law decoding (float-value waveform (-1, 1))
     """
