@@ -1110,9 +1110,11 @@ class Loss():
         Signal (batchsize, length)
         Output (batchsize, fft_p/2+1, frame_num, 2)
         """ 
-        return torch.stft(signal, fft_p, frame_shift, frame_len, \
-                          window=self.win(frame_len), \
-                          onesided=True, pad_mode="constant")
+        return torch.stft(
+            signal, fft_p, frame_shift, frame_len, \
+            window=self.win(
+                frame_len, dtype=signal.dtype, device=signal.device), \
+            onesided=True, pad_mode="constant")
     
     def _amp(self, x):
         """  _amp(stft)
