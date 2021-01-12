@@ -70,7 +70,19 @@ class DistCategorical(torch_nn.Module):
         
         self.category_size = category_size
         self.loss = torch_nn.CrossEntropyLoss()
-        
+
+    def _check_input(self, input_feat):
+        """ check whether input feature vector has the correct dimension
+        torch.dist does not check, it will gives output no matter what
+        the shape of input_feat 
+        """
+        if input_feat.shape[-1] != self.category_size:
+            mes = "block_dist.DistCategorical expects input_feat with "
+            mes += "last dimension of size {:d}. ".format(self.category_size)
+            mes += "But receives {:d}".format(input_feat.shape[-1])
+            raise Exception(mes)
+        return True
+
     def forward(self, input_feat, target):
         """ likelihood = forward(input_feat, target)
         
@@ -85,6 +97,7 @@ class DistCategorical(torch_nn.Module):
         ------
           likelihood: tensor scaler
         """
+        self._check_input(input_feat)
         # transpose input_feat to (batchsize, cateogrical_size, length)
         # squeeze target to (batchsize, length)
         return self.loss(input_feat.transpose(1, 2), target.squeeze(-1))
@@ -101,8 +114,12 @@ class DistCategorical(torch_nn.Module):
         ------
           sample: (batchsize, length, dim=1)
         """
+        # check
+        self._check_input(input_feat)
+
         # compute probability
         prob_vec = torch_nn_func.softmax(input_feat, dim=2)
+
         # distribution
         distrib = torch.distributions.Categorical(prob_vec)
         
