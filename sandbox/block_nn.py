@@ -870,6 +870,7 @@ class Conv1dForARModel(Conv1dKeepLength):
         # kernel_size = 3, dilation_size = 2 -> * . * . * -> buffer_len = 5
         self.buffer_len = (kernel_s - 1) * dilation_s + 1
         self.buffer_data = None
+        # self.buffer_conv1d = None
         return
 
     def forward(self, x, step_idx = None):
@@ -915,6 +916,9 @@ class Conv1dForARModel(Conv1dKeepLength):
                 self.buffer_data = torch.zeros(
                     [x.shape[0], self.buffer_len, x.shape[-1]],
                     dtype=x.dtype, device=x.device)
+                #self.buffer_conv1d = torch.zeros(
+                #    [x.shape[0], self.kernel_s, x.shape[-1]],
+                #    dtype=x.dtype, device=x.device)
 
             # Put new input data into buffer
             #  the position index to put the input data
@@ -922,8 +926,9 @@ class Conv1dForARModel(Conv1dKeepLength):
             #  assume x is (batchsize, length=1, input_dim), thus
             #  only take x[:, 0, :]
             self.buffer_data[:, tmp_ptr_save, :] = x[:, 0, :]
-
-            # Do multiplication and summing
+            
+            # Method 1: do multiplication and summing
+            # 
             #  initialize
             output_tensor = torch.zeros(
                 [x.shape[0], self.out_dim], dtype=x.dtype, device=x.device)
@@ -937,6 +942,31 @@ class Conv1dForARModel(Conv1dKeepLength):
                 output_tensor += torch.matmul(
                     self.buffer_data[:, tmp_data_idx, :],
                     self.weight[:, :, self.kernel_s - ker_idx - 1].T)
+
+            ## Method 2: take advantage of conv1d API
+            # Method 2 is slower than Method1 when kernel size is small
+            ## create a input buffer to conv1d
+            #idxs = [(step_idx - x * self.dilation_s) % self.buffer_len \
+            #        for x in range(self.kernel_s)][::-1]
+            #self.buffer_conv1d = self.buffer_data[:, idxs, :].permute(0, 2, 1)
+            #output_tensor = torch_nn_func.conv1d(self.buffer_conv1d, 
+            #                                     self.weight).permute(0, 2, 1)
+            
+            # Method 3:
+            #batchsize = x.shape[0]
+            ## which data buffer should be retrieved for each kernel
+            ##  [::-1] is necessary because self.weight[:, :, -1] corresponds to
+            ##  the first buffer, [:, :, -2] to the second ...
+            #index_buf = [(step_idx - y * self.dilation_s) % self.buffer_len \
+            #             for y in range(self.kernel_s)][::-1]
+            ## concanate buffers as a tensor [batchsize, input_dim * kernel_s]
+            ## concanate weights as a tensor [input_dim * kernel_s, output_dim]
+            ## (out_dim, in_dim, kernel_s)-permute->(out_dim, kernel_s, in_dim)
+            ## (out_dim, kernel_s, in_dim)-reshape->(out_dim, in_dim * kernel_s)
+            #output_tensor = torch.mm(
+            #    self.buffer_data[:, index_buf, :].view(batchsize, -1),
+            #    self.weight.permute(0, 2, 1).reshape(self.out_dim, -1).T)
+
 
             # apply bias and tanh if necessary
             if self.use_bias:
