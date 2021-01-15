@@ -229,6 +229,11 @@ class NIIDataSet(torch.utils.data.Dataset):
             # assume input resolution is the same
             self.m_truncate_seq = self.f_adjust_len(self.m_truncate_seq)
 
+        # similarly on self.m_min_seq_len
+        if self.m_min_seq_len is not None:
+            # assume input resolution is the same
+            self.m_min_seq_len = self.f_adjust_len(self.m_min_seq_len)
+
         # method to load/write raw data
         if data_format == nii_dconf.h_dtype_str:
             self.f_load_data = lambda x, y: _data_reader(x, y, self.m_flag_lang)
@@ -268,12 +273,17 @@ class NIIDataSet(torch.utils.data.Dataset):
         if self.__len__() < 1:
             nii_warn.f_print("Fail to load any data", "error")
             nii_warn.f_print("Possible reasons: ", "error")
-            nii_warn.f_print("1. old cache data is used %s. Please delete it." 
-                             % (self.m_data_len_path), "error")
-            nii_warn.f_print("2. feature directories and extensions are wrong.",
-                             "error")
-            nii_warn.f_print("3. all data are less than minimum_len in length", 
-                             "error")
+            mes = "1. Old cache %s. Please delete it." % (self.m_data_len_path)
+            mes += "\n2. input_dirs, input_exts, "
+            mes += "output_dirs, or output_exts incorrect."
+            mes += "\n3. all data are less than minimum_len in length. "
+            mes += "\nThe last case may happen if truncate_seq == mininum_len "
+            mes += "and truncate_seq % input_reso != 0. Then, the actual "
+            mes += "truncate_seq becomes truncate_seq//input_reso*input_reso "
+            mes += "and it will be shorter than minimum_len. Please change "
+            mes += "truncate_seq and minimum_len so that "
+            mes += "truncate_seq % input_reso == 0."
+            nii_warn.f_print(mes, "error")
             nii_warn.f_die("Please check configuration file")
         # done
         return                
