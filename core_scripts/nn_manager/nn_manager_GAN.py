@@ -97,7 +97,7 @@ def f_run_one_epoch_GAN(
         # train with real
         ####
         pt_model_D.zero_grad()
-        d_out_real = pt_model_D(data_tar)
+        d_out_real = pt_model_D(data_tar, data_in)
         errD_real = loss_wrapper.compute_gan_D_real(d_out_real)
         if optimizer_D is not None:
             errD_real.backward()
@@ -132,7 +132,7 @@ def f_run_one_epoch_GAN(
         # data_gen.detach() is required
         #  https://github.com/pytorch/examples/issues/116
         #  https://stackoverflow.com/questions/46774641/
-        d_out_fake = pt_model_D(data_gen.detach())
+        d_out_fake = pt_model_D(data_gen.detach(), data_in)
         errD_fake = loss_wrapper.compute_gan_D_fake(d_out_fake)
         if optimizer_D is not None:
             errD_fake.backward()
@@ -148,7 +148,7 @@ def f_run_one_epoch_GAN(
         # Update Generator 
         ############################
         pt_model_G.zero_grad()
-        d_out_fake_for_G = pt_model_D(data_gen)
+        d_out_fake_for_G = pt_model_D(data_gen, data_in)
         errG_gan = loss_wrapper.compute_gan_G(d_out_fake_for_G)
 
         # if defined, calculate auxilliart loss
