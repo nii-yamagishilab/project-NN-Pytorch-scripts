@@ -74,7 +74,7 @@ class Model(torch_nn.Module):
         
         # a flag for debugging (by default False)
         self.model_debug = False
-        self.validation = False
+        self.flag_validation = False
         #####
         
         ####

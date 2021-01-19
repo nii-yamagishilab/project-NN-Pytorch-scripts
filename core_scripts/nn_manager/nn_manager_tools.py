@@ -11,6 +11,10 @@ from collections import OrderedDict
 import numpy as np
 import torch
 
+import core_scripts.other_tools.str_tools as nii_str_tk
+import core_scripts.other_tools.display as nii_display
+import core_scripts.nn_manager.nn_manager_conf as nii_nn_manage_conf
+
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
@@ -125,6 +129,83 @@ def f_load_pretrained_model_partially(model, model_paths, model_name_prefix):
         model.load_state_dict(model_dict)
     return
 
+def f_save_epoch_name(args, epoch_idx):
+    """ str = f_save_epoch_name(args, epoch_idx)
+    Return the name of the model file saved during training
+
+    Args: 
+      args: argument object by arg_parse
+      epoch_idx:, int, epoch index
+
+    Return: 
+      str: name of epoch state file, str, e.g. epoch_001.pt
+    """
+    tmp_name = "{}_{:03d}".format(args.save_epoch_name, epoch_idx)
+    return nii_str_tk.f_realpath(args.save_model_dir, tmp_name, \
+                                 args.save_model_ext)
+
+
+
+def f_save_trained_name(args):
+    """ str = f_save_trained_name(args)
+    Return the name of the best trained model file
+
+    Args: 
+      args, argument object by arg_parse
+
+    Return: 
+      str: name of trained network file, e.g., trained_network.pt
+    """    
+    return nii_str_tk.f_realpath(args.save_model_dir, \
+                                 args.save_trained_name, \
+                                 args.save_model_ext)
+
+
+def f_model_check(pt_model):
+    """ f_model_check(pt_model)
+    Check whether the model contains all the necessary keywords 
+    
+    Args: 
+    ----
+      pt_model, a Pytorch model
+
+    Return:
+    -------
+    """
+    for tmpkey in nii_nn_manage_conf.nn_model_keywords.keys():
+        flag_mandatory, mes = nii_nn_manage_conf.nn_model_keywords[tmpkey]
+
+        # mandatory keywords
+        if flag_mandatory:
+            if not hasattr(pt_model, tmpkey):
+                nii_display.f_print("Please implement %s (%s)" % (tmpkey, mes))
+                nii_display.f_die("[Error]: found no %s in model" % (tmpkey))
+            else:
+                print("[OK]: %s found" % (tmpkey))
+        else:
+            if not hasattr(pt_model, tmpkey):
+                print("[OK]: %s is ignored, %s" % (tmpkey, mes))
+            else:
+                print("[OK]: use %s, %s" % (tmpkey, mes))
+        # done
+    return
+
+def f_model_show(pt_model):
+    """ f_model_show(pt_model)
+    Print the informaiton of the model
+
+    Args: 
+      pt_model, a Pytorch model
+    Return:
+      None
+    """
+    nii_display.f_print("Model infor:")
+    f_model_check(pt_model)
+
+    print(pt_model)
+    num = sum(p.numel() for p in pt_model.parameters() if p.requires_grad)
+    nii_display.f_print("Parameter number: {:d}".format(num), "normal")
+    return
 
 if __name__ == "__main__":
     print("nn_manager_tools")

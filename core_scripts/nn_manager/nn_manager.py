@@ -29,64 +29,6 @@ __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
 #############################################################
-
-
-# Functions
-def f_save_epoch_name(args, epoch_idx):
-    """ 
-    f_save_epoch_name(args, epoch_idx)
-    Args: args, argument object by arg_parse
-          epoch_idx, int, epoch index
-
-    Return: name of epoch state file, str, e.g. epoch_001.pt
-    """
-    tmp_name = "{}_{:03d}".format(args.save_epoch_name, epoch_idx)
-    return nii_str_tk.f_realpath(args.save_model_dir, tmp_name, \
-                                 args.save_model_ext)
-
-def f_save_trained_name(args):
-    """ 
-    f_save_trained_name(args)
-    Args: args, argument object by arg_parse
-
-    Return: name of trained network file, e.g., trained_network.pt
-    """    
-    return nii_str_tk.f_realpath(args.save_model_dir, \
-                                 args.save_trained_name, \
-                                 args.save_model_ext)
-
-def f_model_check(pt_model):
-    """ 
-    f_model_check(pt_model)
-    Check whether the model contains all the necessary keywords 
-    
-    Args: 
-    ----
-      pt_model, a Pytorch model
-
-    Return:
-    -------
-    """
-    for tmpkey in nii_nn_manage_conf.nn_model_keywords.keys():
-        if not hasattr(pt_model, tmpkey):
-            nii_display.f_print("Model has no method %s (%s)" % (
-                tmpkey, nii_nn_manage_conf.nn_model_keywords[tmpkey]), 'error')
-            nii_display.f_die("Please add method to  model definition")
-    return
-
-def f_model_show(pt_model):
-    """ 
-    f_model_show(pt_model)
-    Args: pt_model, a Pytorch model
-    
-    Print the informaiton of the model
-    """
-    f_model_check(pt_model)
-
-    print(pt_model)
-    num = sum(p.numel() for p in pt_model.parameters() if p.requires_grad)
-    nii_display.f_print("Parameter number: {:d}".format(num), "normal")
-    return
     
 
 def f_run_one_epoch(args,
@@ -333,7 +275,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     pt_model.to(device, dtype=nii_dconf.d_dtype)
 
     # print the network
-    f_model_show(pt_model)
+    nii_nn_tools.f_model_show(pt_model)
 
 
     ###############################
@@ -393,6 +335,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         nii_display.f_print("Conduct User-defined setup")
         pt_model.other_setups()
     
+    # This should be merged with other_setups
     if hasattr(pt_model, "g_pretrained_model_path") and \
        hasattr(pt_model, "g_pretrained_model_prefix"):
         nii_display.f_print("Load pret-rained models as part of this mode")
@@ -421,6 +364,11 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # set validation flag if necessary
         if hasattr(pt_model, 'validation'):
             pt_model.validation = False
+            mes = "Warning: model.validation is deprecated, "
+            mes += "please use model.flag_validation"
+            nii_display.f_print(mes, 'warning')
+        if hasattr(pt_model, 'flag_validation'):
+            pt_model.flag_validation = False
 
         f_run_one_epoch(args, pt_model, loss_wrapper, device, \
                         monitor_trn, train_data_loader, \
@@ -437,6 +385,11 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             # set validation flag if necessary
             if hasattr(pt_model, 'validation'):
                 pt_model.validation = True
+                mes = "Warning: model.validation is deprecated, "
+                mes += "please use model.flag_validation"
+                nii_display.f_print(mes, 'warning')
+            if hasattr(pt_model, 'flag_validation'):
+                pt_model.flag_validation = True
 
             with torch.no_grad():
                 f_run_one_epoch(args, pt_model, loss_wrapper, \
@@ -466,12 +419,12 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
 
         # save the best model
         if flag_new_best:
-            tmp_best_name = f_save_trained_name(args)
+            tmp_best_name = nii_nn_tools.f_save_trained_name(args)
             torch.save(pt_model.state_dict(), tmp_best_name)
             
         # save intermediate model if necessary
         if not args.not_save_each_epoch:
-            tmp_model_name = f_save_epoch_name(args, epoch_idx)
+            tmp_model_name = nii_nn_tools.f_save_epoch_name(args, epoch_idx)
             
             if monitor_val is not None:
                 tmp_val_log = monitor_val.get_state_dic()
@@ -515,7 +468,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     else:
         nii_display.f_print("Training finished")
     nii_display.f_print("Model is saved to", end = '')
-    nii_display.f_print("{}".format(f_save_trained_name(args)))
+    nii_display.f_print("{}".format(nii_nn_tools.f_save_trained_name(args)))
     return
 
 
@@ -538,7 +491,7 @@ def f_inference_wrapper(args, pt_model, device, \
 
     # print the network
     pt_model.to(device, dtype=nii_dconf.d_dtype)
-    f_model_show(pt_model)
+    nii_nn_tools.f_model_show(pt_model)
     
     # load trained model parameters from checkpoint
     cp_names = nii_nn_manage_conf.CheckPointKey()

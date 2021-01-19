@@ -31,18 +31,22 @@ def f_print(message, opt='ok', end='\n', flush=False):
     """ f_print(message, opt)
     Print message with specific style
     
-    Paramteres:
-        message: str
-        opt: str, "warning", "highlight", "ok", "error"
+    Args:
+      message: str
+      opt: str, "warning", "highlight", "ok", "error"
     """
     if opt == 'warning':
-        print(DisplayColors.WARNING + str(message) + DisplayColors.ENDC, flush = flush, end = end)
+        print(DisplayColors.WARNING + str(message) + DisplayColors.ENDC, 
+              flush = flush, end = end)
     elif opt == 'highlight':
-        print(DisplayColors.OKGREEN + str(message) + DisplayColors.ENDC, flush = flush, end = end)
+        print(DisplayColors.OKGREEN + str(message) + DisplayColors.ENDC, 
+              flush = flush, end = end)
     elif opt == 'ok':
-        print(DisplayColors.OKBLUE + str(message) + DisplayColors.ENDC, flush = flush, end = end)
+        print(DisplayColors.OKBLUE + str(message) + DisplayColors.ENDC, 
+              flush = flush, end = end)
     elif opt == 'error':
-        print(DisplayColors.FAIL + str(message) + DisplayColors.ENDC, flush = flush, end = end)
+        print(DisplayColors.FAIL + str(message) + DisplayColors.ENDC, 
+              flush = flush, end = end)
     else:
         print(message, flush=flush, end=end)
     return
@@ -52,19 +56,20 @@ def f_print_w_date(message, level='h'):
     
     Print message with date shown
     
-    Parameters: 
-        message: a string
-        level: which can be 'h' (high-level), 'm' (middle-level), or 'l' (low-level)
-    
+    Args: 
+      message: a string
+      level: which can be 'h' (high-level), 'm' (middle-level), 'l' (low-level)
     """
     if level == 'h':
-        message = '---  ' + str(message) + ' ' + str(datetime.datetime.now())  + ' ---'
+        message = '---  ' + str(message) + ' ' \
+                  + str(datetime.datetime.now())  + ' ---'
         tmp = ''.join(['-' for x in range(len(message))])
         f_print(tmp)
         f_print(message)
         f_print(tmp)
     elif level == 'm':
-        f_print('---' + str(message) + ' ' + str(datetime.datetime.now().time()) + '---')
+        f_print('---' + str(message) + ' ' \
+                + str(datetime.datetime.now().time()) + '---')
     else:
         f_print(str(message) + ' ' + str(datetime.datetime.now().time()))
     sys.stdout.flush()
