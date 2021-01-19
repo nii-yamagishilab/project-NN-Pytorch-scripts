@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-nn_manager
+nn_manager for GAN
 
 A simple wrapper to run the training / testing process
 
@@ -15,7 +15,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 import core_scripts.data_io.conf as nii_dconf
 import core_scripts.other_tools.display as nii_display
 import core_scripts.other_tools.str_tools as nii_str_tk
@@ -26,10 +25,9 @@ import core_scripts.nn_manager.nn_manager_conf as nii_nn_manage_conf
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
-__copyright__ = "Copyright 2020, Xin Wang"
+__copyright__ = "Copyright 2021, Xin Wang"
 
 #############################################################
-    
 
 def f_run_one_epoch(args,
                     pt_model, loss_wrapper, \
@@ -263,12 +261,12 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     # pytorch.org/tutorials/beginner/blitz/data_parallel_tutorial.html
     if torch.cuda.device_count() > 1 and args.multi_gpu_data_parallel:
         flag_multi_device = True  
-        nii_display.f_print("Use %d GPUs" % (torch.cuda.device_count()))
+        nii_display.f_print("\nUse %d GPUs\n" % (torch.cuda.device_count()))
         # no way to call normtarget_f after pt_model is in DataParallel
         normtarget_f = pt_model.normalize_target
         pt_model = nn.DataParallel(pt_model)
     else:
-        nii_display.f_print("Use single GPU: %s" % \
+        nii_display.f_print("\nUse single GPU: %s\n" % \
                             (torch.cuda.get_device_name(device)))
         flag_multi_device = False
         normtarget_f = None
@@ -276,7 +274,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
 
     # print the network
     nii_nn_tools.f_model_show(pt_model)
-
+    nii_nn_tools.f_loss_show(loss_wrapper)
 
     ###############################
     ## Resume training if necessary
@@ -486,7 +484,7 @@ def f_inference_wrapper(args, pt_model, device, \
     if torch.cuda.device_count() > 1 and args.multi_gpu_data_parallel:
         nii_display.f_print(
             "DataParallel for inference is not implemented", 'warning')
-    nii_display.f_print("Use single GPU: %s" % \
+    nii_display.f_print("\nUse single GPU: %s\n" % \
                         (torch.cuda.get_device_name(device)))
 
     # print the network

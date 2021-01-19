@@ -37,7 +37,9 @@ class CheckPointKey:
 #   comment: str, comment string on the method
 # 
 ####
-nn_model_keywords = {
+
+## For model
+nn_model_keywords_default = {
     #
     # mandatory methods that a model must define
     'prepare_mean_std': (True, "method to initialize mean/std"),
@@ -66,10 +68,28 @@ nn_model_keywords = {
     #  model.training tells whether this is under trainining or not
     #  model.flag_validation tells whether the model is on train set or val set
     'flag_validation': (False, 'flag to indicate train or validation set'),
-    'validation': (False, 'please use model.flag_validation')
+    'validation': (False, 'deprecated. Please use model.flag_validation')
     #
 }
 
+nn_model_keywords_bags = {'default': nn_model_keywords_default}
+
+## For loss
+loss_method_keywords_default = {
+    'compute': (True, "method to comput loss")
+}
+
+loss_method_keywords_GAN = {
+    'compute_gan_D_real': (True, "method to comput loss for GAN dis. on real"),
+    'compute_gan_D_fake': (True, "method to comput loss for GAN dis. on fake"),
+    'compute_gan_G': (True, "method to comput loss for GAN gen."),
+    'compute_aux': (False, "(onlt for GAN-based model), auxialliary loss"),
+    'compute_feat_match': (False, '(only for GAN-based model), feat-matching'),
+    'flag_wgan': (False, '(only for GAN-based model), w-gan')
+}
+
+loss_method_keywords_bags = {'default': loss_method_keywords_default, 
+                             'GAN': loss_method_keywords_GAN}
 
 if __name__ == "__main__":
     print("Configurations for nn_manager")

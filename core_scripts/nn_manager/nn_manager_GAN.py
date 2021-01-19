@@ -6,12 +6,14 @@ A simple wrapper to run the training / testing process for GAN
 
 """
 from __future__ import print_function
+
+import time
+import datetime
 import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import time
-import datetime
 
 import core_scripts.data_io.conf as nii_dconf
 import core_scripts.other_tools.display as nii_display
@@ -19,6 +21,7 @@ import core_scripts.other_tools.str_tools as nii_str_tk
 import core_scripts.op_manager.op_process_monitor as nii_monitor
 import core_scripts.op_manager.op_display_tools as nii_op_display_tk
 import core_scripts.nn_manager.nn_manager_tools as nii_nn_tools
+import core_scripts.nn_manager.nn_manager_conf as nii_nn_manage_conf
 import core_scripts.other_tools.debug as nii_debug
 
 __author__ = "Xin Wang"
@@ -26,50 +29,6 @@ __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
 #############################################################
-
-# name for the checkpoint keys
-class CheckPointKey:
-    state_dict = 'state_dict'
-    info = 'info'
-    optimizer = 'optimizer' 
-    trnlog = 'train_log'
-    vallog = 'val_log'
-    
-def f_save_epoch_name_GAN(args, epoch_idx, model_tag):
-    """ 
-    f_save_epoch_name(args, epoch_idx)
-    Args: args, argument object by arg_parse
-          epoch_idx, int, epoch index
-
-    Return: name of epoch state file, str, e.g. epoch_001.pt
-    """
-    tmp_name = "{}_{:03d}".format(args.save_epoch_name, epoch_idx)
-    return nii_str_tk.f_realpath(
-        args.save_model_dir, tmp_name + model_tag, args.save_model_ext)
-
-def f_save_trained_name_GAN(args, model_tag):
-    """ 
-    f_save_trained_name(args)
-    Args: args, argument object by arg_parse
-
-    Return: name of trained network file, e.g., trained_network.pt
-    """    
-    return nii_str_tk.f_realpath(
-        args.save_model_dir, args.save_trained_name + model_tag, 
-        args.save_model_ext)
-
-def f_model_show(pt_model):
-    """ 
-    f_model_show(pt_model)
-    Args: pt_model, a Pytorch model
-    
-    Print the informaiton of the model
-    """
-    print(pt_model)
-    num = sum(p.numel() for p in pt_model.parameters() if p.requires_grad)
-    nii_display.f_print("Parameter number: {:d}".format(num), "normal")
-    return
-    
 
 def f_run_one_epoch_GAN(
         args, pt_model_G, pt_model_D, 
@@ -105,14 +64,17 @@ def f_run_one_epoch_GAN(
     # loop over samples
     for data_idx, (data_in, data_tar, data_info, idx_orig) in \
         enumerate(data_loader):
-        
+
+        #############
+        # prepare
+        #############        
         # send data to device
         if optimizer_G is not None:
             optimizer_G.zero_grad()
         if optimizer_D is not None:
             optimizer_D.zero_grad()
             
-        # prepare data
+        # normalize the target data (for input for discriminator)
         if isinstance(data_tar, torch.Tensor):
             data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
             # there is no way to normalize the data inside loss
@@ -130,8 +92,10 @@ def f_run_one_epoch_GAN(
         
         ############################
         # Update Discriminator
-        ############################
+        ############################        
+        ####
         # train with real
+        ####
         pt_model_D.zero_grad()
         d_out_real = pt_model_D(data_tar)
         errD_real = loss_wrapper.compute_gan_D_real(d_out_real)
@@ -141,7 +105,9 @@ def f_run_one_epoch_GAN(
         # this should be given by pt_model_D or loss wrapper
         #d_out_real_mean = d_out_real.mean()
 
+        ###
         # train with fake
+        ###
         #  generate sample
         if args.model_forward_with_target:
             # if model.forward requires (input, target) as arguments
@@ -164,13 +130,17 @@ def f_run_one_epoch_GAN(
                 data_gen = pt_model_G(data_in)
             
         # data_gen.detach() is required
-        # https://github.com/pytorch/examples/issues/116
+        #  https://github.com/pytorch/examples/issues/116
+        #  https://stackoverflow.com/questions/46774641/
         d_out_fake = pt_model_D(data_gen.detach())
         errD_fake = loss_wrapper.compute_gan_D_fake(d_out_fake)
         if optimizer_D is not None:
             errD_fake.backward()
-        
+
+        # get the summed error for discrminator (only for displaying)
         errD = errD_real + errD_fake
+        
+        # update discriminator weight
         if optimizer_D is not None:
             optimizer_D.step()
 
@@ -208,9 +178,7 @@ def f_run_one_epoch_GAN(
             [True, False, False, False, False]]
         
         # to handle cases where there are multiple loss functions
-        _, loss_vals, loss_flags = nii_nn_tools.f_process_loss(
-            loss_computed)
-
+        _, loss_vals, loss_flags = nii_nn_tools.f_process_loss(loss_computed)
                     
         # save the training process information to the monitor
         end_time = time.time()
@@ -234,7 +202,7 @@ def f_run_one_epoch_GAN(
             
     # lopp done
     return
-    
+
 def f_run_one_epoch_WGAN(
         args, pt_model_G, pt_model_D, 
         loss_wrapper, \
@@ -249,17 +217,11 @@ def f_run_one_epoch_WGAN(
     # timer
     start_time = time.time()
     
+    # This should be moved to model definition
     # number of critic (default 5)
-    if hasattr(args, "wgan-critic-num"):
-        num_critic = args.wgan_critic_num
-    else:
-        num_critic = 5
+    num_critic = 5
     # clip value
-    if hasattr(args, "wgan-clamp"):
-        wgan_clamp = args.wgan_clamp
-    else:
-        wgan_clamp = 0.01
-        
+    wgan_clamp = 0.01
 
     # loop over samples
     for data_idx, (data_in, data_tar, data_info, idx_orig) in \
@@ -360,8 +322,7 @@ def f_run_one_epoch_WGAN(
                          [True, False, False, False, False, False, False]]
         
         # to handle cases where there are multiple loss functions
-        loss, loss_vals, loss_flags = nii_nn_tools.f_process_loss(
-            loss_computed)
+        loss, loss_vals, loss_flags = nii_nn_tools.f_process_loss(loss_computed)
 
                     
         # save the training process information to the monitor
@@ -386,7 +347,6 @@ def f_run_one_epoch_WGAN(
             
     # lopp done
     return
-
 
 
 def f_train_wrapper_GAN(
@@ -438,6 +398,10 @@ def f_train_wrapper_GAN(
     
     nii_display.f_print_w_date("Start model training")
 
+    ##############
+    ## Preparation
+    ##############
+
     # get the optimizer
     optimizer_G_wrapper.print_info()
     optimizer_D_wrapper.print_info()
@@ -472,21 +436,28 @@ def f_train_wrapper_GAN(
     if torch.cuda.device_count() > 1 and args.multi_gpu_data_parallel:
         nii_display.f_die("data_parallel not implemented for GAN")
     else:
-        nii_display.f_print("Use single GPU: %s" % \
+        nii_display.f_print("\nUse single GPU: %s\n" % \
                             (torch.cuda.get_device_name(device)))
         flag_multi_device = False
         normtarget_f = None
+
     pt_model_G.to(device, dtype=nii_dconf.d_dtype)
     pt_model_D.to(device, dtype=nii_dconf.d_dtype)
 
     # print the network    
     nii_display.f_print("Setup generator")
-    f_model_show(pt_model_G)
+    nii_nn_tools.f_model_show(pt_model_G, model_type='GAN')
     nii_display.f_print("Setup discriminator")
-    f_model_show(pt_model_D)
+    nii_nn_tools.f_model_show(pt_model_D, do_model_def_check=False,
+                              model_type='GAN')
+    nii_nn_tools.f_loss_show(loss_wrapper, model_type='GAN')
+
+    ###############################
+    ## Resume training if necessary
+    ###############################
 
     # resume training or initialize the model if necessary
-    cp_names = CheckPointKey()
+    cp_names = nii_nn_manage_conf.CheckPointKey()
     if checkpoint_G is not None or checkpoint_D is not None:
         for checkpoint, optimizer, pt_model, model_name in \
             zip([checkpoint_G, checkpoint_D], [optimizer_G, optimizer_D], 
@@ -528,14 +499,23 @@ def f_train_wrapper_GAN(
                 nii_display.f_print("Load pretrained model")
             else:
                 nii_display.f_print("No pretrained model")
-
     # done for resume training
+
+    ######################
+    ### User defined setup 
+    ######################
+    # Not implemented yet
+
+    ######################
+    ### Start training
+    ######################
 
     # other variables
     flag_early_stopped = False
     start_epoch = monitor_trn.get_epoch()
     epoch_num = monitor_trn.get_max_epoch()
 
+    # select one wrapper, based on the flag in loss definition
     if hasattr(loss_wrapper, "flag_wgan") and loss_wrapper.flag_wgan:
         f_wrapper_gan_one_epoch = f_run_one_epoch_WGAN
     else:
@@ -590,13 +570,12 @@ def f_train_wrapper_GAN(
         # print information
         train_log += nii_op_display_tk.print_train_info(
             epoch_idx, time_trn, loss_trn, time_val, loss_val, 
-            flag_new_best)
+            flag_new_best, optimizer_G_wrapper.get_lr_info())
 
         # save the best model
         if flag_new_best:
-            for pt_model, model_tag in \
-                zip([pt_model_G, pt_model_D], model_tags):
-                tmp_best_name = f_save_trained_name_GAN(args, model_tag)
+            for pt_model, tmp_tag in zip([pt_model_G, pt_model_D], model_tags):
+                tmp_best_name = nii_nn_tools.f_save_trained_name(args, tmp_tag)
                 torch.save(pt_model.state_dict(), tmp_best_name)
             
         # save intermediate model if necessary
@@ -606,7 +585,7 @@ def f_train_wrapper_GAN(
                 zip([pt_model_G, pt_model_D], [optimizer_G, optimizer_D], 
                     model_tags):
 
-                tmp_model_name = f_save_epoch_name_GAN(
+                tmp_model_name = nii_nn_tools.f_save_epoch_name(
                     args, epoch_idx, model_tag)
                 if monitor_val is not None:
                     tmp_val_log = monitor_val.get_state_dic()
@@ -642,7 +621,7 @@ def f_train_wrapper_GAN(
     nii_display.f_print("Model is saved to", end = '')
     for model_tag in model_tags:
         nii_display.f_print("{}".format(
-            f_save_trained_name_GAN(args, model_tag)))
+            nii_nn_tools.f_save_trained_name(args, model_tag)))
     return
 
              

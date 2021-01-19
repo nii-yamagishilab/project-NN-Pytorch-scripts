@@ -129,57 +129,66 @@ def f_load_pretrained_model_partially(model, model_paths, model_name_prefix):
         model.load_state_dict(model_dict)
     return
 
-def f_save_epoch_name(args, epoch_idx):
+def f_save_epoch_name(args, epoch_idx, suffix=''):
     """ str = f_save_epoch_name(args, epoch_idx)
     Return the name of the model file saved during training
 
     Args: 
-      args: argument object by arg_parse
+      args: argument object by arg_parse, we will use
+            args.save_epoch_name, args.save_model_dir, args.save_model_ext
       epoch_idx:, int, epoch index
+      suffix: a suffix to the name (default '')
 
     Return: 
       str: name of epoch state file, str, e.g. epoch_001.pt
     """
-    tmp_name = "{}_{:03d}".format(args.save_epoch_name, epoch_idx)
+    tmp_name = "{}_{:03d}".format(args.save_epoch_name, epoch_idx) + suffix
     return nii_str_tk.f_realpath(args.save_model_dir, tmp_name, \
                                  args.save_model_ext)
 
-
-
-def f_save_trained_name(args):
+def f_save_trained_name(args, suffix=''):
     """ str = f_save_trained_name(args)
     Return the name of the best trained model file
 
     Args: 
-      args, argument object by arg_parse
+      args: argument object by arg_parse
+            args.save_trained_name, args.save_model_dir, args.save_model_ext
+      suffix: a suffix added to the name (default '')
 
     Return: 
       str: name of trained network file, e.g., trained_network.pt
     """    
-    return nii_str_tk.f_realpath(args.save_model_dir, \
-                                 args.save_trained_name, \
-                                 args.save_model_ext)
+    return nii_str_tk.f_realpath(
+        args.save_model_dir, args.save_trained_name + suffix, 
+        args.save_model_ext)
 
 
-def f_model_check(pt_model):
+def f_model_check(pt_model, model_type=None):
     """ f_model_check(pt_model)
     Check whether the model contains all the necessary keywords 
     
     Args: 
     ----
-      pt_model, a Pytorch model
+      pt_model: a Pytorch model
+      model_type_flag: str or None, a flag indicating the type of network
 
     Return:
     -------
     """
-    for tmpkey in nii_nn_manage_conf.nn_model_keywords.keys():
-        flag_mandatory, mes = nii_nn_manage_conf.nn_model_keywords[tmpkey]
+    nii_display.f_print("Model check:")
+    if model_type in nii_nn_manage_conf.nn_model_keywords_bags:
+        keywords_bag = nii_nn_manage_conf.nn_model_keywords_bags[model_type]
+    else:
+        keywords_bag = nii_nn_manage_conf.nn_model_keywords_default
+    
+    for tmpkey in keywords_bag.keys():
+        flag_mandatory, mes = keywords_bag[tmpkey]
 
         # mandatory keywords
         if flag_mandatory:
             if not hasattr(pt_model, tmpkey):
                 nii_display.f_print("Please implement %s (%s)" % (tmpkey, mes))
-                nii_display.f_die("[Error]: found no %s in model" % (tmpkey))
+                nii_display.f_die("[Error]: found no %s in Model" % (tmpkey))
             else:
                 print("[OK]: %s found" % (tmpkey))
         else:
@@ -188,23 +197,89 @@ def f_model_check(pt_model):
             else:
                 print("[OK]: use %s, %s" % (tmpkey, mes))
         # done
+    nii_display.f_print("Model check done\n")
     return
 
-def f_model_show(pt_model):
-    """ f_model_show(pt_model)
+def f_model_show(pt_model, do_model_def_check=True, model_type=None):
+    """ f_model_show(pt_model, do_model_check=True)
     Print the informaiton of the model
 
     Args: 
       pt_model, a Pytorch model
+      do_model_def_check, bool, whether check model definition (default True)
+      model_type: str or None (default None), what type of network
+
     Return:
       None
     """
-    nii_display.f_print("Model infor:")
-    f_model_check(pt_model)
+    if do_model_def_check:
+        f_model_check(pt_model, model_type)
 
+    nii_display.f_print("Model infor:")
     print(pt_model)
     num = sum(p.numel() for p in pt_model.parameters() if p.requires_grad)
-    nii_display.f_print("Parameter number: {:d}".format(num), "normal")
+    nii_display.f_print("Parameter number: {:d}\n".format(num), "normal")
+    return
+
+
+def f_loss_check(loss_module, model_type=None):
+    """ f_loss_check(pt_model)
+    Check whether the loss module contains all the necessary keywords 
+    
+    Args: 
+    ----
+      loss_module, a class
+      model_type, a str or None
+    Return:
+    -------
+    """
+    nii_display.f_print("Loss check")
+    
+    if model_type in nii_nn_manage_conf.loss_method_keywords_bags:
+        keywords_bag = nii_nn_manage_conf.loss_method_keywords_bags[model_type]
+    else:
+        keywords_bag = nii_nn_manage_conf.loss_method_keywords_default
+
+    for tmpkey in keywords_bag.keys():
+        flag_mandatory, mes = keywords_bag[tmpkey]
+
+        # mandatory keywords
+        if flag_mandatory:
+            if not hasattr(loss_module, tmpkey):
+                nii_display.f_print("Please implement %s (%s)" % (tmpkey, mes))
+                nii_display.f_die("[Error]: found no %s in Loss" % (tmpkey))
+            else:
+                # no need to print other information here
+                pass #print("[OK]: %s found" % (tmpkey))
+        else:
+            if not hasattr(loss_module, tmpkey):
+                # no need to print other information here
+                pass #print("[OK]: %s is ignored, %s" % (tmpkey, mes))
+            else:
+                print("[OK]: use %s, %s" % (tmpkey, mes))
+        # done
+    nii_display.f_print("Loss check done\n")
+    return
+
+def f_loss_show(loss_module, do_loss_def_check=True, model_type=None):
+    """ f_model_show(pt_model, do_model_check=True)
+    Print the informaiton of the model
+
+    Args: 
+      pt_model, a Pytorch model
+      do_model_def_check, bool, whether check model definition (default True)
+      model_type: str or None (default None), what type of network
+
+    Return:
+      None
+    """
+    # no need to print other information here
+    # because loss is usually not a torch.Module
+
+    #nii_display.f_print("Loss infor:")
+    if do_loss_def_check:
+        f_loss_check(loss_module, model_type)
+    #print(loss_module)
     return
 
 if __name__ == "__main__":
