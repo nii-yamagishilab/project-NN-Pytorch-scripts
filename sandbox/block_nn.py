@@ -977,5 +977,193 @@ class Conv1dForARModel(Conv1dKeepLength):
             # make it to (batch, length=1, output_dim)
             return output_tensor.unsqueeze(1)
 
+
+class AdjustTemporalResoIO(torch_nn.Module):
+    def __init__(self, list_reso, target_reso, list_dims):
+        """AdjustTemporalResoIO(list_reso, target_reso, list_dims)
+        Module to change temporal resolution of input tensors.        
+
+        Args
+        ----
+          list_reso: list, list of temporal resolutions. 
+            list_reso[i] should be the temporal resolution of the 
+            (i+1)-th tensor 
+          target_reso: int, target temporal resolution to be changed
+          list_dims: list, list of feat_dim for tensors
+             assume tensor to have shape (batchsize, time length, feat_dim)
+
+        Note 
+        ----
+          target_reso must be <= max(list_reso)
+          all([target_reso % x == 0 for x in list_reso if x < target_reso]) 
+          all([x % target_reso == 0 for x in list_reso if x < target_reso])
+
+        Suppose a tensor A (batchsize, time_length1, feat_dim_1) has 
+        temporal resolution of 1. Tensor B has temporal resolution
+        k and is aligned with A. Then B[:, n, :] corresponds to
+        A[:, k*n:k*(n+1), :].
+        
+        For example: 
+        let k = 3, batchsize = 1, feat_dim = 1
+        ---------------> time axis
+                         0 1 2 3 4 5 6 7 8
+        A[0, 0:9, 0] = [ a b c d e f g h i ]
+        B[0, 0:3, 0] = [ *     &     ^     ]
+        
+        [*] is aligned with [a b c]
+        [&] is aligned with [d e f]
+        [^] is aligned with [g h i]
+
+        Assume the input tensor list is [A, B]:
+          list_reso = [1, 3]
+          list_dims = [A.shape[-1], B.shape[-1]]
+        
+        If target_reso = 3, then
+          B will not be changed
+          A (batchsize=1, time_length1=9, feat_dim=1) will be A_new (1, 3, 3)
+          
+          B    [0, 0:3, 0] = [  *     &     ^     ]
+          A_new[0, 0:3, :] = [ [a,   [d,   [g,    ]
+                                b,    e,    h,
+                                c]    f]    i]
+        
+        More concrete examples:
+        input_dims = [5, 3]
+        rates = [1, 6]
+        target_rate = 2
+        l_adjust = AdjustTemporalRateIO(rates, target_rate, input_dims)
+        data1 = torch.rand([2, 2*6, 5])
+        data2 = torch.rand([2, 2, 3])
+        data1_new, data2_new = l_adjust([data1, data2])
+        
+        # Visualization requires matplotlib and tutorial.plot_lib as nii_plot
+        nii_plot.plot_tensor(data1)
+        nii_plot.plot_tensor(data1_new)
+
+        nii_plot.plot_tensor(data2)
+        nii_plot.plot_tensor(data2_new)
+        """
+        
+        super(AdjustTemporalResoIO, self).__init__()
+        list_reso = np.array(list_reso)
+        list_dims = np.array(list_dims)
+
+        # save
+        self.list_reso = list_reso
+        self.fatest_reso = min(list_reso)
+        self.slowest_reso = max(list_reso)
+        self.target_reso = target_reso
+        
+        # check
+        if any(list_reso < 0):
+            print("Expects positive resolution in AdjustTemporalResoIO")
+            sys.exit(1)
+
+        if self.target_reso < 0:
+            print("Expects positive target_reso in AdjustTemporalResoIO")
+            sys.exit(1)
+
+        if any([x % self.target_reso != 0 for x in self.list_reso \
+                if x > self.target_reso]):
+            print("Resolution " + str(list_reso) + " incompatible")
+            print(" with target resolution {:d}".format(self.target_reso))
+            sys.exit(1)
+
+        if any([self.target_reso % x != 0 for x in self.list_reso \
+                if x < self.target_reso]):
+            print("Resolution " + str(list_reso) + " incompatible")
+            print(" with target resolution {:d}".format(self.target_reso))
+            sys.exit(1)
+        
+        self.dim_change = []
+        self.reso_change = []
+        self.l_upsampler = []
+        for x, dim in zip(self.list_reso, list_dims):
+            if x > self.target_reso:
+                # up sample
+                # up-sample don't change feat dim, just duplicate frames
+                self.dim_change.append(1)
+                self.reso_change.append(x // self.target_reso)
+                self.l_upsampler.append(
+                    nii_nn.UpSampleLayer(dim, x // self.target_reso))
+            elif x < self.target_reso:
+                # down sample
+                # for down-sample, we fold the multiple feature frames into one 
+                self.dim_change.append(self.target_reso // x)
+                # use a negative number to indicate down-sample
+                self.reso_change.append(-self.target_reso // x)
+                self.l_upsampler.append(None)
+            else:
+                self.dim_change.append(1)
+                self.reso_change.append(1)
+                self.l_upsampler.append(None)
+                
+        self.l_upsampler = torch_nn.ModuleList(self.l_upsampler)
+        
+        # log down the dimensions after resolution change
+        self.dim = []
+        if list_dims is not None and len(list_dims) == len(self.dim_change):
+            self.dim = [x * y for x, y in zip(self.dim_change, list_dims)]
+        
+
+        return
+    
+    def get_dims(self):
+        return self.dim
+    
+    
+    def forward(self, tensor_list):
+        """ tensor_list = AdjustTemporalResoIO(tensor_list):
+        Adjust the temporal resolution of the input tensors.
+        For up-sampling, the tensor is duplicated
+        For down-samplin, multiple time steps are concated into a single vector
+        
+        input
+        -----
+          tensor_list: list, list of tensors,  
+                       (batchsize, time steps, feat dim)
+          
+        output
+        ------
+          tensor_list: list, list of tensors, 
+                       (batchsize, time_steps * N, feat_dim * Y)
+        
+        where N is the resolution change option in self.reso_change, 
+        Y is the factor to change dimension in self.dim_change
+        """
+
+        output_tensor_list = []
+        for in_tensor, dim_fac, reso_fac, l_up in \
+            zip(tensor_list, self.dim_change, self.reso_change, 
+                self.l_upsampler):
+            batchsize = in_tensor.shape[0]
+            timelength = in_tensor.shape[1]
+            
+            if reso_fac == 1:
+                # no change
+                output_tensor_list.append(in_tensor)
+            elif reso_fac < 0:
+                # down sample by concatenating
+                reso_fac *= -1
+                expected_len = timelength // reso_fac
+                trim_length = expected_len * reso_fac
+                
+                if expected_len == 0:
+                    # if input tensor length < down_sample factor
+                    output_tensor_list.append(
+                        torch.reshape(in_tensor[:, 0:1, :], 
+                                      (batchsize, 1, -1)))
+                else:
+                    # make sure that 
+                    output_tensor_list.append(
+                        torch.reshape(in_tensor[:, 0:trim_length, :], 
+                                      (batchsize, expected_len, -1)))
+            else:
+                # up-sampling by duplicating
+                output_tensor_list.append(l_up(in_tensor))
+        return output_tensor_list
+
+
+
 if __name__ == "__main__":
     print("Definition of block NN")
