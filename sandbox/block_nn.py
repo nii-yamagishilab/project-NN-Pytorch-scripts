@@ -742,15 +742,15 @@ class SelfWeightedPooling(torch_nn.Module):
         torch_init.kaiming_uniform_(self.mm_weights)
 
     def forward(self, inputs):
-        """
+        """ output = forward(inputs)
         inputs
         ------
-          tensor of shape (batchsize, length, feature_dim)
+          inputs: tensor, shape (batchsize, length, feature_dim)
         
         output
         ------
-          tensor of shape (batchsize, feature_dim * 2) if mean_only is False
-          tensor of shape (batchsize, feature_dim) if mean_only is True
+          output: tensor, shape (batchsize, feature_dim*2) if mean_only is False
+                  tensor, shape (batchsize, feature_dim) if mean_only is True
         """
         
         # batch matrix multiplication
@@ -783,6 +783,50 @@ class SelfWeightedPooling(torch_nn.Module):
             representations = torch.cat((avg_repr,std_repr),1)
             return representations
         
+    def debug(self, inputs):
+        """ similar to forward(inputs), but return intermediate results
+        for debugging: output_tensor, attentions = debug(inputs)
+        
+        inputs
+        ------
+          input: tensor of shape (batchsize, length, feature_dim)
+        
+        output
+        ------
+          output: tensor, shape (batchsize, feature_dim*2) or 
+                  (batchsize, feature_dim)
+          attention: tensor, shape (batchsize, length, 1)
+        """
+        
+        # batch matrix multiplication
+        batch_size = inputs.size(0)
+        # change mm_weights to (batchsize, feature_dim, 1)
+        # weights in shape (batchsize, length, 1)
+        weights = torch.bmm(
+            inputs, 
+            self.mm_weights.permute(1, 0).contiguous()\
+            .unsqueeze(0).repeat(batch_size, 1, 1))
+        
+        # attention (batchsize, length, 1)
+        attentions = torch_nn_func.softmax(torch.tanh(weights),dim=1)
+
+        # pooling
+        # weighted (batchsize, length, feature_dim)
+        weighted = torch.mul(inputs, attentions.expand_as(inputs))
+        
+        if self.mean_only:
+            # only output the mean vector
+            output_tensor = weighted.sum(1)
+        else:
+            # output the mean and std vector
+            noise = self.noise_std * torch.randn(
+                weighted.size(), dtype=weighted.dtype, device=weighted.device)
+
+            avg_repr, std_repr = weighted.sum(1), (weighted+noise).std(1)
+
+            # concatenate mean and std
+            output_tensor = torch.cat((avg_repr,std_repr),1)
+        return output_tensor, attentions
 
 
 class Conv1dForARModel(Conv1dKeepLength):

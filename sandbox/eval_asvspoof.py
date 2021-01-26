@@ -24,6 +24,58 @@ import sys
 import numpy as np
 import core_scripts.data_io.io_tools as nii_io
 
+def protocol_parse_asvspoof2019(protocol_filepath):
+    """ Parse protocol of ASVspoof2019 and get bonafide/spoof for each trial
+    The format is:
+      SPEAKER  TRIAL_NAME  - SPOOF_TYPE TAG
+      LA_0031 LA_E_5932896 - A13        spoof
+      LA_0030 LA_E_5849185 - -          bonafide
+    ...
+
+    input:
+    -----
+      protocol_filepath: string, path to the protocol file
+    
+    output:
+    -------
+      data_buffer: dic, data_bufer[filename] -> 1 (bonafide), 0 (spoof)
+    """
+    data_buffer = {}
+    temp_buffer = np.loadtxt(protocol_filepath, dtype='str')
+    for row in temp_buffer:
+        if row[-1] == 'bonafide':
+            data_buffer[row[1]] = 1
+        else:
+            data_buffer[row[1]] = 0
+    return data_buffer
+
+
+def protocol_parse_attack_label_asvspoof2019(protocol_filepath):
+    """ Parse protocol of ASVspoof2019 and get bonafide/spoof for each trial
+    The format is:
+      SPEAKER  TRIAL_NAME  - SPOOF_TYPE TAG
+      LA_0031 LA_E_5932896 - A13        spoof
+      LA_0030 LA_E_5849185 - -          bonafide
+    ...
+
+    input:
+    -----
+      protocol_filepath: string, path to the protocol file
+    
+    output:
+    -------
+      data_buffer: dic, data_bufer[filename] -> attack type
+    """
+    data_buffer = {}
+    temp_buffer = np.loadtxt(protocol_filepath, dtype='str')
+    for row in temp_buffer:
+        if row[-2] == '-':
+            data_buffer[row[1]] = 'bonafide'
+        else:
+            data_buffer[row[1]] = row[-2]
+    return data_buffer
+
+
 def obtain_asv_error_rates(tar_asv, non_asv, spoof_asv, asv_threshold):
 
     # False alarm and miss rates for ASV

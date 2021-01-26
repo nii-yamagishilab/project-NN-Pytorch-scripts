@@ -38,7 +38,7 @@ class CheckPointKey:
 # 
 ####
 
-## For model
+# keywords for typical models
 nn_model_keywords_default = {
     #
     # mandatory methods that a model must define
@@ -68,17 +68,34 @@ nn_model_keywords_default = {
     #  model.training tells whether this is under trainining or not
     #  model.flag_validation tells whether the model is on train set or val set
     'flag_validation': (False, 'flag to indicate train or validation set'),
-    'validation': (False, 'deprecated. Please use model.flag_validation')
+    'validation': (False, 'deprecated. Please use model.flag_validation'),
     #
+    # finish_up:
+    #  model.finish_up_inference will conduct finish_up work after looping over
+    #   all the data for inference (see nn_manager.py f_inference_wrapper)
+    #
+    'finish_up_inference': (False, 'method to finish up work after inference')
 }
 
+# create the bag for each type of models
 nn_model_keywords_bags = {'default': nn_model_keywords_default}
 
-## For loss
+
+####
+# Methods that a Loss should have 
+#  name: (flag_mandatory, comment)
+#   name: str, name of the method
+#   flag_mandatory: bool, whether this method is mandatory to have
+#   comment: str, comment string on the method
+# 
+####
+
+# Loss function for a typical model
 loss_method_keywords_default = {
     'compute': (True, "method to comput loss")
 }
 
+# Loss function for a GAN model
 loss_method_keywords_GAN = {
     'compute_gan_D_real': (True, "method to comput loss for GAN dis. on real"),
     'compute_gan_D_fake': (True, "method to comput loss for GAN dis. on fake"),
@@ -88,6 +105,7 @@ loss_method_keywords_GAN = {
     'flag_wgan': (False, '(only for GAN-based model), w-gan')
 }
 
+# create the bag for each type of Loss functions
 loss_method_keywords_bags = {'default': loss_method_keywords_default, 
                              'GAN': loss_method_keywords_GAN}
 

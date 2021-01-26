@@ -10,11 +10,12 @@ from __future__ import absolute_import
 import os
 import sys
 import json
+import pickle
 import numpy as np
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
-__copyright__ = "Copyright 2020, Xin Wang"
+__copyright__ = "Copyright 2021, Xin Wang"
 
 def f_read_raw_mat(filename, col, data_format='f4', end='l'):
     """read_raw_mat(filename,col,data_format='float',end='l')
@@ -306,3 +307,37 @@ def file_exist(file_path):
     return os.path.isfile(file_path) or os.path.islink(file_path)
 
 
+def pickle_dump(data, file_path):
+    """ pickle_dump(data, file_path)
+    Dump data into a pickle file
+
+    inputs:
+      data: python object, data to be dumped
+      file_path: str, path to save the pickle file
+    """
+    try:
+        os.mkdir(os.path.dirname(file_path))
+    except OSError:
+        pass
+
+    with open(file_path, 'wb') as file_ptr:
+        pickle.dump(data, file_ptr)
+    return
+
+def pickle_load(file_path):
+    """ data = pickle_load(file_path)
+    Load data from a pickle dump file
+    
+    inputs:
+      file_path: str, path of the pickle file
+    
+    output:
+      data: python object
+    """
+    with open(file_path, 'rb') as file_ptr:
+        data = pickle.load(file_ptr)
+    return data
+
+
+if __name__ == "__main__":
+    print("Definition of tools for I/O operation")

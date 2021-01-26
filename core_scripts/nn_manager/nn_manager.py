@@ -565,6 +565,11 @@ def f_inference_wrapper(args, pt_model, device, \
 
     # 
     nii_display.f_print("Generated data to %s" % (args.output_dir))
+    
+    # finish up if necessary
+    if hasattr(pt_model, "finish_up_inference"):
+        pt_model.finish_up_inference()
+
     # done
     return
             
