@@ -154,7 +154,7 @@ class LFCC(torch_nn.Module):
         
         # STFT
         x_stft = torch.stft(x, self.fn, self.fs, self.fl, 
-                            window=torch.hamming_window(self.fl), 
+                            window=torch.hamming_window(self.fl).to(x.device), 
                             onesided=True, pad_mode="constant")        
         # amplitude
         sp_amp = torch.norm(x_stft, 2, -1).pow(2).permute(0, 2, 1).contiguous()
