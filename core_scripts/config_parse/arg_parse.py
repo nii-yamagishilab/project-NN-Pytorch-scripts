@@ -103,9 +103,9 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--model-forward-with-file-name', \
                         action='store_true', default=False, help=mes)
     
+    mes = 'shuffle data? (default true). Set --shuffle will turn off shuffling'
     parser.add_argument('--shuffle', action='store_false', \
-                        default=True, 
-                        help='shuffle data? (default true)')
+                        default=True, help=mes)
 
     mes = 'number of parallel workers to load data (default: 0)'
     parser.add_argument('--num-workers', type=int, default=0, help=mes)
@@ -180,7 +180,16 @@ def f_args_parsed(argument_input = None):
     mes = 'a temporary flag without specific purpose.'
     mes += 'User should define args.temp_flag only for temporary usage.'
     parser.add_argument('--temp-flag', type=str, default='', help=mes)
+
+    #######
+    # backend options
+    parser.add_argument('--cudnn-deterministic-toggle', action='store_false', \
+                        default=True, 
+                        help='use cudnn-deterministic? (default true)')    
     
+    parser.add_argument('--cudnn-benchmark-toggle', action='store_true', \
+                        default=False, 
+                        help='use cudnn-benchmark? (default false)')    
     #
     # done
     if argument_input is not None:
