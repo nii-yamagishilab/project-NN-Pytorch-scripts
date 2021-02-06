@@ -1208,6 +1208,115 @@ class AdjustTemporalResoIO(torch_nn.Module):
                 output_tensor_list.append(l_up(in_tensor))
         return output_tensor_list
 
+class LSTMZoneOut(torch_nn.Module):
+    """LSTM layer with zoneout
+    This module replies on LSTMCell
+    """
+    def __init__(self, in_feat_dim, out_feat_dim, 
+                 bidirectional=False, residual_link=False, bias=True):
+        """LSTMZoneOut(in_feat_dim, out_feat_dim, 
+                       bidirectional=False, residual_link=False, bias=True)
+        
+        Args
+        ----
+          in_feat_dim: int, input tensor should be (batch, length, in_feat_dim)
+          out_feat_dim: int, output tensor will be (batch, length, out_feat_dim)
+          bidirectional: bool, whether bidirectional, default False
+          residual_link: bool, whether residual link over LSTM, default False
+          bias: bool, bias option in torch.nn.LSTMCell, default True
+          
+        When bidirectional is True, out_feat_dim must be an even number
+        When residual_link is True, out_feat_dim must be equal to in_feat_dim
+        """
+        super(LSTMZoneOut, self).__init__()
+        
+        # config parameters
+        self.in_dim = in_feat_dim
+        self.out_dim = out_feat_dim
+        self.flag_bi = bidirectional
+        self.flag_res = residual_link
+        self.bias = bias
+        
+        # check
+        if self.flag_res and self.out_dim != self.in_dim:
+            print("Error in LSTMZoneOut with residual: in_feat_dim != out_feat_dim")
+            sys.exit(1)
+            
+        if self.flag_bi and self.out_dim % 2 > 0:
+            print("Error in Bidirecional LSTMZoneOut: out_feat_dim is not even")
+            sys.exit(1)
+        
+        # layer
+        if self.flag_bi:
+            self.l_lstm1 = torch_nn.LSTMCell(self.in_dim, self.out_dim//2, self.bias)
+            self.l_lstm2 = torch_nn.LSTMCell(self.in_dim, self.out_dim//2, self.bias)
+        else:
+            self.l_lstm1 = torch_nn.LSTMCell(self.in_dim, self.out_dim, self.bias)
+            self.l_lstm2 = None
+        return
+    
+    def _zoneout(self, pre, cur, p=0.1):
+        """zoneout wrapper
+        """
+        if self.training:
+            with torch.no_grad():
+                mask = torch.zeros_like(pre).bernoulli_(p)
+            return pre * mask + cur * (1-mask)
+        else:
+            return cur
+    
+    def forward(self, x):
+        """y = LSTMZoneOut(x)
+        
+        input
+        -----
+          x: tensor, (batchsize, length, in_feat_dim)
+          
+        output
+        ------
+          y: tensor, (batchsize, length, out_feat_dim)
+        """
+        batchsize = x.shape[0]
+        length = x.shape[1]
+        
+        # output tensor
+        y = torch.zeros([batchsize, length, self.out_dim], 
+                        device=x.device, dtype=x.dtype)
+            
+        # recurrent 
+        if self.flag_bi:
+            # for bi-directional 
+            hid1 = torch.zeros([batchsize, self.out_dim//2], 
+                               device=x.device, dtype=x.dtype) 
+            hid2 = torch.zeros_like(hid1)
+            cell1 = torch.zeros_like(hid1)
+            cell2 = torch.zeros_like(hid1)
+            
+            for time in range(length):
+                hid1_new, cell1_new = self.l_lstm1(x[:, time, :], (hid1, cell1))
+                hid2_new, cell2_new = self.l_lstm2(x[:, length-time-1, :], (hid2, cell2))
+                hid1 = self._zoneout(hid1, hid1_new)
+                hid2 = self._zoneout(hid2, hid2_new)
+                y[:, time, 0:self.out_dim//2] = hid1
+                y[:, length-time-1, self.out_dim//2:] = hid2
+        
+        else:
+            # for uni-directional    
+            hid1 = torch.zeros([batchsize, self.out_dim], 
+                               device=x.device, dtype=x.dtype) 
+            cell1 = torch.zeros_like(hid1)
+            
+            for time in range(length):
+                hid1_new, cell1_new = self.l_lstm1(x[:, time, :], (hid1, cell1))
+                hid1 = self._zoneout(hid1, hid1_new)
+                y[:, time, :] = hid1
+
+        # residual part
+        if self.flag_res:
+            y = y+x
+        return y
+        
+
 
 
 if __name__ == "__main__":
