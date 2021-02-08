@@ -11,7 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
-
+import copy
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -84,26 +84,80 @@ def plot_scatter(data, fig, axis, config_dic):
     return fig, axis
 
 
-def plot_bar(data, fig, axis, config_dic):
+def plot_bar(data, fig, axis, config):
+    """plot_bar(data, fig, axis, config_dic)
     
-    if "plot_bar" in config_dic and "x" in config_dic["plot_bar"]:
-        x_pos = config_dic["plot_bar"]
-    else:
-        x_pos = np.arange(len(data))
-        
-    if "plot_bar" in config_dic:
-        axis.bar(x_pos, data, **config_dic["plot_bar"])
-    else:
-        # default configuration
-        axis.bar(x_pos, data)
-        
-    if "show_number" in config_dic:
-        tmp_format = config_dic["show_number"]
-        for x, y in zip(x_pos, data):
-            axis.text(x, y*1.01, "{num:{form}}".format(num=y, form=tmp_format),
-                      horizontalalignment="center")
-    return fig, axis
+    Args
+    ----
+      data: np.array, (L, M)
+      fig: matplotlib figure handle
+      axis: matplotlib axis handle
+      config: dictionary for axis.bar
+    
+    L: number of vertial bar groups
+    M: number of sub-bar in each group
+    
+    If yerr is to be used, please save it in config_dic['plot_bar']['yerr']
+    
+    Optional field in config_dic['plot_bar']:
+    1. ['x']: np.array or list, location of each bar group on x-axis
+    2. ['show_number']: str, format of showing numbers on top of each var
+         "{:{form}}".format(form=config_dic['plot_bar']['show_number'])
+    3. other options for matplotlib.pyplot.bar
+    """
+    if type(data) is list:
+        data = np.asarray(data)
+    if data.ndim == 1:
+        data = np.expand_dims(data, 1)
 
+    width = 0.3
+    x_pos = np.arange(data.shape[0])
+    yerr = None
+    show_number = None
+    group_size = data.shape[1]
+    config_dic = copy.deepcopy(config)
+
+    if "plot_bar" in config_dic:
+        if "x" in config_dic["plot_bar"]:
+            x_pos = config_dic["plot_bar"]['x']
+            config_dic['plot_bar'].pop('x')
+        if "width" in config_dic['plot_bar']:
+            width = config_dic['plot_bar']['width']
+            config_dic['plot_bar'].pop('width')            
+        if "yerr" in config_dic['plot_bar']:
+            yerr = config_dic['plot_bar']['yerr']
+            config_dic['plot_bar'].pop('yerr')
+        if "show_number" in config_dic['plot_bar']:
+            show_number = config_dic['plot_bar']['show_number']
+            config_dic['plot_bar'].pop('show_number')
+    
+    if "color_list" in config_dic:
+        color_list =  config_dic['color_list']
+    else:
+        color_list = [None for x in range(group_size)]
+    
+    for group_idx in range(group_size): 
+        x_shift = group_idx * width - width * (group_size - 1) / 2
+        if yerr is None:
+            sub_yerr = None
+        else:
+            sub_yerr = yerr[:, group_idx]
+            
+        if "plot_bar" in config_dic:
+            axis.bar(x_pos + x_shift, data[:, group_idx], width=width, 
+                     color = color_list[group_idx],
+                     yerr = sub_yerr, **config_dic["plot_bar"])
+        else:
+            axis.bar(x_pos + x_shift, data[:, group_idx], width=width,
+                     color = color_list[group_idx],
+                     yerr = sub_yerr)
+
+        if show_number is not None:
+            for x, y in zip(x_pos, data[:, group_idx]):
+                axis.text(x + x_shift, y*1.01, 
+                          "{num:{form}}".format(num=y, form=show_number),
+                          horizontalalignment="center")
+    return fig, axis
 
 ############################
 ## Specific functions
@@ -136,6 +190,7 @@ def plot_det(data, fig, axis, config_dic):
       fig: fig handler
       axis: axis handler
     """
+
     if type(data) is list:
         
         # warping through probit
@@ -247,6 +302,7 @@ def plot_spec(data, fig, axis, config_dic):
       fig: fig handler
       axis: axis handler
     """
+
     if type(data) is list:
         print("plot_spectrogram only supports data array input, ")
         print("but it receives list of data")

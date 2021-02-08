@@ -101,10 +101,14 @@ def f_shuffle_blocks_inplace(input_list, block_size):
     f_shuffle_blocks_inplace(input_list, block_size)
     
     Shuffle the input list (in place) by dividing the list input blocks and 
-    shuffling within each block
+    shuffling blocks
     
     Example:
-    
+     >> data = np.arange(1, 7)
+     >> f_shuffle_blocks_inplace(data, 3)
+     >> print(data)
+     [4 5 6 1 2 3]
+
     input
     -----
       input_list: input list

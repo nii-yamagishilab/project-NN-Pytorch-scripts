@@ -33,9 +33,43 @@ _color_bag = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 def get_marker(idx):
     return _marker_bag[idx % len(_marker_bag)]
 
+
+def get_colors(total, colormap='jet'):
+    color_bag = []
+    color_func = None
+    # pre-defined color bags
+    if colormap == 'self_1':
+        color_bag = np.array([[78, 78, 78], [132,145,252],
+                              [253,134,141], [110,143,82],
+                              [229,173,69], [139,139,139]])/255.0
+    elif colormap == 'self_2':
+        color_bag = np.array([[178, 180, 253], [253, 178, 179]])/255.0
+
+    elif colormap == 'self_3':
+        color_bag = np.array([[1.0, 1.0, 1.0], [0.95, 0.95, 0.95],
+                              [0.90, 0.90, 0.90], [0.85, 0.85, 0.85],
+                              [0.80, 0.80, 0.80]])
+    elif colormap == 'self_4':
+        color_bag = np.array([[174,174,174], [13,13,13], [11,36,251],
+                              [252,13,27], [55,183,164], [189,27,189],
+                              [26,120,148], [110,143,82]])/255.0;
+    elif colormap == 'self_5':
+        color_bag = np.array([[132,145,252], [253,134,141],
+                              [110,143,82], [229,173,69], 
+                              [139,139,139], [200,200,200]])/255.0;
+    elif colormap == 'self_6':
+        color_bag = np.array([[243,243,243],[202,202,202],[160,160,160]])/255.0
+    else:
+        color_func = cm.get_cmap(colormap)
+    
+    if color_func is not None:
+        indices = np.linspace(0,1,total)
+        return [color_func(idx) for idx in indices]        
+    else:
+        return [color_bag[x % len(color_bag)] for x in range(total)]
+
 def get_color(idx, total, colormap='jet'):
-    color=cm.rainbow(np.linspace(0,1,total))
-    return color[idx]
+    return get_colors(total, colormap)[idx]
 
 #################
 ## initialization
