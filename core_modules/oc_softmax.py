@@ -23,8 +23,24 @@ __copyright__ = "Copyright 2020, Xin Wang"
 
 ###################
 class OCAngleLayer(torch_nn.Module):
-    """ Output layer to produce activation for 
+    """ Output layer to produce activation for one-class softmax
 
+    Usage example:
+     batchsize = 64
+     input_dim = 10
+     class_num = 2
+
+     l_layer = OCAngleLayer(input_dim)
+     l_loss = OCSoftmaxWithLoss()
+
+     data = torch.rand(batchsize, input_dim, requires_grad=True)
+     target = (torch.rand(batchsize) * class_num).clamp(0, class_num-1)
+     target = target.to(torch.long)
+
+     scores = l_layer(data)
+     loss = l_loss(scores, target)
+
+     loss.backward()
     """
     def __init__(self, in_planes, w_posi=0.9, w_nega=0.2, alpha=20.0):
         super(OCAngleLayer, self).__init__()
@@ -46,11 +62,11 @@ class OCAngleLayer(torch_nn.Module):
         
         input:
         ------
-        input tensor (batchsize, input_dim)
+          input tensor (batchsize, input_dim)
 
         output:
         -------
-        tuple of tensor ((batchsize, output_dim), (batchsize, output_dim))
+          tuple of tensor ((batchsize, output_dim), (batchsize, output_dim))
         """
         # w (feature_dim, output_dim)
         w = self.weight.renorm(2, 1, 1e-5).mul(1e5)
@@ -96,7 +112,7 @@ class OCSoftmaxWithLoss(torch_nn.Module):
                  output from OCAngle
                  inputs[0]: positive class score
                  inputs[1]: negative class score
-          target: tensor (batchsize, 1)
+          target: tensor (batchsize)
                  tensor of target index
         output:
         ------

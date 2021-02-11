@@ -49,7 +49,7 @@ def plot_hist(data, fig, axis, config_dic):
 
 def plot_imshow(data, fig, axis, config_dic):
     if "plot_imshow" in config_dic:
-        axis.hist(data, **config_dic["plot_imshow"])
+        axis.imshow(data, **config_dic["plot_imshow"])
     else:
         # default configuration
         axis.imshow(data, cmap='jet', origin='lower', aspect='auto')

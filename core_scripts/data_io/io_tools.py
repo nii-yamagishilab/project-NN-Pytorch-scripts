@@ -159,7 +159,7 @@ def f_write_raw_mat(data,filename,data_format='f4',end='l'):
              f.write(data[a][b]), but it is too slow
     """
     if not isinstance(data, np.ndarray):
-        print("Error write_raw_mat: input shoul be np.array")
+        print("Error write_raw_mat: input should be np.array")
         return False
     f = open(filename,'wb')
     if len(data_format)>0:

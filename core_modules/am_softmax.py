@@ -34,15 +34,34 @@ class AMAngleLayer(torch_nn.Module):
     
     Method: (|x|cos, phi) = forward(x)
     
-    x: (batchsize, input_dim)
+      x: (batchsize, input_dim)
     
-    cos: (batchsize, output_dim)
-    phi: (batchsize, output_dim)
+      cos: (batchsize, output_dim)
+      phi: (batchsize, output_dim)
     
     Note:
-    cos[i, j]: cos(\theta) where \theta is the angle between
-               input feature vector x[i, :] and weight vector w[j, :]
-    phi[i, j]: -1^k cos(m \theta) - 2k
+      cos[i, j]: cos(\theta) where \theta is the angle between
+                 input feature vector x[i, :] and weight vector w[j, :]
+      phi[i, j]: -1^k cos(m \theta) - 2k
+    
+    
+    Usage example:  
+      batchsize = 64
+      input_dim = 10
+      class_num = 2
+
+      l_layer = AMAngleLayer(input_dim, class_num)
+      l_loss = AMSoftmaxWithLoss()
+
+
+      data = torch.rand(batchsize, input_dim, requires_grad=True)
+      target = (torch.rand(batchsize) * class_num).clamp(0, class_num-1)
+      target = target.to(torch.long)
+
+      scores = l_layer(data)
+      loss = l_loss(scores, target)
+
+      loss.backward()
     """
     def __init__(self, in_planes, out_planes, s=20, m=0.9):
         super(AMAngleLayer, self).__init__()
@@ -99,7 +118,7 @@ class AMAngleLayer(torch_nn.Module):
 class AMSoftmaxWithLoss(torch_nn.Module):
     """
     AMSoftmaxWithLoss()
-    
+    See usage in __doc__ of AMAngleLayer
     """
     def __init__(self):
         super(AMSoftmaxWithLoss, self).__init__()
@@ -112,14 +131,15 @@ class AMSoftmaxWithLoss(torch_nn.Module):
           input: tuple of tensors ((batchsie, out_dim), (batchsie, out_dim))
                  output from AMAngleLayer
         
-          target: tensor (batchsize, 1)
+          target: tensor (batchsize)
                  tensor of target index
         output:
         ------
           loss: scalar
         """
-        # target (batchsize, 1)
+        # target (batchsize)
         target = target.long() #.view(-1, 1)
+        
         
         # create an index matrix, i.e., one-hot vectors
         with torch.no_grad():

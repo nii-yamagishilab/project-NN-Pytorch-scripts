@@ -33,20 +33,31 @@ class P2SActivationLayer(torch_nn.Module):
     output_dim: dimension of output feature vectors 
                 (i.e., number of classes)
     
-    Method: cos\theta = forward(x)
+
     
-    x: (batchsize, input_dim)
-    
-    cos: (batchsize, output_dim)
-          where \theta is the angle between
-          input feature vector x[i, :] and weight vector w[j, :]
+    Usage example:
+      batchsize = 64
+      input_dim = 10
+      class_num = 5
+
+      l_layer = P2SActivationLayer(input_dim, class_num)
+      l_loss = P2SGradLoss()
+
+      data = torch.rand(batchsize, input_dim, requires_grad=True)
+      target = (torch.rand(batchsize) * class_num).clamp(0, class_num-1)
+      target = target.to(torch.long)
+
+      scores = l_layer(data)
+      loss = l_loss(scores, target)
+
+      loss.backward()
     """
-    def __init__(self, in_planes, out_planes):
+    def __init__(self, in_dim, out_dim):
         super(P2SActivationLayer, self).__init__()
-        self.in_planes = in_planes
-        self.out_planes = out_planes
+        self.in_dim = in_dim
+        self.out_dim = out_dim
         
-        self.weight = Parameter(torch.Tensor(in_planes, out_planes))
+        self.weight = Parameter(torch.Tensor(in_dim, out_dim))
         self.weight.data.uniform_(-1, 1).renorm_(2,1,1e-5).mul_(1e5)
         return
 
@@ -87,10 +98,9 @@ class P2SActivationLayer(torch_nn.Module):
 
     
 class P2SGradLoss(torch_nn.Module):
-    """
-    P2SGradLoss()
+    """P2SGradLoss() MSE loss between output and target one-hot vectors
     
-    Just MSE loss between output and target one-hot vectors
+    See usage in __doc__ of P2SActivationLayer
     """
     def __init__(self):
         super(P2SGradLoss, self).__init__()
@@ -101,7 +111,10 @@ class P2SGradLoss(torch_nn.Module):
         input
         -----
           input_score: tensor (batchsize, class_num)
-                 cos\theta
+                 cos\theta given by P2SActivationLayer(input_feat)
+          target: tensor (batchsize)
+                 target[i] is the target class index of the i-th sample
+
         output
         ------
           loss: scaler
