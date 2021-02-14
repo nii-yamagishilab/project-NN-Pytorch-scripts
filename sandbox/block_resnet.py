@@ -176,7 +176,7 @@ class ResNet(torch_nn.Module):
 
         return torch_nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, without_pooling=False):
 
         x = self.conv1(x)
         x = self.activation(self.bn1(x))
@@ -187,10 +187,16 @@ class ResNet(torch_nn.Module):
         x = self.conv5(x)
         x = self.activation(self.bn5(x)).squeeze(2)
 
-        stats = self.attention(x.permute(0, 2, 1).contiguous())
+        if without_pooling:
+            return x
+        else:
+            stats = self.attention(x.permute(0, 2, 1).contiguous())
 
-        feat = self.fc(stats)
+            feat = self.fc(stats)
+            
+            mu = self.fc_mu(feat)
 
-        mu = self.fc_mu(feat)
+            return feat, mu
 
-        return feat, mu
+if __name__ == "__main__":
+    print("Definition of Resnet for anti-spoofing")

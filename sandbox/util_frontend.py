@@ -229,5 +229,72 @@ class LFB(LFCC):
         return super(LFB, self).forward(x)
 
 
+#################
+## Spectrogram (FFT) front-end
+#################
+
+class Spectrogram(torch_nn.Module):
+    """ Spectrogram front-end
+    """
+    def __init__(self, fl, fs, fn, sr, 
+                 with_emphasis=True, with_delta=False):
+        """ Initialize LFCC
+        
+        Para:
+        -----
+          fl: int, frame length, (number of waveform points)
+          fs: int, frame shift, (number of waveform points)
+          fn: int, FFT points
+          sr: int, sampling rate (Hz)
+          with_emphasis: bool, (default True), whether pre-emphaze input wav
+          with_delta: bool, (default False), whether use delta and delta-delta
+        
+        """
+        super(Spectrogram, self).__init__()
+        self.fl = fl
+        self.fs = fs
+        self.fn = fn
+        self.sr = sr
+        
+        # opts
+        self.with_emphasis = with_emphasis
+        self.with_delta = with_delta
+        return
+    
+    def forward(self, x):
+        """
+        
+        input:
+        ------
+         x: tensor(batch, length), where length is waveform length
+        
+        output:
+        -------
+         lfcc_output: tensor(batch, frame_num, dim_num)
+        """
+        # pre-emphsis 
+        if self.with_emphasis:
+            x[:, 1:] = x[:, 1:]  - 0.97 * x[:, 0:-1]
+        
+        # STFT
+        x_stft = torch.stft(x, self.fn, self.fs, self.fl, 
+                            window=torch.hamming_window(self.fl).to(x.device), 
+                            onesided=True, pad_mode="constant")        
+        # amplitude
+        sp_amp = torch.norm(x_stft, 2, -1).pow(2).permute(0, 2, 1).contiguous()
+        
+        # Add delta coefficients
+        if self.with_delta:
+            sp_delta = delta(sp_amp)
+            sp_delta_delta = delta(sp_delta)
+            sp_output = torch.cat((sp_amp, sp_delta, sp_delta_delta), 2)
+        else:
+            sp_output = sp_amp
+
+        # done
+        return sp_amp
+
+
+
 if __name__ == "__main__":
     print("Definition of front-end for Anti-spoofing")
