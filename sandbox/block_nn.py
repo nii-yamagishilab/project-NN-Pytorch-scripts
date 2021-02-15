@@ -1239,7 +1239,7 @@ class LSTMZoneOut(torch_nn.Module):
         
         # check
         if self.flag_res and self.out_dim != self.in_dim:
-            print("Error in LSTMZoneOut with residual: in_feat_dim != out_feat_dim")
+            print("Error in LSTMZoneOut w/ residual: in_feat_dim!=out_feat_dim")
             sys.exit(1)
             
         if self.flag_bi and self.out_dim % 2 > 0:
@@ -1248,10 +1248,13 @@ class LSTMZoneOut(torch_nn.Module):
         
         # layer
         if self.flag_bi:
-            self.l_lstm1 = torch_nn.LSTMCell(self.in_dim, self.out_dim//2, self.bias)
-            self.l_lstm2 = torch_nn.LSTMCell(self.in_dim, self.out_dim//2, self.bias)
+            self.l_lstm1 = torch_nn.LSTMCell(
+                self.in_dim, self.out_dim//2, self.bias)
+            self.l_lstm2 = torch_nn.LSTMCell(
+                self.in_dim, self.out_dim//2, self.bias)
         else:
-            self.l_lstm1 = torch_nn.LSTMCell(self.in_dim, self.out_dim, self.bias)
+            self.l_lstm1 = torch_nn.LSTMCell(
+                self.in_dim, self.out_dim, self.bias)
             self.l_lstm2 = None
         return
     
@@ -1293,8 +1296,11 @@ class LSTMZoneOut(torch_nn.Module):
             cell2 = torch.zeros_like(hid1)
             
             for time in range(length):
-                hid1_new, cell1_new = self.l_lstm1(x[:, time, :], (hid1, cell1))
-                hid2_new, cell2_new = self.l_lstm2(x[:, length-time-1, :], (hid2, cell2))
+                # reverse time idx
+                rtime = length-time-1
+                # compute in both forward and reverse directions
+                hid1_new, cell1_new = self.l_lstm1(x[:,time, :], (hid1, cell1))
+                hid2_new, cell2_new = self.l_lstm2(x[:,rtime, :], (hid2, cell2))
                 hid1 = self._zoneout(hid1, hid1_new)
                 hid2 = self._zoneout(hid2, hid2_new)
                 y[:, time, 0:self.out_dim//2] = hid1
@@ -1317,7 +1323,41 @@ class LSTMZoneOut(torch_nn.Module):
         return y
         
 
-
+class LinearInitialized(torch_nn.Module):
+    """Linear layer with specific initialization
+    """
+    def __init__(self, weight_mat, flag_train=True):
+        """LinearInitialized(weight_mat, flag_trainable=True)
+        
+        Args
+        ----
+          weight_mat: tensor, (input_dim, output_dim), 
+             the weight matrix for initializing the layer
+          flag_train: bool, where trainable or fixed, default True
+          
+        This can be used for trainable filter bank. For example:
+        import sandbox.util_frontend as nii_front_end
+        l_fb = LinearInitialized(nii_front_end.linear_fb(fn, sr, filter_num))
+        y = l_fb(x)
+        """
+        super(LinearInitialized, self).__init__()
+        self.weight = torch_nn.Parameter(weight_mat, requires_grad=flag_train)
+        return
+    
+    def forward(self, x):
+        """y = LinearInitialized(x)
+        
+        input
+        -----
+          x: tensor, (batchsize, ..., input_feat_dim)
+          
+        output
+        ------
+          y: tensor, (batchsize, ..., output_feat_dim)
+          
+        Note that weight is in shape (input_feat_dim, output_feat_dim)
+        """
+        return torch.matmul(x, self.weight)
 
 if __name__ == "__main__":
     print("Definition of block NN")

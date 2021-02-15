@@ -631,15 +631,17 @@ def parse_pytorch_output_txt(score_file_path):
     return bonafide, bonafide_names, spoofed, spoofed_names
 
 
-def ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False):
+def ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False, 
+                                    flag_verbose=True):
     """ Get the results from input score log file
-    ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False)
-
+    ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False,
+                                    flag_verbose=True)
     input
     -----
       score_file_path: path to the score file produced by the Pytorch code
       flag_return_results: whether return the results (default False)
-    
+      flag_verbose: print EERs and mintDCFs for each attack (default True)
+
     output
     ------
       if flag_return_results is True:
@@ -653,7 +655,7 @@ def ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False):
     bona, b_names, spoofed, s_names = parse_pytorch_output_txt(score_file_path)
     
     mintDCFs, eers, cm_thres, spoof_types, spoof_scores = ASVspoof2019_evaluate(
-        bona, b_names, spoofed, s_names, True)
+        bona, b_names, spoofed, s_names, flag_verbose)
     
     if flag_return_results:
         return mintDCFs, eers, cm_thres, spoof_types, spoof_scores, bona 

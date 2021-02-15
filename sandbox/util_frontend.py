@@ -82,6 +82,38 @@ def delta(x):
     output = -1 * x_temp[:, 0:length] + x_temp[:,2:]
     return output
 
+
+def linear_fb(fn, sr, filter_num):
+    """linear_fb(fn, sr, filter_num)
+    create linear filter bank based on trim
+
+    input
+    -----
+      fn: int, FFT points
+      sr: int, sampling rate (Hz)
+      filter_num: int, number of filters in filter-bank
+    
+    output
+    ------
+      fb: tensor, (fn//2+1, filter_num)
+
+    Note that this filter bank is supposed to be used on 
+    spectrum of dimension fn//2+1.
+
+    See example in LFCC.
+    """
+    # build the triangle filter bank
+    f = (sr / 2) * torch.linspace(0, 1, fn//2+1)
+    filter_bands = torch.linspace(min(f), max(f), filter_num+2)
+        
+    filter_bank = torch.zeros([fn//2+1, filter_num])
+    for idx in range(filter_num):
+        filter_bank[:, idx] = trimf(
+            f, [filter_bands[idx], 
+                filter_bands[idx+1], 
+                filter_bands[idx+2]])
+    return filter_bank
+
 #################
 ## LFCC front-end
 #################
