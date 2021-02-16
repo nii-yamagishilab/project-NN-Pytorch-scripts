@@ -148,7 +148,8 @@ class NII_MergeDataSetLoader():
                  save_mean_std = True, \
                  wav_samp_rate = None, \
                  flag_lang = 'EN', \
-                 way_to_merge = 'concatenate'):
+                 way_to_merge = 'concatenate', 
+                 global_arg = None):
         """ Signature is similar to default_io.NIIDataSetLoader.
         file_list, input_dirs, and output_dirs are different.
         One additional optional argument is way_to_merge.
@@ -190,9 +191,12 @@ class NII_MergeDataSetLoader():
             flag_lang: str, 'EN' (default), if input data has text, text will
                        be converted into code indices. flag_lang indicates the 
                      language for the text processer. It is used by _data_reader
-          wav_to_merge: string, 'concatenate' (default) or 'merge'
-                    'concatenate': simply concatenate multiple corpora
-                    'merge': create minibatch by merging data from each copora
+            wav_to_merge: string, 'concatenate' (default) or 'merge'
+                     'concatenate': simply concatenate multiple corpora
+                     'merge': create minibatch by merging data from each copora
+            global_arg: argument parser returned by arg_parse.f_args_parsed()
+                      default None
+
         Methods
         -------
             get_loader(): return a torch.util.data.DataLoader
@@ -246,7 +250,7 @@ class NII_MergeDataSetLoader():
                     sub_output_dirs, output_exts, output_dims, output_reso, \
                     output_norm, \
                     stats_path, data_format, params, truncate_seq, min_seq_len,
-                    save_mean_std, wav_samp_rate, flag_lang))
+                    save_mean_std, wav_samp_rate, flag_lang, global_arg))
         
         # list of the datasets
         self.m_datasets = lst_dset

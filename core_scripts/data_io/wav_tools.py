@@ -230,24 +230,24 @@ def windowing(framed_buffer, window_type='hanning'):
 
 
 
-def silence_handler(wav, sr, fl, fs, 
+def silence_handler(wav, sr, fl=320, fs=80, 
                     max_thres_below=30, 
                     min_thres=-55, 
                     shortest_len_in_ms=50,
-                    flag_output='verbose'):
+                    flag_output=0):
     """silence_handler(wav, sr, fs, fl)
     
     input
     -----
       wav: np.array, (wav_length, ), wavform data
       sr: int, sampling rate
-      fl: int, frame length
-      fs: int, frame shift, in number of waveform poings
+      fl: int, frame length, default 320
+      fs: int, frame shift, in number of waveform poings, default 80
       
-      flag_output: str, flag to select output
-          'verbose': return wav_no_sil, sil_wav, time_tag
-          'speech': return wav_no_sil
-          'nonspeech': return sil_wav
+      flag_output: int, flag to select output
+          0: return wav_no_sil, sil_wav, time_tag
+          1: return wav_no_sil
+          2: return sil_wav
       
       max_thres_below: int, default 30, max_enenergy - max_thres_below 
           is the lower threshold for speech frame
@@ -324,9 +324,9 @@ def silence_handler(wav, sr, fl, fs,
             sil_buf[non_fr_pt*fs:non_fr_pt*fs+fl] += windowed_frames[frame_idx]
             non_fr_pt += 1
     
-    if flag_output=='speech': 
+    if flag_output == 1: 
         return spe_buf
-    elif flag_output=='nonspeech':
+    elif flag_output == 2:
         return sil_buf
     else:
         return spe_buf, sil_buf, frame_tag

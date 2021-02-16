@@ -93,7 +93,8 @@ class NIIDataSet(torch.utils.data.Dataset):
                  min_seq_len = None, \
                  save_mean_std = True, \
                  wav_samp_rate = None, \
-                 flag_lang = 'EN'):
+                 flag_lang = 'EN', \
+                 global_arg = None):
         """
         args
         ----
@@ -125,6 +126,8 @@ class NIIDataSet(torch.utils.data.Dataset):
           flag_lang: str, 'EN' (default), if input data has text, the text will
                      be converted into code indices. flag_lang indicates the 
                      language for the text processer. It is used by _data_reader
+          global_arg: argument parser returned by arg_parse.f_args_parsed()
+                      default None
         """
         # initialization
         self.m_set_name = dataset_name
@@ -184,7 +187,12 @@ class NIIDataSet(torch.utils.data.Dataset):
 
         # in case there is waveform data in input or output features 
         self.m_wav_sr = wav_samp_rate
-        
+        # option to process waveform with simple VAD
+        if global_arg is not None:
+            self.m_opt_wav_handler = global_arg.opt_wav_silence_handler
+        else:
+            self.m_opt_wav_handler = 0
+
         # in case there is text data in input or output features
         self.m_flag_lang = flag_lang
 
@@ -409,8 +417,58 @@ class NIIDataSet(torch.utils.data.Dataset):
                 s_dim = s_dim + t_dim
         else:
             out_data = []
+        
+        # post processing if necessary
+        in_data, out_data, tmp_seq_info, idx = self.f_post_data_process(
+            in_data, out_data, tmp_seq_info, idx)
 
+        # return data
         return in_data, out_data, tmp_seq_info.print_to_str(), idx
+
+
+    def f_post_data_process(self, in_data, out_data, seq_info, idx):
+        """A wrapper to process the data after loading from files
+        """
+
+        if self.m_opt_wav_handler > 0:
+        
+            # Do post processing one by one
+            tmp_seq_info = nii_seqinfo.SeqInfo(
+                seq_info.length, seq_info.seq_name, seq_info.seg_idx,
+                seq_info.start_pos, seq_info.info_id)
+        
+            # waveform silence handler
+            if len(self.m_input_exts) == 1 \
+               and self.m_input_exts[0][-3:] == 'wav':
+                in_data_n = nii_wav_tk.silence_handler(
+                    in_data[:, 0], self.m_wav_sr, 
+                    flag_output = self.m_opt_wav_handler)
+                in_data_n = np.expand_dims(in_data_n, axis=1)
+            
+                # this is temporary setting, use length if it is compatible
+                if tmp_seq_info.length == in_data.shape[0]:
+                    tmp_seq_info.length = in_data_n.shape[0]
+            else:
+                in_data_n = in_data
+
+            if len(self.m_output_exts) == 1 \
+               and self.m_output_exts[0][-3:] == 'wav':
+                out_data_n = nii_wav_tk.silence_handler(
+                    out_data[:,0], self.m_wav_sr, 
+                    flag_output = self.m_opt_wav_handler)
+                out_data_n = np.expand_dims(out_data_n, axis=1)
+            
+                # this is temporary setting, use length if it is compatible
+                if tmp_seq_info.length == out_data.shape[0]:
+                    tmp_seq_info.length = out_data_n.shape[0]
+            else:
+                out_data_n = out_data
+
+            return in_data_n, out_data_n, tmp_seq_info, idx
+
+        else:
+            return in_data, out_data, seq_info, idx
+        
     
     def f_get_num_seq(self):
         """ __len__():
@@ -805,6 +863,8 @@ class NIIDataSet(torch.utils.data.Dataset):
         mes += "\n    Dims:{:s}".format(str(self.m_output_dims))
         mes += "\n    Reso:{:s}".format(str(self.m_output_reso))
         mes += "\n    Norm:{:s}".format(str(self.m_output_norm))
+        if self.m_opt_wav_handler > 0:
+            mes += "\n  Waveform silence handler will be used"
         nii_warn.f_print_message(mes)
         return
     
@@ -998,7 +1058,8 @@ class NIIDataSetLoader:
                  min_seq_len = None,
                  save_mean_std = True, \
                  wav_samp_rate = None, \
-                 flag_lang = 'EN'):
+                 flag_lang = 'EN',
+                 global_arg = None):
         """
         NIIDataSetLoader(
                data_set_name,
@@ -1012,7 +1073,8 @@ class NIIDataSetLoader:
                min_seq_len = None,
                save_mean_std = True, \
                wav_samp_rate = None, \
-               flag_lang = 'EN'):
+               flag_lang = 'EN',
+               global_arg = None):
         Args
         ----
             data_set_name: a string to name this dataset
@@ -1050,7 +1112,9 @@ class NIIDataSetLoader:
                          please set sampling rate. It is used by _data_writer
             flag_lang: str, 'EN' (default), if input data has text, text will
                        be converted into code indices. flag_lang indicates the 
-                     language for the text processer. It is used by _data_reader
+                       language for the text processer, used by _data_reader
+            global_arg: argument parser returned by arg_parse.f_args_parsed()
+                      default None
         Methods
         -------
             get_loader(): return a torch.util.data.DataLoader
@@ -1072,7 +1136,8 @@ class NIIDataSetLoader:
                                     truncate_seq, min_seq_len,\
                                     save_mean_std, \
                                     wav_samp_rate, \
-                                    flag_lang)
+                                    flag_lang, \
+                                    global_arg)
         
         # create torch.util.data.DataLoader
         if params is None:

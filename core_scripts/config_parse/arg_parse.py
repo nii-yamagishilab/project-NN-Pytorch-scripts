@@ -190,6 +190,21 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--cudnn-benchmark-toggle', action='store_true', \
                         default=False, 
                         help='use cudnn-benchmark? (default false)')    
+
+
+    #######
+    # data options
+    mes = 'option to set silence_handler on waveform data.\n'
+    mes += ' 0: do nothing, use the data as it is (default) \n'
+    mes += ' 1: remove segments with small energy, use other segments\n'
+    mes += ' 2: keep only segments with small energy, remove other segments\n'
+    mes += 'Code in core_scripts.data_io.wav_tools.silence_handler. '
+    mes += 'This option is used when input or output contains only waveform. '
+    mes += 'It only process waveform. Other features will not be trimmed.'
+    parser.add_argument('--opt-wav-silence-handler', type=int, 
+                        default=0, help=mes)
+
+
     #
     # done
     if argument_input is not None:
