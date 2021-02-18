@@ -61,26 +61,30 @@ def plot_scatter(data, fig, axis, config_dic):
     if type(data) is list:
         x = data[0]
         y = data[1]
-        if len(data) > 2:
-            s = data[2]
-        else:
-            s = None
+        # size
+        s = data[2] if len(data) > 2 else None
+        # color
+        c = data[3] if len(data) > 3 else None
     else:
         x = data[:, 0]
         y = data[:, 1]
-        if data.shape[1] > 2:
-            s = data[:, 2]
-        else:
-            s = None
+        s = data[:, 2] if data.shape[1] > 2 else None
+        c = data[:, 3] if data.shape[1] > 3 else None
     
     if "plot_scatter" in config_dic:
         if "s" in config_dic["plot_scatter"]:
-            axis.scatter(x, y, **config_dic["plot_scatter"])
+            if "c" in config_dic["plot_scatter"]:
+                axis.scatter(x, y, **config_dic["plot_scatter"])
+            else:
+                axis.scatter(x, y, c = c, **config_dic["plot_scatter"])
         else:
-            axis.scatter(x, y, s, **config_dic["plot_scatter"])
+            if "c" in config_dic["plot_scatter"]:
+                axis.scatter(x, y, s, **config_dic["plot_scatter"])
+            else:
+                axis.scatter(x, y, s, c, **config_dic["plot_scatter"])
     else:
         # default configuration
-        axis.scatter(x, y, s)
+        axis.scatter(x, y, s, c)
     return fig, axis
 
 

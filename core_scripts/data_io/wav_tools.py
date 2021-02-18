@@ -211,7 +211,7 @@ def buffering(x, n, p=0, opt=None):
         result.append(np.array(col))
         i += (n - p)
 
-    return np.vstack(result)
+    return np.vstack(result).astype(x.dtype)
 
 def windowing(framed_buffer, window_type='hanning'):
     """windowing(framed_buffer, window_type='hanning')
@@ -226,7 +226,7 @@ def windowing(framed_buffer, window_type='hanning'):
         window = np.hanning(framed_buffer.shape[1])
     else:
         assert False, "Unknown window type in windowing"
-    return framed_buffer * window
+    return framed_buffer * window.astype(framed_buffer.dtype)
 
 
 
@@ -299,7 +299,7 @@ def silence_handler(wav, sr, fl=320, fs=80,
             frame_tag_new[start_frame_idx:end_frame_idx] = 0
         return frame_tag_new
     
-    # work on non-speech 1-frame_tag indicates non-speech frames
+    # work on non-speech, 1-frame_tag indicates non-speech frames
     frame_process_sil = ignore_short_seg(1-frame_tag, seg_len_thres)
     # reverse the sign
     frame_process_sil = 1 - frame_process_sil
@@ -311,9 +311,9 @@ def silence_handler(wav, sr, fl=320, fs=80,
     #  do overlap and add
     frame_tag = frame_process_all
     # buffer for speech segments
-    spe_buf = np.zeros([np.sum(frame_tag) * fs + fl])
+    spe_buf = np.zeros([np.sum(frame_tag) * fs + fl], dtype=wav.dtype)
     # buffer for non-speech segments
-    sil_buf = np.zeros([np.sum(1-frame_tag) * fs + fl])
+    sil_buf = np.zeros([np.sum(1-frame_tag) * fs + fl], dtype=wav.dtype)
     spe_fr_pt = 0
     non_fr_pt = 0
     for frame_idx, flag_speech in enumerate(frame_tag):

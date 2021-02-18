@@ -506,12 +506,11 @@ def f_inference_wrapper(args, pt_model, device, \
         for _, (data_in, data_tar, data_info, idx_orig) in \
             enumerate(test_data_loader):
 
-            # send data to device
-            data_in = data_in.to(device)
+            # send data to device and convert data type
+            data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
             if isinstance(data_tar, torch.Tensor):
                 data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
-            
-            
+
             # compute output
             start_time = time.time()
             
