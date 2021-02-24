@@ -620,6 +620,9 @@ def parse_pytorch_output_txt(score_file_path):
             if line.startswith('Output,'):
                 temp = line.split(',')
                 flag = int(temp[2])
+                if np.isnan(float(temp[3])):
+                    print(line)
+                    continue
                 if flag:
                     bonafide.append(float(temp[3]))
                     bonafide_names.append(temp[1].strip())
@@ -664,13 +667,14 @@ def ASVspoof2019_decomposed_results(score_file_path, flag_return_results=False,
 
 def ASVspoofNNN_decomposed_results(score_file_path, 
                                    flag_return_results=False,
+                                   flag_verbose=True,
                                    protocol_alternative=None):
     """ Similar to ASVspoof2019_decomposed_results, but use alternative protocol
     """
     bona, b_names, spoofed, s_names = parse_pytorch_output_txt(score_file_path)
 
     mintDCFs, eers, cm_thres, spoof_types, spoof_scores = ASVspoof2019_evaluate(
-        bona, b_names, spoofed, s_names, True, protocol_alternative)
+        bona, b_names, spoofed, s_names, flag_verbose, protocol_alternative)
     
     if flag_return_results:
         return mintDCFs, eers, cm_thres, spoof_types, spoof_scores, bona 

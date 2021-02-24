@@ -28,8 +28,8 @@ def return_one_row_latex(content_buffer):
 def return_one_row_text(content_buffer):
     return " ".join(content_buffer) + "\n"
 
-def fill_cell_text(text, length):
-    return "{str:^{wid}}".format(str=text, wid=length)
+def fill_cell(text, length, sep=''):
+    return "{str:^{wid}}".format(str=text, wid=length) + sep
     
 def return_latex_color_cell(value, value_min, value_max, scale, color_func):
     value = (value - value_min) / (value_max - value_min) * scale
@@ -41,7 +41,7 @@ def return_latex_color_cell(value, value_min, value_max, scale, color_func):
 def print_table(data_array, column_tag, row_tag, 
                 print_format="1.2f", 
                 with_color_cell = True,
-                colormap='Greys', colorscale=0.5):
+                colormap='Greys', colorscale=0.5, col_sep=''):
     """
     print a latex table given the data and tags
     
@@ -58,6 +58,8 @@ def print_table(data_array, column_tag, row_tag,
       colormap: str, color map name (matplotlib)
       colorscale: float, default 0.5, 
                   the color will be (0, colorscale)
+      col_sep: str, additional string to separate columns. 
+                  You may use '\t' or ',' for CSV
     output
     ------
       None
@@ -73,7 +75,8 @@ def print_table(data_array, column_tag, row_tag,
     value_min = np.min(data_array[data_array != np.inf])
     value_max = np.max(data_array[data_array != np.inf])
     
-    def latex_color_func_new(x):
+    def get_latex_color(x):
+        # return a color command for latex cell
         return return_latex_color_cell(x, value_min, value_max, 
                                        colorscale, color_func)
     
@@ -90,27 +93,33 @@ def print_table(data_array, column_tag, row_tag,
     latex_buffer = ""
     
     # latex head
-    latex_buffer += r"\begin{tabular}{" + ''.join(['c' for x in column_tag + ['']]) + r"}" + "\n"
+    latex_buffer += r"\begin{tabular}{" \
+                    + ''.join(['c' for x in column_tag + ['']]) + r"}" + "\n"
     
     # head row
-    head_row = [fill_cell_text("", row_tag_max_len)] \
-                + [fill_cell_text(x, col_tag_max_len) for x in column_tag]
-    latex_buffer += return_one_row_latex(head_row)
-    text_buffer += return_one_row_text(head_row)
+    #  for latex
+    hrow = [fill_cell("", row_tag_max_len)] \
+                + [fill_cell(x, col_tag_max_len) for x in column_tag]
+    latex_buffer += return_one_row_latex(hrow)
+    #  for plain text (add additional separator for each column)
+    hrow = [fill_cell("", row_tag_max_len, col_sep)] \
+           + [fill_cell(x, col_tag_max_len, col_sep) for x in column_tag]
+    text_buffer += return_one_row_text(hrow)
     
     # contents
     row = data_array.shape[0]
     col = data_array.shape[1]
     for row_idx in np.arange(row):
         # row head
-        row_content_latex = [fill_cell_text(row_tag[row_idx], row_tag_max_len)]
-        row_content_text = [fill_cell_text(row_tag[row_idx], row_tag_max_len)]
+        row_content_latex = [fill_cell(row_tag[row_idx], row_tag_max_len)]
+        row_content_text = [fill_cell(row_tag[row_idx],row_tag_max_len,col_sep)]
         
         # each column in the raw
         for col_idx in np.arange(col):
             if not np.isinf(data_array[row_idx,col_idx]):
-                num_str = "{num:{form}}".format(num=data_array[row_idx,col_idx], form=print_format)
-                latex_color_cell = latex_color_func_new(data_array[row_idx,col_idx])
+                num_str = "{num:{form}}".format(num=data_array[row_idx,col_idx],
+                                                form=print_format)
+                latex_color_cell = get_latex_color(data_array[row_idx,col_idx])
             else:
                 num_str = ''
                 latex_color_cell = ''
@@ -118,8 +127,11 @@ def print_table(data_array, column_tag, row_tag,
             if not with_color_cell:
                 latex_color_cell = ''
                 
-            row_content_text.append(fill_cell_text(num_str, col_tag_max_len))
-            row_content_latex.append(fill_cell_text(latex_color_cell + ' ' + num_str, col_tag_max_len))
+            row_content_text.append(
+                fill_cell(num_str, col_tag_max_len, col_sep))
+
+            row_content_latex.append(
+                fill_cell(latex_color_cell + ' ' + num_str, col_tag_max_len))
             
         # latex table content
         latex_buffer += return_one_row_latex(row_content_latex)
