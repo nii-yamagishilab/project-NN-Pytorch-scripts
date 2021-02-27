@@ -32,18 +32,24 @@ def f_realpath(f_dir, f_name, f_ext):
     return file_path
                 
 def string_chop(InStr):
-    """string_chop(InStr):                                             
-        Chop the input string                                       
-        InStr: the input string                                     
-        FChopMore: True: both '0x0d' and '0x0a' at the              
-                         end will be chopped                        
-                   False: only chop 0x0a                            
-                   default: True                                    
+    """ output = string_chop(InStr)
+    Chop the ending '\r' and '\n' from input string
+    
+    Args:
+        InStr: str, the input string
+
+    Return:
+        output: str
+    
+    '\r' corresponds to '0x0d' or 13,
+    '\n' corresponds to '0x0a' or 10                               
     """
-    if ord(InStr[-1]) == 10 and ord(InStr[-2]) == 13:
+    if len(InStr) >= 2 and ord(InStr[-1]) == 10 and ord(InStr[-2]) == 13:
         return InStr[:-2]
-    elif ord(InStr[-1]) == 10:
+    elif len(InStr) >= 1 and ord(InStr[-1]) == 10:
         return InStr[:-1]
     else:
         return InStr
-                    
+
+if __name__ == "__main__":
+    print("string tools")
