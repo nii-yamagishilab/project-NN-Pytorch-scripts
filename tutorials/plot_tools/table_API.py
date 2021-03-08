@@ -31,8 +31,15 @@ def return_one_row_text(content_buffer):
 def fill_cell(text, length, sep=''):
     return "{str:^{wid}}".format(str=text, wid=length) + sep
     
-def return_latex_color_cell(value, value_min, value_max, scale, color_func):
-    value = (value - value_min) / (value_max - value_min) * scale
+def wrap_value(data, wrap_factor=0):
+    if wrap_factor == 0:
+        return data
+    else:
+        ratio = (1+wrap_factor) / (1-wrap_factor)
+        return np.power((1 - np.power(1 - data, ratio)), 1/ratio)
+
+def return_latex_color_cell(value, val_min, val_max, scale, wrap, color_func):
+    value = wrap_value((value - val_min) / (val_max - val_min), wrap) * scale
     # only use RGB, not RGBA
     color_code = color_func(value)[:-1]
     color_code = ', '.join(["{:0.2f}".format(x) for x in color_code])
@@ -41,7 +48,7 @@ def return_latex_color_cell(value, value_min, value_max, scale, color_func):
 def print_table(data_array, column_tag, row_tag, 
                 print_format="1.2f", 
                 with_color_cell = True,
-                colormap='Greys', colorscale=0.5, col_sep=''):
+                colormap='Greys', colorscale=0.5, colorwrap=0, col_sep=''):
     """
     print a latex table given the data and tags
     
@@ -58,6 +65,8 @@ def print_table(data_array, column_tag, row_tag,
       colormap: str, color map name (matplotlib)
       colorscale: float, default 0.5, 
                   the color will be (0, colorscale)
+      colorwrap: float, default 0, wrap the color-value mapping curve
+                 colorwrap > 0 works like mels-scale curve
       col_sep: str, additional string to separate columns. 
                   You may use '\t' or ',' for CSV
     output
@@ -78,7 +87,7 @@ def print_table(data_array, column_tag, row_tag,
     def get_latex_color(x):
         # return a color command for latex cell
         return return_latex_color_cell(x, value_min, value_max, 
-                                       colorscale, color_func)
+                                       colorscale, colorwrap, color_func)
     
     # maximum width for tags in 1st column
     row_tag_max_len = max([len(x) for x in row_tag])

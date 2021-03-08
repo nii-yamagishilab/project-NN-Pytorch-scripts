@@ -313,18 +313,36 @@ def plot_spec(data, fig, axis, config_dic):
         sys.exit(1)
     
     # default configuration
-    tmp_dic = config_dic["plot_spec"] if "plot_spec" in config_dic else {}
-    sr = tmp_dic["sampling_rate"] if "sampling_rate" in tmp_dic else None
-    fs = tmp_dic["frame_shift"] if "frame_shift" in tmp_dic else 80
-    fl = tmp_dic["frame_length"] if "frame_length" in tmp_dic else 320
-    fn = tmp_dic["fft_bins"] if "fft_bins" in tmp_dic else 1024
+    tmp_dic = copy.deepcopy(config_dic["plot_spec"]) \
+              if "plot_spec" in config_dic else {}
+    
+    if "sampling_rate" in tmp_dic:
+        sr = tmp_dic["sampling_rate"]  
+        tmp_dic.pop("sampling_rate")
+    else:
+        sr = None
+    if "frame_shift" in tmp_dic:
+        fs = tmp_dic["frame_shift"]
+        tmp_dic.pop("frame_shift")
+    else:
+        fs = 80
+    if "frame_length" in tmp_dic:
+        fl = tmp_dic["frame_length"]
+        tmp_dic.pop("frame_length")
+    else:
+        fl =  320
+    if "fft_bins" in tmp_dic:
+        fn = tmp_dic["fft_bins"] 
+        fn.pop("fft_bins")
+    else:
+        fn = 1024
     
     # stft
     spec = _spec_amplitude(data, fn, fs, fl)
     
     tmp_config_dic = config_dic.copy()
-    if "plot_spec" in config_dic:
-            tmp_config_dic["plot_spec"] = config_dic["plot_spec"]
+    if tmp_dic:
+        tmp_config_dic["plot_imshow"] = tmp_dic
 
     plot_imshow(spec, fig, axis, tmp_config_dic)
     
