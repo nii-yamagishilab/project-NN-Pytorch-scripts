@@ -109,6 +109,9 @@ def get_colors(total, colormap='jet'):
 def get_color(idx, total, colormap='jet'):
     return get_colors(total, colormap)[idx]
 
+def correct_label(label_str, replace_str='-'):
+    return label_str.replace('_', replace_str)
+
 #################
 ## initialization
 #################

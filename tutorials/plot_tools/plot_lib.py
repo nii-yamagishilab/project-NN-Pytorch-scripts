@@ -163,6 +163,38 @@ def plot_bar(data, fig, axis, config):
                           horizontalalignment="center")
     return fig, axis
 
+
+def plot_boxplot(data, fig, axis, config):
+    """ 
+    """
+    # get config for obxplot
+    bp_config = copy.deepcopy(config["plot_boxplot"]) \
+                if "plot_boxplot" in config else {}
+
+    if "plot_marker" in bp_config:
+        marker_config = bp_config["plot_marker"]
+        bp_config.pop("plot_marker")
+    else:
+        marker_config = {}
+    
+    # filter data
+    data_for_plot = []
+    data_mean = []
+    for col in range(data.shape[1]):
+        idx = ~np.bitwise_or(np.isinf(data[:, col]), np.isnan(data[:, col]))
+        data_for_plot.append(data[idx, col])
+        data_mean.append(data[idx, col].mean())
+    
+    # 
+    axis.boxplot(data_for_plot, **bp_config)
+
+    xpos = temp_confg["positions"] if "positions" in bp_config \
+           else np.arange(len(data_for_plot))+1
+    
+    if marker_config:
+        axis.plot(xpos, data_mean, **marker_config)
+    return fig, axis
+
 ############################
 ## Specific functions
 ##  classification
@@ -172,7 +204,8 @@ from scipy import special as scipy_special
 def probit(x):
     """ probit function to scale the axis
     based on __probit__(p) 
-    https://projets-lium.univ-lemans.fr/sidekit/_modules/sidekit/bosaris/detplot.html
+    https://
+    projets-lium.univ-lemans.fr/sidekit/_modules/sidekit/bosaris/detplot.html
     """
     return np.sqrt(2) * scipy_special.erfinv(2.0 * x - 1)
 
@@ -201,7 +234,7 @@ def plot_det(data, fig, axis, config_dic):
         x = probit(data[1]) # far
         y = probit(data[0]) # frr
         
-        # we will use plot_signal as the back-end function for plotting DET curves
+        # we will use plot_signal as back-end function for plotting DET curves
         tmp_config_dic = config_dic.copy()
         if "plot_det" in config_dic:
             tmp_config_dic["plot_signal"] = config_dic["plot_det"]
@@ -210,11 +243,14 @@ def plot_det(data, fig, axis, config_dic):
         if "grid" in config_dic and config_dic["grid"]["b"] is False:
             pass
         else:
-            axis.plot([probit(0.0001), probit(0.99)], [probit(0.0001), probit(0.99)], 
+            axis.plot([probit(0.0001), probit(0.99)], 
+                      [probit(0.0001), probit(0.99)], 
                       c='lightgrey', linestyle='--')
-            axis.plot([probit(0.5), probit(0.5)], [probit(0.0001), probit(0.99)],     
+            axis.plot([probit(0.5), probit(0.5)], 
+                      [probit(0.0001), probit(0.99)],     
                       c='lightgrey', linestyle='--')
-            axis.plot([probit(0.0001), probit(0.99)], [probit(0.5), probit(0.5)],      
+            axis.plot([probit(0.0001), probit(0.99)], 
+                      [probit(0.5), probit(0.5)],      
                       c='lightgrey', linestyle='--')
             
         # plot using the plot_signal function
@@ -259,7 +295,8 @@ def plot_det(data, fig, axis, config_dic):
             abs_diffs = np.abs(data[1] - data[0])
             min_index = np.argmin(abs_diffs)
             eer = np.mean((data[1][min_index], data[0][min_index]))
-            axis.text(probit(eer), probit(eer), "EER {:2.3}\%".format(eer * 100))
+            axis.text(probit(eer), probit(eer), 
+                      "EER {:2.3}\%".format(eer * 100))
     else:
         print("plot_det requires input data = [far, frr]")
     return fig, axis
@@ -274,7 +311,9 @@ import scipy.signal
 import numpy as np
 
 def _spec(data, fft_bins=4096, frame_shift=40, frame_length=240):
-    f, t, cfft = scipy.signal.stft(data, nfft=fft_bins, noverlap=frame_length-frame_shift, nperseg=frame_length)
+    f, t, cfft = scipy.signal.stft(
+        data, nfft=fft_bins, 
+        noverlap=frame_length-frame_shift, nperseg=frame_length)
     return f,t,cfft
 
 def _amplitude(cfft):
