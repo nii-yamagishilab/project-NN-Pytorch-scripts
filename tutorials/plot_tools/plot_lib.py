@@ -195,6 +195,42 @@ def plot_boxplot(data, fig, axis, config):
         axis.plot(xpos, data_mean, **marker_config)
     return fig, axis
 
+
+def plot_table(data, fig, axis, config_dic):
+    """plot_table(data, fig, axis, config_dic)
+    Use plot_imshow to show table and print numbers
+    """
+    print_format = "1.2f"
+    font_color = "r"
+
+    if "plot_table" in config_dic:
+        tmp_config = copy.deepcopy(config_dic["plot_table"])
+        if "print_format" in tmp_config:
+            print_format = tmp_config['print_format']
+            tmp_config.pop('print_format')
+
+        if "font_color" in tmp_config:
+            font_color = tmp_config['font_color']
+            tmp_config.pop('font_color')
+    else:
+        tmp_config = {'cmap':'jet', 'origin':'lower', 'aspect':'auto'}
+        
+    
+    axis.imshow(data, **tmp_config)
+
+    config_dic['xlim'] = (-0.5, data.shape[1]-0.5)
+    config_dic['ylim'] = (-0.5, data.shape[0]-0.5)
+    
+    for row_idx in range(data.shape[0]):
+        for col_idx in range(data.shape[1]):
+            axis.text(col_idx, row_idx,
+                      "{num:{form}}".format(
+                          num=data[row_idx,col_idx],form=print_format),
+                      ha='center', va='center', c=font_color)
+
+    return fig, axis
+
+
 ############################
 ## Specific functions
 ##  classification

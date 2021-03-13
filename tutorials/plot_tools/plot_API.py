@@ -384,11 +384,17 @@ def util_options(fig, axis, config_dic):
     if "xticks" in config_dic:
         axis.set_xticks(config_dic["xticks"])
         if "xticklabels" in config_dic:
-            axis.set_xticklabels(config_dic["xticklabels"])
+            if type(config_dic["xticklabels"]) is dict:
+                axis.set_xticklabels(**config_dic["xticklabels"])
+            else:
+                axis.set_xticklabels(config_dic["xticklabels"])
     if "yticks" in config_dic:
         axis.set_yticks(config_dic["yticks"])
         if "yticklabels" in config_dic:
-            axis.set_yticklabels(config_dic["yticklabels"])
+            if type(config_dic["yticklabels"]) is dict:
+                axis.set_yticklabels(**config_dic["yticklabels"])
+            else:
+                axis.set_yticklabels(config_dic["yticklabels"])
     if "grid" in config_dic:
         axis.grid(**config_dic["grid"])
     return fig, axis
