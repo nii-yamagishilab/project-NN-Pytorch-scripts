@@ -22,21 +22,53 @@ __copyright__ = "Copyright 2020, Xin Wang"
 ##################
 
 def plot_signal(data, fig, axis, config_dic):
-    """ plot signal
+    """ plot signal as 1D sequence, using matplotlib.plot
+
+    Args
+    ----
+      data: np.array, (L, 2) or (L, 1) or (L, )
+      fig: matplotlib figure handle
+      axis: matplotlib axis handle
+      config: dictionary for axis.bar
+    
+    L: number of vertial bar groups
+    When data is (L, 2), use data[:, 0] as x, data[:, 1] as y
+    
+    Optional field in config_dic['plot_bar']:
+    6. other options for matplotlib.pyplot.bar
+
     """
     if type(data) is list:
+        print("plot_signal no longer support list input")
+        print("data will be converted to np.array")
         x = data[0]
         y = data[1]
         if "plot_signal" in config_dic:
             axis.plot(x, y, **config_dic["plot_signal"])
         else:
             axis.plot(x, y)
-    else:
+    elif type(data) is np.ndarray:
+        if data.ndim == 2 and data.shape[1] == 2:
+            x = data[:, 0]
+            y = data[:, 1]
+        elif data.ndim == 2 and data.shape[1] == 1:
+            y = data[:, 0]
+            x = np.arange(y.shape[0])
+        elif data.ndim == 1:
+            y = data
+            x = np.arange(y.shape[0])
+        else:
+            print("dimension of data is not supported")
+            sys.exit(1)
+    
         if "plot_signal" in config_dic:
-            axis.plot(data, **config_dic["plot_signal"])
+            axis.plot(x, y, **config_dic["plot_signal"])
         else:
             # default configuration
-            axis.plot(data)
+            axis.plot(x, y)
+    else:
+        print("Type of data is not np.array")
+        sys.exit(1)
     return fig, axis
 
 def plot_hist(data, fig, axis, config_dic):
@@ -48,11 +80,24 @@ def plot_hist(data, fig, axis, config_dic):
     return fig, axis
 
 def plot_imshow(data, fig, axis, config_dic):
+    """
+    """
+    plot_colorbar = False        
     if "plot_imshow" in config_dic:
-        axis.imshow(data, **config_dic["plot_imshow"])
+        temp_dic = copy.deepcopy(config_dic["plot_imshow"])
+        if "colorbar" in temp_dic:
+            plot_colorbar = temp_dic['colorbar']
+            temp_dic.pop("colorbar")
+        pos = axis.imshow(data, **temp_dic)
     else:
         # default configuration
-        axis.imshow(data, cmap='jet', origin='lower', aspect='auto')
+        pos = axis.imshow(data, cmap='jet', origin='lower', aspect='auto')
+    if type(plot_colorbar) is dict:
+        fig.colorbar(pos, **plot_colorbar)
+    elif plot_colorbar:
+        fig.colorbar(pos)
+    else:
+        pass
     return fig, axis
 
 def plot_scatter(data, fig, axis, config_dic):
