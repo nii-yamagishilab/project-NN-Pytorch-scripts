@@ -39,7 +39,7 @@ Projects for [this anti-spoofing project (on arxiv)](https://arxiv.org/abs/2103.
 
 In total, 36 systems, each of which was trained and evaluated for 6 rounds with different random seeds.
 
-![EER-mintDCF](./fig_eer_table.png)
+![EER-mintDCF](./misc/fig_eer_table.png)
 
 Pre-trained models, scores, training recipe are all available.
 
