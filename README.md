@@ -1,14 +1,18 @@
 # project-NII-pytorch-scripts
-By Xin Wang, National Institute of Informatics, 2020
+By Xin Wang, National Institute of Informatics, 2021
 
 I am a new pytorch user. If you have any suggestions or questions, pleas email wangxin at nii dot ac dot jp
 
 ------
-## 1. Update
+## 1. Update log
 
-* 2020-11: Default Pytorch is updated to 1.6
-* 2020-11: Projects on speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
-* 2020-08: Tutorial materials are added to [./tutorials](./tutorials). Most of the materials are Jupyter notebooks and can be run on your Laptop using CPU. 
+* 2021-04: Add projects on ASVspoof [./project/03-asvspoof-mega](./project/03-asvspoof-mega) for [this paper (on arxiv)](https://arxiv.org/abs/2103.11326)
+* 2020-04: Update core_scripts and functions
+* 2020-11: Update for Pytorch 1.6
+* 2020-11: Add preliminary projects on ASVspoof [./project/02-asvspoof](./project/02-asvspoof)
+* 2020-08: Add tutorial materials [./tutorials](./tutorials). Most of the materials are Jupyter notebooks and can be run on your Laptop using CPU. 
+
+<br />
 
 ## 2. Overview
 This repository hosts pytorch codes for a few projects:
@@ -27,7 +31,30 @@ Generated samples from pre-trained models can be found in ./project/01-nsf/\*/__
 
 Note that this is the re-implementation of projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/).
 
-### 2.2 Speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
+<br />
+
+### 2.2 Speech anti-spoofing [./project/03-asvspoof-mega](./project/02-asvspoof-mega)
+
+Projects for [this anti-spoofing project (on arxiv)](https://arxiv.org/abs/2103.11326).
+
+In total, 36 systems, each of which was trained and evaluated for 6 rounds with different random seeds.
+
+![EER-mintDCF](./fig_eer_table.png)
+
+Pre-trained models, scores, training recipe are all available.
+
+To use this project, please do:
+1. Follow **4. Usage** and setup the environment
+2. Download [ASVspoof 2019 LA](https://doi.org/10.7488/ds/2555) and convert FLAC to WAV;
+3. Put evaluation set waveforms to [./project/03-asvspoof-mega/DATA/asvspoof2019_LA/eval](./project/03-asvspoof-mega/DATA/asvspoof2019_LA/eval) and others to [DATA/asvspoof2019_LA/train_dev](./project/03-asvspoof-mega/DATA/asvspoof2019_LA/train_dev)
+4. Go to [./project/03-asvspoof-mega](./project/03-asvspoof-mega), run this script [./project/03-asvspoof-mega/00_demo.sh](./project/03-asvspoof-mega/00_demo.sh). 
+It will run pre-trained models, compute EERs, and train a new model.
+
+For more details, please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/READNE).
+
+<br />
+ 
+### 2.3 (Preliminary) speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
 1. Baseline LFCC + LCNN-binary-classifier (lfcc-lcnn-sigmoid)
 2. LFCC + LCNN + angular softmax (lfcc-lcnn-a-softmax)
 3. LFCC + LCNN + one-class softmax (lfcc-lcnn-ocsoftmax)
@@ -40,6 +67,8 @@ As you can see how the results vary a lot when simply changing the initial rando
 
 For LCNN, please check (Lavrentyeva 2019); for LFCC, please check (Sahidullah 2015); for one-class softmax in ASVspoof, please check (Zhang 2020).
 
+<br />
+ 
 ## 3. Python environment
 
 Only a few packages are required:
@@ -58,7 +87,8 @@ $: conda env create -f env.yml
 # load environment (whose name is pytorch-1.6)
 $: conda activate pytorch-1.6
 ```
-
+ <br />
+ 
 ## 4. Usage
 Take cyc-noise-nsf as an example:
 
@@ -87,22 +117,11 @@ $: bash 00_demo.sh > log_batch 2>&1 &
 
 The above steps will download the CMU-arctic data, run waveform generation using a pre-trained model, and train a new model (which may take 1 day or more on Nvidia V100 GPU). 
 
+<br />
 
 ## 5. Notes 
 
-### 5.1 On NSF projects (./project/01-nsf)
-* Input data: 00_demo.sh above will download a data package for the CMU-arctic corpus, including wav (normalized), f0, and Mel-spectrogram. If you want to train the model on your own data, please prepare the input/output data by yourself. There are scripts to extract features from 16kHz in the CMU-arctic data package (in ./project/DATA after running 00_demo.sh)
-
-* Batch size: implementation works only for batchsize = 1. My previous experiments only used batchsize = 1. I haven't update the data I/O to load varied length utterances
-
-* To 24kHz: most of my experiments are done on 16 kHz waveforms. If you want to try 24 kHz waveforms, FIR or sinc digital filters in the model may be changed for better performance:
-    
-    1. in hn-nsf: lp_v, lp_u, hp_v, and hp_u are calculated on for 16 kHz configurations. For different sampling rate, you may use this online tool http://t-filter.engineerjs.com to get the filter coefficients. In this case, the stop-band for lp_v and lp_u is extended to 12k, while the pass-band for hp_v and hp_u is extended to 12k. The reason is that, no matter what is the sampling rate, the actual formats (in Hz) and spectral of sounds don't change along the sampling rate;
-
-    2. in hn-sinc-nsf and cyc-noise-nsf: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
-
-
-### 5.2 Project organization and design
+### 5.1 Project organization and design
 
 Here are some details on the data format and project file structure:
 
@@ -149,6 +168,19 @@ The motivation is to separate the training and inference process, the model defi
 * To define a new model, change model.py only
 * To run on a new database, change config.py only
 
+
+### 5.2 On NSF projects (./project/01-nsf)
+* Input data: 00_demo.sh above will download a data package for the CMU-arctic corpus, including wav (normalized), f0, and Mel-spectrogram. If you want to train the model on your own data, please prepare the input/output data by yourself. There are scripts to extract features from 16kHz in the CMU-arctic data package (in ./project/DATA after running 00_demo.sh)
+
+* Batch size: implementation works only for batchsize = 1. My previous experiments only used batchsize = 1. I haven't update the data I/O to load varied length utterances
+
+* To 24kHz: most of my experiments are done on 16 kHz waveforms. If you want to try 24 kHz waveforms, FIR or sinc digital filters in the model may be changed for better performance:
+    
+    1. in hn-nsf: lp_v, lp_u, hp_v, and hp_u are calculated on for 16 kHz configurations. For different sampling rate, you may use this online tool http://t-filter.engineerjs.com to get the filter coefficients. In this case, the stop-band for lp_v and lp_u is extended to 12k, while the pass-band for hp_v and hp_u is extended to 12k. The reason is that, no matter what is the sampling rate, the actual formats (in Hz) and spectral of sounds don't change along the sampling rate;
+
+    2. in hn-sinc-nsf and cyc-noise-nsf: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
+
+
 ### 5.3 Differences from CURRENNT NSF implementation
 There may be more, but here are the important ones:
 
@@ -166,6 +198,9 @@ There may be more, but here are the important ones:
 
 The learning curves look similar to the CURRENNT (cuda) version.
 ![learning_curve](./misc/fig1_curve.png)
+
+
+<br />
 
 ## Reference
 
