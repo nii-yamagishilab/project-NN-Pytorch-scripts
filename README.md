@@ -6,7 +6,8 @@ I am a new pytorch user. If you have any suggestions or questions, pleas email w
 ------
 ## 1. Update log
 
-* 2021-04: Add projects on ASVspoof [./project/03-asvspoof-mega](./project/03-asvspoof-mega) for [this paper (on arxiv)](https://arxiv.org/abs/2103.11326)
+* 2021-04: Add projects on ASVspoof [./project/03-asvspoof-mega](./project/03-asvspoof-mega) for [paper A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection
+ (on arxiv)](https://arxiv.org/abs/2103.11326)
 * 2020-04: Update core_scripts and functions
 * 2020-11: Update for Pytorch 1.6
 * 2020-11: Add preliminary projects on ASVspoof [./project/02-asvspoof](./project/02-asvspoof)
@@ -15,7 +16,7 @@ I am a new pytorch user. If you have any suggestions or questions, pleas email w
 <br />
 
 ## 2. Overview
-This repository hosts pytorch codes for a few projects:
+This repository hosts Pytorch codes for the following projects:
 
 ### 2.1 Neural waveform model [./project/01-nsf](./project/01-nsf)
 
@@ -35,16 +36,16 @@ Note that this is the re-implementation of projects based on [CURRENNT](https://
 
 ### 2.2 Speech anti-spoofing [./project/03-asvspoof-mega](./project/02-asvspoof-mega)
 
-Projects for [this anti-spoofing project (on arxiv)](https://arxiv.org/abs/2103.11326).
+Projects for [this anti-spoofing project (A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection, paper on arxiv)](https://arxiv.org/abs/2103.11326).
 
-In total, 36 systems, each of which was trained and evaluated for 6 rounds with different random seeds.
+There were 36 systems investigated, each of which was trained and evaluated for 6 rounds with different random seeds.
 
 ![EER-mintDCF](./misc/fig_eer_table.png)
 
-Pre-trained models, scores, training recipe are all available.
+Pre-trained models, scores, training recipes are all available.
 
 To use this project, please do:
-1. Follow **4. Usage** and setup the environment
+1. Follow **4. Usage** and setup the Pytorch environment
 2. Download [ASVspoof 2019 LA](https://doi.org/10.7488/ds/2555) and convert FLAC to WAV;
 3. Put evaluation set waveforms to [./project/03-asvspoof-mega/DATA/asvspoof2019_LA/eval](./project/03-asvspoof-mega/DATA/asvspoof2019_LA/eval) and others to [DATA/asvspoof2019_LA/train_dev](./project/03-asvspoof-mega/DATA/asvspoof2019_LA/train_dev)
 4. Go to [./project/03-asvspoof-mega](./project/03-asvspoof-mega), run this script [./project/03-asvspoof-mega/00_demo.sh](./project/03-asvspoof-mega/00_demo.sh). 
@@ -72,14 +73,14 @@ For LCNN, please check (Lavrentyeva 2019); for LFCC, please check (Sahidullah 20
 ## 3. Python environment
 
 Only a few packages are required:
-1. python 3 (test on python3.8) 
+1. Python 3 (test on python3.8) 
 2. Pytorch 1.6 and above (test on pytorch-1.6)
 3. numpy (test on  1.18.1)
 4. scipy (test on 1.4.1)
 5. torchaudio (test on 0.6.0)
 6. librosa (0.8.0) with numba (0.48.0) and mir_eval (0.6) for some music projects 
 
-I use miniconda to manage python environment. You may use [./env.yml](./env.yml) or [./env2.yml](./env2.yml) to create the environment on our server by: 
+I use miniconda to manage Python environment. You may use [./env.yml](./env.yml) or [./env2.yml](./env2.yml) to create the environment: 
 
 ```
 # create environment
