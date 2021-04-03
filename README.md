@@ -94,6 +94,7 @@ Take cyc-noise-nsf as an example:
 
 ```
 # Load python environment
+# (Alternatively, you may use env.sh to activate conda environment)
 $: conda activate pytorch-1.6
 
 # cd into one project

@@ -42,3 +42,16 @@ done
 
 tar -czvf pretrained.tar */*/__pretrained
 rm -r */*/__pretrained
+
+
+exit
+
+
+SRC=/home/smg/wang/WORK/WORK/WORK/pytorch-project-2020/proj-asvspoof/proj-experiment-01/99_export_github/03-asvspoof-mega
+for dir in `ls -d *-lcnn-*`
+do
+    for run in 01 02 03 04 05 06
+    do
+	cp ${SRC}/${dir}/${run}/00_train.sh ${dir}/${run}
+    done
+done
