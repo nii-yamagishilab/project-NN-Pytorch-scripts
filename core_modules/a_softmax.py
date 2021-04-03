@@ -31,7 +31,7 @@ class AngleLayer(torch_nn.Module):
     m:          angular-softmax paramter
 
     
-    Method: (cos, phi) = forward(x)
+    Method: (|x|cos, phi) = forward(x)
     
     x: (batchsize, input_dim)
     
@@ -60,10 +60,19 @@ class AngleLayer(torch_nn.Module):
             lambda x: 16*x**5-20*x**3+5*x,
         ]
 
-    def forward(self, input):
+    def forward(self, input, flag_angle_only=False):
         """
-        input: (batchsize, input_dim)
-        output: ((batchsize, output_dim), (batchsize, output_dim))
+        Compute a-softmax activations
+        
+        input:
+        ------
+        input tensor (batchsize, input_dim)
+        flag_angle_only: true:  return cos(\theta), phi(\theta)
+                         false: return |x|cos(\theta), |x|phi(\theta)
+                         default: false
+        output:
+        -------
+        tuple of tensor ((batchsize, output_dim), (batchsize, output_dim))
         """
         # w (feature_dim, output_dim)
         w = self.weight.renorm(2, 1, 1e-5).mul(1e5)
@@ -97,10 +106,14 @@ class AngleLayer(torch_nn.Module):
         # Phi(yi, i) = (-1)**k * cos(myi,i) - 2 * k
         phi_theta = (minus_one ** k) * cos_m_theta - 2 * k
         
-        # (batchsie, output_dim)
-        cos_x = cos_theta * x_modulus.view(-1, 1)
-        phi_x = phi_theta * x_modulus.view(-1, 1)
+        if flag_angle_only:
+            cos_x = cos_theta
+            phi_x = phi_theta
+        else:
+            cos_x = cos_theta * x_modulus.view(-1, 1)
+            phi_x = phi_theta * x_modulus.view(-1, 1)
 
+        # ((batchsie, output_dim), (batchsie, output_dim))
         return cos_x, phi_x
 
     

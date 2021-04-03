@@ -34,11 +34,12 @@ class SeqInfo():
             seg_idx: idx of this segment in the original utterance
             start_pos: from which step does this segment start in the
                        original utterance
+            info_id: idx of this seq segment in training set
         """
-        self.length = length
+        self.length = int(length)
         self.seq_name = seq_name
         self.seg_idx = seg_idx
-        self.start_pos = start_pos
+        self.start_pos = int(start_pos)
         self.info_id = info_id
         
         
@@ -99,6 +100,17 @@ class SeqInfo():
 
     def seq_start_pos(self):
         return self.start_pos
+
+############
+### Util to parse the output from print_to_str
+############
+
+def parse_length(input_str):
+    return int(input_str.split(',')[3])
+
+def parse_filename(input_str):
+    return input_str.split(',')[1]
+
     
 if __name__ == "__main__":
     print("Definition of seq_info class")

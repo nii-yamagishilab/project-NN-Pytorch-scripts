@@ -1,0 +1,4 @@
+1. How to merge different types of plot_lib function in subplot of one figure
+plot_API.plot_API(signal, plot_lib.plot_signal)
+plot_API.plot_API(signal, plot_lib.plot_spec)
+

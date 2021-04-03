@@ -31,10 +31,10 @@ def listdir_with_ext(file_dir, file_ext=None):
     try:
     
         if file_ext is None:
-            file_list = [x.split('.')[0] for x in os.listdir(file_dir) \
+            file_list = [os.path.splitext(x)[0] for x in os.listdir(file_dir) \
                         if not x.startswith('.')]
         else:
-            file_list = [x.split('.')[0] for x in os.listdir(file_dir) \
+            file_list = [os.path.splitext(x)[0] for x in os.listdir(file_dir) \
                          if not x.startswith('.') and x.endswith(file_ext)]
         return file_list
     except OSError:
@@ -64,17 +64,67 @@ def list_identical(list_a, list_b):
     """
     return collections.Counter(list_a) == collections.Counter(list_b)
 
-def read_list_from_text(filename, f_chop=True):
-    """                                       
+def list_b_in_list_a(list_a, list_b):
+    """ list_b_in_list_a(list_a, list_b)
+    Whether list_b is subset of list_a
+
+    Parameters:
+        list_a: list
+        list_b: list
+    Return: 
+        flag: bool
     """
-    f = open(filename,'r')
+    return set(list_b) <= set(list_a)
+
+def members_in_a_not_in_b(list_a, list_b):
+    """ members_in_a_not_b(list_a, list_b):
+    Return a list of members that are in list_a but not in list_b
+    
+    Args:
+        list_a: list
+        list_b: list
+    Return: 
+        list
+    """
+    return list(set(list_a) - set(list_b))
+
+def read_list_from_text(filename, f_chop=True):
+    """out_list = read_list_from_text(filename, f_chop=True)
+    Read a text file and return a list, where each text line is one element
+    
+    Args:
+      filename: str, path to the file
+      f_chop: bool, whether trim the newline symbol at the end of each line
+              (default True)
+    Return:
+      output_list: list, each element is one line in the input text file
+    """
     data = []
-    for line in f:
-        if f_chop:
-            line = nii_str_tool.string_chop(line)
-        data.append(line)
-    f.close()
+    with open(filename,'r') as file_ptr: 
+        for line in file_ptr:
+            line = nii_str_tool.string_chop(line) if f_chop else line
+            data.append(line)
     return data
+
+def write_list_to_text_file(data_list, filepath, endl='\n'):
+    """write_list_to_text(data_list, filepath, endl='\n')              
+    Save a list of data to a text file                                 
+                                                                       
+    Args:                                                              
+      data_list: list, data list to be saved                           
+      filepath: str, path to the output text file                      
+      endl: str, ending of each new line, default \n                   
+                                                                       
+    If each element in data_list is not str, it will be converted to   
+    str by str().                                                      
+    """
+    with open(filepath, 'w') as file_ptr:
+        for data_entry in data_list:
+            if type(data_entry) is str:
+                file_ptr.write(data_entry + endl)
+            else:
+                file_ptr.write(str(data_entry) + endl)
+    return
 
 if __name__ == "__main__":
     print("Definition of tools for list operation")

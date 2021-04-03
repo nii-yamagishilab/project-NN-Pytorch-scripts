@@ -1,0 +1,8 @@
+protocol.txt: just concatenation of ASVspoof2019_LA_cm_protocols/*.txt. This will be loaded by the pytorch code during training (also testing on the evaluation set)
+
+scp: list of files for traing, dev, and eval, in format used by the pytorch code
+
+
+train_dev: link to the folder that stores both train and dev waveform. This pytorch code requires that both train and dev data are saved in the same folder. 
+
+eval: link to the folder that stores test set waveforms

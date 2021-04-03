@@ -1,0 +1,28 @@
+DATA: folder to store data
+
+lfcc-lcnn-sigmoid: LFCC + LCNN + sigmoid output activation function
+lfcc-lcnn-a-softmax: 
+lfcc-lcnn-ocsoftmax:
+lfcc-restnet-ocsoftmax: 
+
+To use this code, please:
+1. Download ASVspoof2019 LA data
+   https://datashare.is.ed.ac.uk/handle/10283/3336
+
+2. Convert flac into waveforms
+
+3. Create symbol links to the waveform files as DATA/asvspoof2019_LA/README suggests
+
+Then, try 00_demo.sh in anyone of the model folder
+$: cd lfcc-lcnn-sigmoid
+$: bash 00_demo.sh > log_batch 2>&1 &
+
+Everything will be running in the background.
+
+
+
+Memo:
+lfcc-lcnn-sigmoid: proj-asvspoof/models_stc_lcnn/trial22-1-1-t2
+lfcc-lcnn-ocsoftmax: proj-asvspoof/models_stc_lcnn/trial22-1-5-t3
+lfcc-lcnn-a-softmax: proj-asvspoof/models_stc_lcnn/trial22-1-3-t2/
+lfcc-restnet-ocsoftmax: proj-asvspoof/models_resnet/trial01-01

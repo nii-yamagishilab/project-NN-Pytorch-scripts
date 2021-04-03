@@ -36,7 +36,8 @@ def _print_loss(loss_array):
     mes += "| "
     return mes
 
-def print_train_info(epoch, time_tr, loss_tr, time_val, loss_val, isbest):
+def print_train_info(epoch, time_tr, loss_tr, time_val, 
+                     loss_val, isbest, lr_info):
     """ Print the information during training
     """
     mes = "{:>7d} | ".format(epoch)
@@ -49,6 +50,8 @@ def print_train_info(epoch, time_tr, loss_tr, time_val, loss_val, isbest):
         mes = mes + "{:>5s}".format("yes")
     else:
         mes = mes + "{:>5s}".format("no")
+    if lr_info:
+        mes = mes + lr_info
     nii_display.f_print_message(mes, flush=True)
     return mes + '\n'
 
