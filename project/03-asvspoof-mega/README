@@ -103,17 +103,8 @@ For training or evaluation
    run the training or evaluation loop
 
 
-If you want to use the code for other database, you may run this:
-1. collect the files:
- $: mkdir new-project
- $: copy 01_config.py new-project/config.py
- $: copy 01_main.py new-project/main.py
- $: copy lfcc-lcnn-lstmsum-p2s/01/model.py new-project/
- $: copy lfcc-lcnn-lstmsum-p2s/01/01_train.sh new-project/
-
-2. Change config.py to load your database
-
-3. $: bash 01_train.sh
+If you want to use the code for other database, please check 04-asvspoof2021-baseline
+and try the toy example. It will include a toy dataset for the training process
 
 That's all
 

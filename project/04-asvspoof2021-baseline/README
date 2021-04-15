@@ -1,0 +1,59 @@
+Project for ASVspoof 2021 
+
+General
+----------
+This project is for ASVspoof 2021 LA baseline.
+But it may be used for PA too
+
+1. lfcc-lcnn-lstm-p2s_toy_example: a toy example to train and run evaluation
+2. lfcc-lcnn-lstm-p2s_baseline (to be uploaded after the release of ASVspoof 2021 data)
+
+Usage
+----------
+Either run the single script
+ $: 00_toy_example.sh
+
+Or these three setps:
+1. install conda environment:
+   $: bash 01_conda.sh
+2. untar the toy data set
+   $: cd DATA
+   $: tar -xzvf toy_example.tar.gz
+   $: cd ..
+3. run scripts
+   $: cd lfcc-lcnn-lstm-p2s_toy_example
+   # evaluation using pre-trained model
+   $: bash 01_eval.sh
+   # training, with pre-trained model as initialization
+   $: bash 00_train.sh
+
+Folder structure
+----------------
+|- DATA
+|  |- toy_example
+|  |  |- protocol.txt: 
+|  |  |   protocol file
+|  |  |   this will be loaded by pytorch code for training and evaluation
+|  |  |- scp: 
+|  |  |   list of files for traing, dev, and eval
+|  |  |- train_dev: 
+|  |  |   waveform for train and validation sets   
+|  |  |- eval: 
+|  |  |   waveform for evaluation sets   
+|
+|- lfcc-lcnn-lstmsum-p2s_toy_example
+|  |  folder for the toy example
+|  |  |- 00_train.sh: recipe to train the model
+|  |  |- 01_eval.sh: command line to evaluate the model on eval set
+|  |  |- main.py: main function
+|  |  |- config.py: configuration file
+|  |  |- model.py: definition of model in Pytorch code
+|  |  |- __pretrained
+|  |       |- trained_network.pt: pre-trained model 
+|  |       |   from ../03-asvspoof-mega/lfcc-lcnn-lstmsum-p2s/04
+
+Note
+----------
+1. If GPU memory is insufficient, please reduce --batch-size in */00_train.sh
+2. Please check ..//03-asvspoof-mega if you want to use other models
+3. The used countermeasure model is detailed here https://arxiv.org/abs/2103.11326.

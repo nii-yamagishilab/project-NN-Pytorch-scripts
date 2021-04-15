@@ -34,7 +34,17 @@ Note that this is the re-implementation of projects based on [CURRENNT](https://
 
 <br />
 
-### 2.2 Speech anti-spoofing [./project/03-asvspoof-mega](./project/02-asvspoof-mega)
+### 2.2 ASVspoof 2021 baseline tool [./project/04-asvspoof2021-baseline](./project/04-asvspoof2021-baseline)
+
+Projects for ASVspoof 2021 baseline. 
+
+A toy example is included to run training and evaluation.
+
+More to be added after the release of ASVspoof 2021 data.
+
+<br />
+
+### 2.3 Speech anti-spoofing for ASVspoof 2019 LA [./project/03-asvspoof-mega](./project/02-asvspoof-mega)
 
 Projects for [this anti-spoofing project (A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection, paper on arxiv)](https://arxiv.org/abs/2103.11326).
 
@@ -55,7 +65,7 @@ For more details, please check [./project/03-asvspoof-mega/README](./project/03-
 
 <br />
  
-### 2.3 (Preliminary) speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
+### 2.4 (Preliminary) speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
 1. Baseline LFCC + LCNN-binary-classifier (lfcc-lcnn-sigmoid)
 2. LFCC + LCNN + angular softmax (lfcc-lcnn-a-softmax)
 3. LFCC + LCNN + one-class softmax (lfcc-lcnn-ocsoftmax)
