@@ -17,8 +17,8 @@ log_train_name=log_train
 log_err_name=log_err
 pretrained_model=__pretrained/trained_network.pt
 
-echo -e "Run training"
-echo -e "Please monitor the trainig log ${log_train_name}"
+echo -e "Training"
+echo -e "Please monitor the log trainig: $PWD/${log_train_name}\n"
 source $PWD/../../../env.sh
 python main.py --model-forward-with-file-name \
        --num-workers 3 --epochs 100 \
@@ -28,8 +28,8 @@ python main.py --model-forward-with-file-name \
        --trained-model ${pretrained_model} \
        --ignore-training-history-in-trained-model \
        --lr 0.0003 --seed 1000 > ${log_train_name} 2>${log_err_name}
-
-echo -e "Trainig log has been written to ${log_train_name}"
+echo -e "Training process finished"
+echo -e "Trainig log has been written to $PWD/${log_train_name}"
 
 
 
