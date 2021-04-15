@@ -1,4 +1,4 @@
-name: pytorch-1.6
+name: pytorch-1.7
 channels:
   - defaults
   - pytorch
@@ -6,10 +6,10 @@ channels:
   - anaconda
 dependencies:
   - python=3.8
-  - pytorch::pytorch=1.6
-  - cudatoolkit=9.2
-  - pytorch::torchvision=0.7.0
-  - pytorch::torchaudio=0.6.0
+  - pytorch::pytorch=1.7.0
+  - cudatoolkit=11.0
+  - pytorch::torchvision=0.8.0
+  - pytorch::torchaudio=0.7.0
   - scipy=1.4.1
   - numpy=1.18.1
   - numba=0.48.0

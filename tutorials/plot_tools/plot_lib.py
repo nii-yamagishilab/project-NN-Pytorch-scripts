@@ -250,10 +250,16 @@ def plot_boxplot(data, fig, axis, config):
     # filter data
     data_for_plot = []
     data_mean = []
-    for col in range(data.shape[1]):
-        idx = ~np.bitwise_or(np.isinf(data[:, col]), np.isnan(data[:, col]))
-        data_for_plot.append(data[idx, col])
-        data_mean.append(data[idx, col].mean())
+    if type(data) is list:
+        for col in range(len(data)):
+            idx = ~np.bitwise_or(np.isinf(data[col]), np.isnan(data[col]))
+            data_for_plot.append(data[col][idx])
+            data_mean.append(data[col][idx].mean())    
+    else:
+        for col in range(data.shape[1]):
+            idx = ~np.bitwise_or(np.isinf(data[:, col]), np.isnan(data[:, col]))
+            data_for_plot.append(data[idx, col])
+            data_mean.append(data[idx, col].mean())
     
     # 
     axis.boxplot(data_for_plot, **bp_config)

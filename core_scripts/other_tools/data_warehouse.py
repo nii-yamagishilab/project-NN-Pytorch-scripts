@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import itertools
 import numpy as np
 
 from core_scripts.other_tools import list_tools
@@ -15,6 +16,7 @@ from core_scripts.other_tools import list_tools
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2021, Xin Wang"
+
 class DataEntry:
     """DataEntry to store data for one entry
     """
@@ -162,7 +164,8 @@ class DataWarehouse:
               tag_values[0] x tag_values[1] x ... 
               
               Then, each combination is used to retrieve the data
-              output data will be a tensor of [len(tag_values[0]), len(tag_values[1]), ...]
+              output data will be a tensor of 
+                 [len(tag_values[0]), len(tag_values[1]), ...]
           
         output:
            data_list:
