@@ -55,5 +55,34 @@ Folder structure
 Note
 ----------
 1. If GPU memory is insufficient, please reduce --batch-size in */00_train.sh
-2. Please check ..//03-asvspoof-mega if you want to use other models
-3. The used countermeasure model is detailed here https://arxiv.org/abs/2103.11326.
+
+2. Output score has this following format:
+
+   Output, File name, label, score
+   Output, LA_E_8688127, 0, -0.011127
+
+   If label of the trial is given in the protocol file, the label will be: 
+     0, which denotes spoof
+     1, which denotes bona fide
+   If label of the trial is not given in the protocol file, the label will be:
+    -1, which means unknown (not provided)
+
+3. Accordingly, the code assumes 0 and 1 as the tables for spoof and bona fide
+   trials, respectively. 
+
+4. Please check ../03-asvspoof-mega if you want to use other models. 
+   However, model.py ../03-asvspoof-mega assumes that trial labels are available 
+   for evaluation set (as post-challenge experiments on ASVspoof2019 LA).
+
+   For new evaluation set whose trial labels are unknown, please create
+   protocol.txt using dummy labels for the trials. 
+   Or, please modify protocol_parse() and _get_target_eval() 
+   following lfcc-lcnn-lstm-p2s_toy_example/model.py
+
+   (Apologize that I don't have the time to modify the model.py in 03-asvspoof-mega 
+    one by one)
+     
+5. The used countermeasure model is detailed here https://arxiv.org/abs/2103.11326.
+
+
+That's all

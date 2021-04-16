@@ -83,25 +83,37 @@ Usage
 
 Note
 ----------
-Running 00_demo.sh requires GPU card with sufficient memory
+
+1. Running 00_demo.sh requires GPU card with sufficient memory
 step2, model evaluation requires around 3GB GPU memory
 step3, model training requires around 16GB GPU memory
 If GPU memory is insufficient, please reduce --batch-size in */*/00_train.sh
 
 
-The 00_demo.sh works in this way:
+2. The 00_demo.sh works in this way (for training or evaluation)
+   1. go to a model folder
+   2. 01_main.py and 01_config.py are copied to a model folder as main.py and config.py
+   3. run python main.py with other options, 
+      by default, it will load model.py in the model folder and config.py
+   4. main.py asks core_scripts/data_io/default_data_io.py to scan the files and 
+      prepare torch.utils.Dataset, given the information on the folder, file name extention
+      and so on in config.py
+   5. main.py load the model definition in model.py and call core_scripts/nn_manager to
+      run the training or evaluation loop
 
-For training or evaluation
-1. go to a model folder
-2. 01_main.py and 01_config.py are copied to a model folder as main.py and config.py
-3. run python main.py with other options, 
-   by default, it will load model.py in the model folder and config.py
-4. main.py asks core_scripts/data_io/default_data_io.py to scan the files and 
-   prepare torch.utils.Dataset, given the information on the folder, file name extention
-   and so on in config.py
-5. main.py load the model definition in model.py and call core_scripts/nn_manager to
-   run the training or evaluation loop
+3. Input data are provided as waveform, LFCC will be produced by the code internally.
+   Target labels should be provided in protocol.txt (see DATA/asvspoof2019_la/protocol.txt)
+  
+   The model.py will parse protocol.txt and use the "bonafide" and "spoof" as target labels.
 
+   The model.py will internally converts "bonafide" label to 1 and "spoof" label to 0
+   Accordingly, the output score from the model looks like:
+
+   Output, File name, label, score
+   Output, LA_E_8688127, 0, -0.011127
+   Output, LA_E_2504134, 1, 0.999660
+
+   Where 0 and 1 denote spoof and bona fide, respectively.
 
 If you want to use the code for other database, please check 04-asvspoof2021-baseline
 and try the toy example. It will include a toy dataset for the training process

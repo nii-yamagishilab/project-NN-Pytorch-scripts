@@ -94,7 +94,7 @@ minimum_len = None
 
 # Optional argument
 #  We will use this optional_argument to read protocol file
-#  When evaluating on a eval set without protocol file, set this to []
+#  When evaluating on a eval set without protocol file, set this to ['']
 optional_argument = [tmp + '/protocol.txt']
 
 #########################################################
