@@ -21,7 +21,6 @@ import sandbox.util_frontend as nii_front_end
 import core_scripts.other_tools.debug as nii_debug
 import core_scripts.data_io.seq_info as nii_seq_tk
 import core_modules.p2sgrad as nii_p2sgrad
-import config as prj_conf
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -62,7 +61,7 @@ def protocol_parse(protocol_filepath):
 class Model(torch_nn.Module):
     """ Model definition
     """
-    def __init__(self, in_dim, out_dim, args, mean_std=None):
+    def __init__(self, in_dim, out_dim, args, prj_conf, mean_std=None):
         super(Model, self).__init__()
 
         ##### required part, no need to change #####

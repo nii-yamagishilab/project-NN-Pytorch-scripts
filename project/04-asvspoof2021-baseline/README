@@ -10,22 +10,26 @@ But it may be used for PA too
 
 Usage
 ----------
-Either run the single script
- $: 00_toy_example.sh
 
-Or these three setps:
-1. install conda environment:
-   $: bash 01_conda.sh
-2. untar the toy data set
-   $: cd DATA
-   $: tar -xzvf toy_example.tar.gz
-   $: cd ..
-3. run scripts
-   $: cd lfcc-lcnn-lstm-p2s_toy_example
-   # evaluation using pre-trained model
-   $: bash 01_eval.sh
-   # training, with pre-trained model as initialization
-   $: bash 00_train.sh
+1. Using toy dat set to do training and evaluation 
+   Either run the single script
+   $: bash 00_toy_example.sh
+
+2. Using a quick wrapper to evaluate a new evaluation set
+   (although we will use the evaluation set in the toy data set)
+   $: bash 00_wrapper_eval.sh
+
+Walking through the first script shows how to use this project to train and evaluate
+a data set. It is useful if you want work on real data sets.
+Of course, the data set directory and related configuration file must be prepared.
+After running 00_toy_example.sh, you will see how the data set is prepared in DATA/toy_example.
+And you can check how configuration is done in */config.py
+
+
+Walking through the second script shows the conveninent way to run evaluation on 
+different evaluation sets. Just provide the directory of waveform to be evaluated, 
+the trained model, and an arbitary name for the evaluation set. That's all.
+
 
 Folder structure
 ----------------

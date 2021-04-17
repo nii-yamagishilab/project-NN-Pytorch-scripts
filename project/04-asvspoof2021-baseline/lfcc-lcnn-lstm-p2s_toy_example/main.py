@@ -105,7 +105,7 @@ def main():
         # initialize the model and loss function
         model = prj_model.Model(trn_set.get_in_dim(), \
                                 trn_set.get_out_dim(), \
-                                args, trn_set.get_data_mean_std())
+                                args, prj_conf, trn_set.get_data_mean_std())
         loss_wrapper = prj_model.Loss(args)
         
         # initialize the optimizer
@@ -161,7 +161,7 @@ def main():
         # initialize model
         model = prj_model.Model(test_set.get_in_dim(), \
                                 test_set.get_out_dim(), \
-                                args)
+                                args, prj_conf)
         if args.trained_model == "":
             print("No model is loaded by ---trained-model for inference")
             print("By default, load %s%s" % (args.save_trained_name,

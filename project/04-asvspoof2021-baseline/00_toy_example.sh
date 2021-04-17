@@ -6,6 +6,9 @@
 #  2. untar toy data set
 #  3. run evaluation and training process
 #
+# This script will use the toy data set in
+# DATA/toy_example. 
+#
 # If GPU memory is less than 16GB, please reduce
 #   --batch-size in 00_train.sh
 ########################
