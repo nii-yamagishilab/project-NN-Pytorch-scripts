@@ -53,9 +53,9 @@ python main.py \
        --inference \
        --model-forward-with-file-name \
        --trained-model ${trained_model} \
-       --module-config config_auto > ${log_name}.txt 2>&1
+       --module-config config_auto > ${log_name}.txt 2>${log_name}_err.txt
 
-cat ${log_name}.txt | grep "Output" > ${log_name}_score.txt
+cat ${log_name}.txt | grep "Output," > ${log_name}_score.txt
 
 echo -e "Process log has been written to $PWD/${log_name}.txt"
 echo -e "Score has been written to $PWD/${log_name}_score.txt"

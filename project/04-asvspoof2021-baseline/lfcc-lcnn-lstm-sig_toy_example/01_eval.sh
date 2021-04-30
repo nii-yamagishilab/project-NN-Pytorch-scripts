@@ -14,7 +14,7 @@ trained_model=__pretrained/trained_network.pt
 echo -e "Run evaluation"
 source $PWD/../../../env.sh
 python main.py --inference --model-forward-with-file-name \
-       --trained-model ${trained_model}> ${log_name}.txt 2>&1
-cat ${log_name}.txt | grep "Output" > ${log_name}_score.txt
+       --trained-model ${trained_model}> ${log_name}.txt 2>${log_name}_err.txt
+cat ${log_name}.txt | grep "Output," > ${log_name}_score.txt
 echo -e "Process log has been written to $PWD/${log_name}.txt"
 echo -e "Score has been written to $PWD/${log_name}_score.txt"

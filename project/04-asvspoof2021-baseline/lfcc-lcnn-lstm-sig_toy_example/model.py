@@ -2,7 +2,8 @@
 """
 model.py
 
-Model definition
+Self defined model definition.
+Usage:
 
 """
 from __future__ import absolute_import
@@ -20,7 +21,7 @@ import sandbox.block_nn as nii_nn
 import sandbox.util_frontend as nii_front_end
 import core_scripts.other_tools.debug as nii_debug
 import core_scripts.data_io.seq_info as nii_seq_tk
-import core_modules.p2sgrad as nii_p2sgrad
+
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -87,9 +88,7 @@ class Model(torch_nn.Module):
         self.protocol_parser = protocol_parse(protocol_file)
         
         # Working sampling rate
-        #   torchaudio may be used to change sampling rate
-        # This is originally used for chaing sampling rate of input trial
-        # Not it is not used
+        #  torchaudio may be used to change sampling rate
         self.m_target_sr = 16000
 
         ####
@@ -130,29 +129,25 @@ class Model(torch_nn.Module):
         # no truncation
         self.v_truncate_lens = [None for x in self.frame_hops]
 
+
         # number of sub-models (by default, a single model)
         self.v_submodels = len(self.frame_lens)        
 
         # dimension of embedding vectors
-        self.v_emd_dim = 64
-
-        # output classes
-        self.v_out_class = 2
+        # here, the embedding is just the activation before sigmoid()
+        self.v_emd_dim = 1
 
         ####
         # create network
         ####
         # 1st part of the classifier
         self.m_transform = []
-        # layers to smooth the hidden features before pooling
+        # 
         self.m_before_pooling = []
         # 2nd part of the classifier
         self.m_output_act = []
         # front-end
         self.m_frontend = []
-        # final part on training (for p2sgrad)
-        self.m_angle = []
-        
 
         # it can handle models with multiple front-end configuration
         # by default, only a single front-end
@@ -163,7 +158,6 @@ class Model(torch_nn.Module):
             if self.lfcc_with_delta:
                 lfcc_dim = lfcc_dim * 3
             
-            # LFCC definition (layers after the last maxpooling are removed)
             self.m_transform.append(
                 torch_nn.Sequential(
                     torch_nn.Conv2d(1, 64, [5, 5], 1, padding=[2, 2]),
@@ -205,7 +199,6 @@ class Model(torch_nn.Module):
                 )
             )
 
-            # Use LSTM to do smoothing
             self.m_before_pooling.append(
                 torch_nn.Sequential(
                     nii_nn.BLSTMLayer((lfcc_dim//16) * 32, (lfcc_dim//16) * 32),
@@ -213,17 +206,10 @@ class Model(torch_nn.Module):
                 )
             )
 
-            # Last FC layer for p2sgrad
             self.m_output_act.append(
                 torch_nn.Linear((lfcc_dim // 16) * 32, self.v_emd_dim)
             )
-
-            # P2sgrad layer
-            self.m_angle.append(
-                nii_p2sgrad.P2SActivationLayer(self.v_emd_dim, self.v_out_class)
-            )
-
-            # Front end
+            
             self.m_frontend.append(
                 nii_front_end.LFCC(self.frame_lens[idx],
                                    self.frame_hops[idx],
@@ -236,8 +222,10 @@ class Model(torch_nn.Module):
         self.m_frontend = torch_nn.ModuleList(self.m_frontend)
         self.m_transform = torch_nn.ModuleList(self.m_transform)
         self.m_output_act = torch_nn.ModuleList(self.m_output_act)
-        self.m_angle = torch_nn.ModuleList(self.m_angle)
         self.m_before_pooling = torch_nn.ModuleList(self.m_before_pooling)
+        
+        # output 
+
         # done
         return
     
@@ -311,16 +299,9 @@ class Model(torch_nn.Module):
         return x_sp_amp
 
     def _compute_embedding(self, x, datalength):
-        """ compute embedding vectors (input to the FC and p2sgrad)
-        
-        input:
-        ------
-          x: tensor, (batchsize, length, dim)
-          datalength: list, list of data length
-        
-        output:
-        ------
-          Output: tensor, (batchsize * number_sub_model, output_dim)
+        """ definition of forward method 
+        Assume x (batchsize, length, dim)
+        Output x (batchsize * number_filter, output_dim)
         """
         # resample if necessary
         #x = self.m_resampler(x.squeeze(-1)).unsqueeze(-1)
@@ -343,7 +324,7 @@ class Model(torch_nn.Module):
             # extract front-end feature
             x_sp_amp = self._front_end(x, idx, trunc_len, datalength)
 
-            # compute embeddings vectors
+            # compute scores
             #  1. unsqueeze to (batch, 1, frame_length, fft_bin)
             #  2. compute hidden features
             hidden_features = m_trans(x_sp_amp.unsqueeze(1))
@@ -355,55 +336,28 @@ class Model(torch_nn.Module):
             frame_num = hidden_features.shape[1]
             hidden_features = hidden_features.view(batch_size, frame_num, -1)
             
+            #  4. pooling
             #  4. pass through LSTM then summing
             hidden_features_lstm = m_be_pool(hidden_features)
 
             #  5. pass through the output layer
-            tmp_emb = m_output((hidden_features_lstm + hidden_features).sum(1))
+            tmp_emb = m_output((hidden_features_lstm + hidden_features).mean(1))
             
             output_emb[idx * batch_size : (idx+1) * batch_size] = tmp_emb
 
         return output_emb
 
-    def _compute_score(self, x, inference=False):
-        """ comptue scores given embedding vectors
-        
-        input:
-        ------
-          x: tensor, (batchsize * num_submodel, embedding_dim)
-          inference: bool, whether this is for training or inference
-        
-        output:
-        -------
-          output_score: (batchsize * num_submodel, 2) if inference is False
-                        (batchsize * num_submodel, 1) if inference is True
-
-        When inference is True, output_score will be sent to p2sgrad 
-             loss function
+    def _compute_score(self, feature_vec, inference=False):
         """
-        # number of sub models
-        batch_size = x.shape[0]
-
-        # compute score through p2sgrad layer
-        out_score = torch.zeros(
-            [batch_size * self.v_submodels, self.v_out_class], 
-            device=x.device, dtype=x.dtype)
-
-        # compute scores for each sub-models
-        for idx, m_score in enumerate(self.m_angle):
-            tmp_score = m_score(x[idx * batch_size : (idx+1) * batch_size])
-            out_score[idx * batch_size : (idx+1) * batch_size] = tmp_score
-
+        """
+        # feature_vec is [batch * submodel, 1]
         if inference:
-            # output_score [:, 1] corresponds to the positive class
-            return out_score[:, 1]
+            return feature_vec.squeeze(1)
         else:
-            return out_score
+            return torch.sigmoid(feature_vec).squeeze(1)
 
 
     def _get_target(self, filenames):
-        """ retrieve the target label for a trial from protocol
-        """
         try:
             return [self.protocol_parser[x] for x in filenames]
         except KeyError:
@@ -417,10 +371,15 @@ class Model(torch_nn.Module):
                 for x in filenames]
 
     def forward(self, x, fileinfo):
-        """ forward function of Model
-        x: waveform input
-        fileinfo: file names and other file information (e.g., waveform length)
-        """
+
+        #with torch.no_grad():
+        #    vad_waveform = self.m_vad(x.squeeze(-1))
+        #    vad_waveform = self.m_vad(torch.flip(vad_waveform, dims=[1]))
+        #    if vad_waveform.shape[-1] > 0:
+        #        x = torch.flip(vad_waveform, dims=[1]).unsqueeze(-1)
+        #    else:
+        #        pass
+        
         filenames = [nii_seq_tk.parse_filename(y) for y in fileinfo]
         datalength = [nii_seq_tk.parse_length(y) for y in fileinfo]
         if self.training:
@@ -441,8 +400,8 @@ class Model(torch_nn.Module):
             scores = self._compute_score(feature_vec, True)
             
             target = self._get_target_eval(filenames)
-            print("Output, %s, %d, %f" % \
-                  (filenames[0], target[0], scores.mean()))
+            print("Output, %s, %d, %f" % (filenames[0], 
+                                          target[0], scores.mean()))
             # don't write output score as a single file
             return None
 
@@ -453,7 +412,7 @@ class Loss():
     def __init__(self, args):
         """
         """
-        self.m_loss = nii_p2sgrad.P2SGradLoss()
+        self.m_loss = torch_nn.BCELoss()
 
 
     def compute(self, outputs, target):

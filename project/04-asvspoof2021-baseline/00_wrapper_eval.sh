@@ -11,7 +11,7 @@
 # different evaluationg sets.
 #
 # This script shows one example of quick evaluation using 
-# lfcc-lcnn-lstm-p2s_toy_example/02_eval_alternative.sh 
+# lfcc-lcnn-lstm-sig_toy_example/02_eval_alternative.sh 
 #
 # It will use DATA/toy_example/eval 
 # It will call the evaluat set toy_eval
@@ -35,7 +35,9 @@ tar -xzf toy_example.tar.gz
 cd ..
 
 # Go to the folder
-cd lfcc-lcnn-lstm-p2s_toy_example
+cd lfcc-lcnn-lstm-sig_toy_example
 
 # Run evaluation using pretrained model 
+#  bash 02_eval_alternative.sh PATH_TO_WAV_DIR NAME_OF_DATA_SET TRAINED_MODEL
+# For details, please check 02_eval_alternative.sh 
 bash 02_eval_alternative.sh $PWD/../DATA/toy_example/eval toy_eval __pretrained/trained_network.pt

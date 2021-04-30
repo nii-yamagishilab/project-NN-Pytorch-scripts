@@ -27,7 +27,7 @@ python main.py --model-forward-with-file-name \
        --lr-decay-factor 0.5 --lr-scheduler-type 1 \
        --trained-model ${pretrained_model} \
        --ignore-training-history-in-trained-model \
-       --lr 0.0003 --seed 1000 > ${log_train_name} 2>${log_err_name}
+       --lr 0.0003 --seed 1000 > ${log_train_name}.txt 2>${log_err_name}.txt
 echo -e "Training process finished"
 echo -e "Trainig log has been written to $PWD/${log_train_name}"
 

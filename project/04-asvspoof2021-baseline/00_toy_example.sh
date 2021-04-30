@@ -30,7 +30,7 @@ cd ..
 echo -e "\n${RED}=======================================================${NC}"
 echo -e "${RED}Step3. run evaluation process (using pre-trained model)${NC}"
 # run scripts
-cd lfcc-lcnn-lstm-p2s_toy_example
+cd lfcc-lcnn-lstm-sig_toy_example
 # evaluation using pre-trained model
 bash 01_eval.sh
 
