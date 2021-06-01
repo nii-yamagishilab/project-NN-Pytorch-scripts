@@ -29,7 +29,7 @@ python main.py --model-forward-with-file-name \
        --ignore-training-history-in-trained-model \
        --lr 0.0003 --seed 1000 > ${log_train_name}.txt 2>${log_err_name}.txt
 echo -e "Training process finished"
-echo -e "Trainig log has been written to $PWD/${log_train_name}"
+echo -e "Trainig log has been written to $PWD/${log_train_name}.txt"
 
 
 

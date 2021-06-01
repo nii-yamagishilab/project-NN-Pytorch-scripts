@@ -2,11 +2,9 @@ Project for ASVspoof 2021
 
 General
 ----------
-This project is for ASVspoof 2021 LA baseline.
-But it may be used for PA too
+This project is a toy example ASVspoof 
 
-1. lfcc-lcnn-lstm-sig_toy_example: a toy example to train and run evaluation
-2. lfcc-lcnn-lstm-sig_baseline (to be uploaded after the release of ASVspoof 2021 data)
+lfcc-lcnn-lstm-sig_toy_example: a toy example to train and run evaluation on LFCC-LCNN LSTM system
 
 Usage
 ----------
@@ -109,7 +107,7 @@ Note
    For a new evaluation set whose trial labels are unknown, please create
    protocol.txt using dummy labels for the trials. 
    Or, please modify protocol_parse() and _get_target_eval() 
-   following lfcc-lcnn-lstm-sig_toy_example/model.py
+   following the definition in lfcc-lcnn-lstm-sig_toy_example/model.py
 
    (Apologize that I don't have the time to modify the model.py in 03-asvspoof-mega 
     one by one)

@@ -48,7 +48,8 @@ def return_latex_color_cell(value, val_min, val_max, scale, wrap, color_func):
 def print_table(data_array, column_tag, row_tag, 
                 print_format="1.2f", 
                 with_color_cell = True,
-                colormap='Greys', colorscale=0.5, colorwrap=0, col_sep=''):
+                colormap='Greys', colorscale=0.5, colorwrap=0, col_sep='', 
+                print_latex_table=True, print_text_table=True):
     """
     print a latex table given the data and tags
     
@@ -69,6 +70,9 @@ def print_table(data_array, column_tag, row_tag,
                  colorwrap > 0 works like mels-scale curve
       col_sep: str, additional string to separate columns. 
                   You may use '\t' or ',' for CSV
+      print_latex_table: bool, print the table as latex command (default True)
+      print_text_table: bool, print the table as text format (default True)
+
     output
     ------
       None
@@ -148,9 +152,11 @@ def print_table(data_array, column_tag, row_tag,
         text_buffer += return_one_row_text(row_content_text)
         
     latex_buffer += r"\end{tabular}" + "\n"
-    
-    print(latex_buffer)
-    print(text_buffer)
+
+    if print_latex_table:
+        print(latex_buffer)
+    if print_text_table:
+        print(text_buffer)
     return
 
 

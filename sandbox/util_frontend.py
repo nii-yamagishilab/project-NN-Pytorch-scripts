@@ -124,7 +124,8 @@ class LFCC(torch_nn.Module):
     """
     def __init__(self, fl, fs, fn, sr, filter_num, 
                  with_energy=False, with_emphasis=True,
-                 with_delta=True, flag_for_LFB=False):
+                 with_delta=True, flag_for_LFB=False,
+                 num_coef=None, min_freq=0, max_freq=1):
         """ Initialize LFCC
         
         Para:
@@ -134,11 +135,19 @@ class LFCC(torch_nn.Module):
           fn: int, FFT points
           sr: int, sampling rate (Hz)
           filter_num: int, number of filters in filter-bank
+
           with_energy: bool, (default False), whether replace 1st dim to energy
           with_emphasis: bool, (default True), whether pre-emphaze input wav
           with_delta: bool, (default True), whether use delta and delta-delta
         
           for_LFB: bool (default False), reserved for LFB feature
+          num_coef: int or None, number of coeffs to be taken from filter bank.
+                    Note that this is only used for LFCC, i.e., for_LFB=False
+                    When None, num_coef will be equal to filter_num
+          min_freq: float (default 0), min_freq * sr // 2 will be the minimum 
+                    frequency of extracted FFT spectrum
+          max_freq: float (default 1), max_freq * sr // 2 will be the maximum 
+                    frequency of extracted FFT spectrum
         """
         super(LFCC, self).__init__()
         self.fl = fl
@@ -146,12 +155,23 @@ class LFCC(torch_nn.Module):
         self.fn = fn
         self.sr = sr
         self.filter_num = filter_num
+        self.num_coef = num_coef
+
+        # decide the range of frequency bins
+        if min_freq >= 0 and min_freq < max_freq and max_freq <= 1:
+            self.min_freq_bin = int(min_freq * (fn//2+1))
+            self.max_freq_bin = int(max_freq * (fn//2+1))
+            self.num_fft_bins = self.max_freq_bin - self.min_freq_bin 
+        else:
+            print("LFCC cannot work with min_freq {:f} and max_freq {:}".format(
+                min_freq, max_freq))
+            sys.exit(1)
         
         # build the triangle filter bank
-        f = (sr / 2) * torch.linspace(0, 1, fn//2+1)
+        f = (sr / 2) * torch.linspace(min_freq, max_freq, self.num_fft_bins)
         filter_bands = torch.linspace(min(f), max(f), filter_num+2)
         
-        filter_bank = torch.zeros([fn//2+1, filter_num])
+        filter_bank = torch.zeros([self.num_fft_bins, filter_num])
         for idx in range(filter_num):
             filter_bank[:, idx] = trimf(
                 f, [filter_bands[idx], 
@@ -167,6 +187,9 @@ class LFCC(torch_nn.Module):
         self.with_emphasis = with_emphasis
         self.with_delta = with_delta
         self.flag_for_LFB = flag_for_LFB
+        if self.num_coef is None:
+            self.num_coef = filter_num
+        
         return
     
     def forward(self, x):
@@ -182,14 +205,21 @@ class LFCC(torch_nn.Module):
         """
         # pre-emphsis 
         if self.with_emphasis:
-            x[:, 1:] = x[:, 1:]  - 0.97 * x[:, 0:-1]
+            # to avoid side effect
+            x_copy = torch.zeros_like(x) + x
+            x_copy[:, 1:] = x[:, 1:]  - 0.97 * x[:, 0:-1]
+        else:
+            x_copy = x
         
         # STFT
-        x_stft = torch.stft(x, self.fn, self.fs, self.fl, 
+        x_stft = torch.stft(x_copy, self.fn, self.fs, self.fl, 
                             window=torch.hamming_window(self.fl).to(x.device), 
                             onesided=True, pad_mode="constant")        
         # amplitude
         sp_amp = torch.norm(x_stft, 2, -1).pow(2).permute(0, 2, 1).contiguous()
+        
+        if self.min_freq_bin > 0 or self.max_freq_bin < (self.fn//2+1):
+            sp_amp = sp_amp[:, :, self.min_freq_bin:self.max_freq_bin]
         
         # filter bank
         fb_feature = torch.log10(torch.matmul(sp_amp, self.lfcc_fb) + 
@@ -198,6 +228,11 @@ class LFCC(torch_nn.Module):
         # DCT (if necessary, remove DCT)
         lfcc = self.l_dct(fb_feature) if not self.flag_for_LFB else fb_feature
         
+        # Truncate the output of l_dct when necessary
+        if not self.flag_for_LFB and self.num_coef != self.filter_num:
+            lfcc = lfcc[:, :, :self.num_coef]
+            
+
         # Add energy 
         if self.with_energy:
             power_spec = sp_amp / self.fn
@@ -215,7 +250,6 @@ class LFCC(torch_nn.Module):
 
         # done
         return lfcc_output
-
 
 #################
 ## LFB front-end

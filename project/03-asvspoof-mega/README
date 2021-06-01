@@ -10,7 +10,6 @@ Name of the model folder is FEAT-lcnn-NET-LOSS, where
  NET: fixed (fixed size input), lstm-sum, or attention
  LOSS: oc (one-class), am (additive margin), p2s (p2sgrad), sig (sigmoid)
 
-
 Folder structure
 ----------------
 |- 00_demo.sh: 
@@ -69,17 +68,46 @@ Usage
 2. Download [ASVspoof 2019 LA](https://doi.org/10.7488/ds/2555) 
    and convert FLAC to WAV
 
-3. Put eval set waves to ./project/03-asvspoof-mega/DATA/asvspoof2019_LA/eval
-   Put others to ./project/03-asvspoof-mega/DATA/asvspoof2019_LA/train_dev
+   Put eval set waves to ./DATA/asvspoof2019_LA/eval
+   Put train and dev sets to ./DATA/asvspoof2019_LA/train_dev
    (You may also link eval and train_dev to the folder of waveforms)
+   
+   Make sure that the two folders contain the waveform files: 
+
+   $: ls DATA/asvspoof2019_LA/eval 
+   LA_E_1000147.wav
+   LA_E_1000273.wav
+   LA_E_1000791.wav
+   LA_E_1000841.wav
+   LA_E_1000989.wav
+   ...
+   $: ls DATA/asvspoof2019_LA/eval | wc -l
+   71237
+
+   $: ls DATA/asvspoof2019_LA/train_dev
+   LA_D_1000265.wav
+   LA_D_1000752.wav
+   LA_D_1001095.wav
+   LA_D_1002130.wav
+   LA_D_1002200.wav
+   LA_D_1002318.wav
+   ...
+
+   $: ls DATA/asvspoof2019_LA/train_dev | wc -l
+   50224
+   
+   
+   Since this commit, it is also OK to directly load *.flac.
+   1. put flac in DATA/asvspoof2019_LA/eval and DATA/asvspoof2019_LA/train_dev
+   2. change in 01_config.py: input_exts = ['.wav'] to input_exts = ['.flac']
+   That's all
 
 4. Run this script 00_demo.sh
    For example, by
    $: bash 00_demo.sh lfcc-lcnn-lstmsum-p2s/01 > log_batch 2>$1 &
 
    This script will evaluate pre-trained models and train a new model
-
-
+   It will take more than 10 hours to finish.
 
 Note
 ----------

@@ -18,7 +18,7 @@ import os
 import sys
 import numpy as np
 import scipy.io.wavfile
-
+import soundfile
 import core_scripts.data_io.io_tools as nii_io_tk
 
 __author__ = "Xin Wang"
@@ -162,6 +162,16 @@ def waveFloatToPCMFile(waveData, wavFile, bit=16, sr=16000):
         rawData  = np.asarray(rawData, dtype=np.int16)
     scipy.io.wavfile.write(wavFile, sr, rawData)
     return
+
+def flacReadAsFloat(wavFileIn):
+    """ sr, wavData = flacReadAsFloat(wavFileIn)
+    Wrapper over soundfile.read
+    Return: 
+        sr: sampling_rate
+        wavData: waveform in np.float32 (-1, 1)
+    """
+    x, sr = soundfile.read(wavFileIn)
+    return sr, x
 
 
 def buffering(x, n, p=0, opt=None):

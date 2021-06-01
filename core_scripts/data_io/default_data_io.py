@@ -39,6 +39,8 @@ def _data_reader(file_path, dim, flag_lang):
     file_name, file_ext = os.path.splitext(file_path)
     if file_ext == '.wav':
         sr, data = nii_wav_tk.waveReadAsFloat(file_path)
+    elif file_ext == '.flac':
+        sr, data = nii_wav_tk.flacReadAsFloat(file_path)
     elif file_ext == '.txt':
         data = nii_text_tk.textloader(file_path, flag_lang)
     else:
@@ -63,6 +65,9 @@ def _data_len_reader(file_path):
     file_name, file_ext = os.path.splitext(file_path)
     if file_ext == '.wav':
         sr, data = nii_wav_tk.waveReadAsFloat(file_path)
+        length = data.shape[0]
+    elif file_ext == '.flac':
+        sr, data = nii_wav_tk.flacReadAsFloat(file_path)
         length = data.shape[0]
     elif file_ext == '.txt':
         # txt, no need to account length

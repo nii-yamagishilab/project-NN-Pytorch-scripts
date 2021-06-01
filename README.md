@@ -34,13 +34,13 @@ Note that this is the re-implementation of projects based on [CURRENNT](https://
 
 <br />
 
-### 2.2 ASVspoof 2021 baseline tool [./project/04-asvspoof2021-baseline](./project/04-asvspoof2021-baseline)
+### 2.2 ASVspoof project with toy example [./project/04-asvspoof2021-toy](./project/04-asvspoof2021-toy)
 
-Projects for ASVspoof 2021 baseline. 
+It takes time to download ASVspoof2019. Therefore, this project demonstrates how to train and evaluate the ASVspoof model using a toy dataset.
 
-A toy example is included to run training and evaluation.
+Please try this project before checking other ASVspoof projects.
 
-More to be added after the release of ASVspoof 2021 data.
+A similar project is adopted for ASVspoof2021 LFCC-LCNN baseline (https://www.asvspoof.org/), although the LFCC front-end is slightly different.
 
 <br />
 
@@ -55,13 +55,15 @@ There were 36 systems investigated, each of which was trained and evaluated for 
 Pre-trained models, scores, training recipes are all available.
 
 To use this project, please do:
-1. Follow **4. Usage** and setup the Pytorch environment
+1. Follow **4. Usage** below and setup the Pytorch environment
 2. Download [ASVspoof 2019 LA](https://doi.org/10.7488/ds/2555) and convert FLAC to WAV;
 3. Put evaluation set waveforms to [./project/03-asvspoof-mega/DATA/asvspoof2019_LA/eval](./project/03-asvspoof-mega/DATA/asvspoof2019_LA/eval) and others to [DATA/asvspoof2019_LA/train_dev](./project/03-asvspoof-mega/DATA/asvspoof2019_LA/train_dev)
 4. Go to [./project/03-asvspoof-mega](./project/03-asvspoof-mega), run this script [./project/03-asvspoof-mega/00_demo.sh](./project/03-asvspoof-mega/00_demo.sh). 
 It will run pre-trained models, compute EERs, and train a new model.
 
-For more details, please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/READNE).
+
+
+Now the script also accepts FLAC as input. Please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/READNE).
 
 <br />
  
