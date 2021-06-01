@@ -75,7 +75,7 @@ if [[ -e "./${MODELNAME}.tar" ]];then
 fi
 
 if [[ ! -e "./${MODELNAME}.tar" ]];then
-    echo -e "${RED}Downloading data${NC}"
+    echo -e "${RED}Downloading pre-trained model${NC}"
     wget -q ${MODELLINK}
 fi
 
@@ -107,7 +107,7 @@ fi
 # step 1. EER on scores produced by Xin
 echo -e "\n${RED}=======================================================${NC}"
 echo -e "${RED}Step1. computing EER on pre-produced scores${NC}"
-echo -e "(Scores were produced by pre-trained ${MODEL} on Xin's server)" 
+echo -e "(Scores were produced by pre-trained ${MODEL} on NII's server)" 
 LOGFILE=__pretrained/log_output_testset
 python ${EVALSCRIPT} ${LOGFILE}
 
@@ -115,8 +115,8 @@ python ${EVALSCRIPT} ${LOGFILE}
 # step 2. run pre-trained model by Xin and compute EER
 echo -e "\n${RED}=======================================================${NC}"
 echo -e "${RED}Step2. run pre-trained ${MODEL} on eval set using your GPU server${NC}"
-echo -e "The job will run in backgroun for ~20 minutes. Please wait."
-echo -e "(Model ${MODEL} was trained on Xin's server.)"
+echo -e "The job will run in background for ~20 minutes. Please wait."
+echo -e "(Model ${MODEL} was trained on NII's server.)"
 
 
 cp ${MAINSCRIPT} ./main.py

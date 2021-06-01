@@ -18,7 +18,7 @@ log_err_name=log_err
 pretrained_model=__pretrained/trained_network.pt
 
 echo -e "Training"
-echo -e "Please monitor the log trainig: $PWD/${log_train_name}\n"
+echo -e "Please monitor the log trainig: $PWD/${log_train_name}.txt\n"
 source $PWD/../../../env.sh
 python main.py --model-forward-with-file-name \
        --num-workers 3 --epochs 100 \
