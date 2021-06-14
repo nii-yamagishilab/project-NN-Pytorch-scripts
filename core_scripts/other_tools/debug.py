@@ -122,20 +122,23 @@ class data_probe:
         self.data_concated = np.concatenate(self.data_buf, axis=1)
         return
 
-    def _dump_file_path(self, file_path):
+    def _dump_file_path(self, file_path, add_time_tag=True):
         """ add additional infor to the ump file path
         """
-        time_tag = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        return file_path + '_' + time_tag + self.dump_file_ext
+        if add_time_tag:
+            time_tag = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            return file_path + '_' + time_tag + self.dump_file_ext
+        else:
+            return file_path + self.dump_file_ext
 
-    def dump(self, output_path='./debug/data_dump'):
+    def dump(self, output_path='./debug/data_dump', add_time_tag=True):
         """ dump(output_path='./debug/data_dump')
         input
         -----
           output_path: str, path to store the dumped data
         """
         # add additional infor to output_path name
-        output_path_new = self._dump_file_path(output_path)
+        output_path_new = self._dump_file_path(output_path, add_time_tag)
         try:
             os.mkdir(os.path.dirname(output_path_new))
         except OSError:

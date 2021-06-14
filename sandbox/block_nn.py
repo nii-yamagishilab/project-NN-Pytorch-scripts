@@ -882,7 +882,7 @@ class Conv1dForARModel(Conv1dKeepLength):
         #nii_plot.plot_tensor(out, deci_width=2)
     """
     def __init__(self, input_dim, output_dim, dilation_s, kernel_s,
-                 bias=True, tanh = True):
+                 bias=True, tanh = True, causal=True):
         """ Conv1dForARModel(input_dim, output_dim, dilation_s, kernel_s,
             bias=True, tanh=True)
 
@@ -894,11 +894,13 @@ class Conv1dForARModel(Conv1dKeepLength):
           kernel_s: int, kernel size
           bias: bool, whether use bias term, default True
           tanh: bool, whether apply tanh on the output, default True
-
+          causal: bool, whether the convoltuion is causal, default True
+        
+        Note that causal==False, step-by-step AR generation will raise Error
         """
         super(Conv1dForARModel, self).__init__(
             input_dim, output_dim, dilation_s, kernel_s, \
-            causal = True, stride = 1, groups=1, bias=bias, tanh = tanh)
+            causal = causal, stride = 1, groups=1, bias=bias, tanh = tanh)
 
         # configuration options
         self.use_bias = bias
@@ -906,6 +908,7 @@ class Conv1dForARModel(Conv1dKeepLength):
         self.kernel_s = kernel_s
         self.dilation_s = dilation_s
         self.out_dim = output_dim
+        self.causal = causal
 
         # See slide http://tonywangx.github.io/slide.html#misc CURRENNT WaveNet,
         # page 50-56 for example on kernel_s = 2
@@ -954,6 +957,10 @@ class Conv1dForARModel(Conv1dKeepLength):
             # normal training mode, use the common conv forward method
             return super(Conv1dForARModel, self).forward(x)
         else:
+            if self.causal is False:
+                print("Step-by-step generation cannot work on non-causal conv")
+                print("Please use causal=True for Conv1dForARModel")
+                sys.exit(1)
             # step-by-step for generation in AR model
 
             # initialize buffer if necessary
