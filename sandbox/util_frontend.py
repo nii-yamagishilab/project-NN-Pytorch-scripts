@@ -303,7 +303,7 @@ class Spectrogram(torch_nn.Module):
     """ Spectrogram front-end
     """
     def __init__(self, fl, fs, fn, sr, 
-                 with_emphasis=True, with_delta=False):
+                 with_emphasis=True, with_delta=False, in_db=False):
         """ Initialize LFCC
         
         Para:
@@ -314,17 +314,18 @@ class Spectrogram(torch_nn.Module):
           sr: int, sampling rate (Hz)
           with_emphasis: bool, (default True), whether pre-emphaze input wav
           with_delta: bool, (default False), whether use delta and delta-delta
-        
+          in_db: bool, (default False), use 20log10(amp)? if False, use amp
         """
         super(Spectrogram, self).__init__()
         self.fl = fl
         self.fs = fs
         self.fn = fn
         self.sr = sr
-        
+
         # opts
         self.with_emphasis = with_emphasis
         self.with_delta = with_delta
+        self.in_db = in_db
         return
     
     def forward(self, x):
@@ -349,6 +350,9 @@ class Spectrogram(torch_nn.Module):
         # amplitude
         sp_amp = torch.norm(x_stft, 2, -1).pow(2).permute(0, 2, 1).contiguous()
         
+        if self.in_db:
+            sp_amp = torch.log10(sp_amp + torch.finfo(torch.float32).eps)
+
         # Add delta coefficients
         if self.with_delta:
             sp_delta = delta(sp_amp)

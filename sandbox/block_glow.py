@@ -28,6 +28,14 @@ def sum_over_keep_batch(data):
     sum_dims = [x for x in range(data.ndim)][1:]
     return torch.sum(data, dim=sum_dims)
 
+def sum_over_keep_batch2(data, factor):
+    # (batch, dim1, dim2, ..., ) -> (batch)
+    # device each value by factor and 
+    # sum over dim1, dim2, ...
+    sum_dims = [x for x in range(data.ndim)][1:]
+    return torch.sum(data / factor, dim=sum_dims)
+
+
 class ActNorm(torch_nn.Module):
     """Activation Normalization
     
@@ -87,12 +95,12 @@ class ActNorm(torch_nn.Module):
         #return torch.log(x + torch.finfo(x.dtype).eps)
         return torch.log(x)
     
-    def _detjac(self):
+    def _detjac(self, factor=1):
         """
         """
         # \sum log |s|, this same value is used for all data 
         # in this mini-batch, no need to duplicate to (batch,)
-        return torch.sum(self._log(torch.abs(self.m_scale)))
+        return torch.sum(self._log(torch.abs(self.m_scale)) / factor)
     
     def _detjac_size_factor(self, y):
         """ h * w * detjac
@@ -125,7 +133,7 @@ class ActNorm(torch_nn.Module):
             self.m_init_flag += 1
         return
     
-    def forward(self, y):
+    def forward(self, y, factor=1):
         """x = ActNorm.forward(y)
         
         input
@@ -146,7 +154,7 @@ class ActNorm(torch_nn.Module):
         x = (y + self.m_bias) * self.m_scale
         
         if self.flag_detjac:
-            log_detjac = self._detjac() * self._detjac_size_factor(y)
+            log_detjac = self._detjac(factor) * self._detjac_size_factor(y)
             return x, log_detjac
         else:
             return x
@@ -280,13 +288,13 @@ class InvertibleTrans(torch_nn.Module):
         #return torch.log(x + torch.finfo(x.dtype).eps)
         return torch.log(x)
     
-    def _detjac(self):
+    def _detjac(self, factor=1):
         """
         """
         # \sum log|s|
         # no need to duplicate to each data in the batch
         # they all use the same detjac
-        return torch.sum(self.m_log_abs_diag)
+        return torch.sum(self.m_log_abs_diag / factor)
     
     def _detjac_size_factor(self, y):
         with torch.no_grad():
@@ -296,12 +304,12 @@ class InvertibleTrans(torch_nn.Module):
             data_factor = torch.prod(data_size)
         return data_factor
     
-    def forward(self, y):
+    def forward(self, y, factor=1):
         # y W
         # for other implementation, this is done with conv2d 1x1 convolution
         # to be consistent, we can use .T to transpose the matrix first
         if self.flag_detjac:
-            detjac = self._detjac() * self._detjac_size_factor(y)
+            detjac = self._detjac(factor) * self._detjac_size_factor(y)
             return torch.matmul(y, self._compose_mat()), detjac
         else:
             return torch.matmul(y, self._compose_mat()), 
@@ -448,10 +456,10 @@ class AffineCouplingGlow(torch_nn.Module):
         self.m_conv[2]._normal_weight()
         return
     
-    def _detjac(self, log_scale):
+    def _detjac(self, log_scale, factor=1):
         # (batch, dim1, dim2, ..., feat_dim) -> (batch)
         # sum over dim1, ... feat_dim
-        return sum_over_keep_batch(log_scale)
+        return sum_over_keep_batch(log_scale/factor)
         
     def _nn_trans(self, y1):
         if self.flag_affine:
@@ -465,7 +473,7 @@ class AffineCouplingGlow(torch_nn.Module):
             log_scale = torch.zeros_like(y1)
         return scale, bias, log_scale
         
-    def forward(self, y):
+    def forward(self, y, factor=1):
         """AffineCoulingGlow(y)
         input
         -----
@@ -487,7 +495,7 @@ class AffineCouplingGlow(torch_nn.Module):
         x = torch.cat([x1, x2], dim=-1)
         
         if self.flag_detjac:
-            return x, self._detjac(log_scale)
+            return x, self._detjac(log_scale, factor)
         else:
             return x
         
@@ -631,12 +639,12 @@ class PriorTransform(torch_nn.Module):
             sys.exit(1)
         return
     
-    def _detjac(self, log_scale):
+    def _detjac(self, log_scale, factor=1):
         # log|\prod 1/exp(log_scale)| = -\sum log_scale
         # note that we should return a tensor (batch,)
-        return sum_over_keep_batch(-1 * log_scale)
+        return sum_over_keep_batch(-1 * log_scale / factor)
     
-    def forward(self, y):
+    def forward(self, y, factor=1):
         """PriorTransform(y)
 
         y -> H() -> [x, z_0]
@@ -681,7 +689,7 @@ class PriorTransform(torch_nn.Module):
 
             z_mean, z_log_std = self.m_nn(x).chunk(2, -1)
             z_0 = (z_1 - z_mean) / torch.exp(z_log_std)            
-        return x, z_0, self._detjac(z_log_std)
+        return x, z_0, self._detjac(z_log_std, factor)
     
     def reverse(self, x, z_out):
         """PriorTransform(y)
@@ -971,17 +979,17 @@ class Glow(torch_nn.Module):
             h_tmp, z_tmp, log_detjac_tmp = m_block(h_tmp)
             
             z_bags.append(z_tmp)
-            log_detjac += log_detjac_tmp
+            log_detjac += log_detjac_tmp / factor
 
             # keep log_pz for each data in batch (batchsize,)
-            log_pz += sum_over_keep_batch(self._normal_lh(z_tmp))
+            log_pz += sum_over_keep_batch(self._normal_lh(z_tmp)) / factor
             
             
         # average over batch and pixels
-        neg_logp_y = -(log_pz + log_detjac).mean() / factor
+        neg_logp_y = -(log_pz + log_detjac).mean()
         
         return z_bags, neg_logp_y, \
-            log_pz.mean() / factor, log_detjac.mean() / factor
+            log_pz.mean(), log_detjac.mean()
         
     def reverse(self, z_bags):
         """ y = Glow.reverse(z_bags)
