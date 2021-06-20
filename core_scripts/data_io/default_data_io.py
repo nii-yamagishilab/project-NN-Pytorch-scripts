@@ -1044,8 +1044,8 @@ class NIIDataSet(torch.utils.data.Dataset):
     
 class NIIDataSetLoader:
     """ NIIDataSetLoader:
-    A wrapper over torch.utils.data.DataLoader 
-    
+    A wrapper over torch.utils.data.DataLoader and DataSet 
+
     self.m_dataset will be the dataset
     self.m_loader  will be the dataloader
     """
@@ -1064,7 +1064,10 @@ class NIIDataSetLoader:
                  save_mean_std = True, \
                  wav_samp_rate = None, \
                  flag_lang = 'EN',
-                 global_arg = None):
+                 global_arg = None,
+                 dset_config = None,
+                 augment_funcs = None,
+                 transform_funcs = None):
         """
         NIIDataSetLoader(
                data_set_name,
@@ -1079,7 +1082,10 @@ class NIIDataSetLoader:
                save_mean_std = True, \
                wav_samp_rate = None, \
                flag_lang = 'EN',
-               global_arg = None):
+               global_arg = None,
+               dset_config = None,
+               augment_funcs = None,
+               transform_funcs = None):
         Args
         ----
             data_set_name: a string to name this dataset
@@ -1120,6 +1126,8 @@ class NIIDataSetLoader:
                        language for the text processer, used by _data_reader
             global_arg: argument parser returned by arg_parse.f_args_parsed()
                       default None
+            augment_funcs: None, or list of functions for data augmentation
+            transform_funcs: None, or list of functions for data transformation
         Methods
         -------
             get_loader(): return a torch.util.data.DataLoader
@@ -1180,6 +1188,13 @@ class NIIDataSetLoader:
         self.m_loader = torch.utils.data.DataLoader(
             self.m_dataset, collate_fn=collate_fn, **tmp_params)
 
+        # augmentation and transformation
+        # currently, only NII_MergeDataSetLoader support
+        if augment_funcs is not None or transform_funcs is not None:
+            print("default DatasetLoader support no augment_funcs ", end='')
+            print(" or transform_funcs")
+            nii_warn.f_die("Please use NII_MergeDataSetLoader")
+            
         # done
         return
         

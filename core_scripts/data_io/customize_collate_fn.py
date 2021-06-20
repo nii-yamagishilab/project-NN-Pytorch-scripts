@@ -43,23 +43,31 @@ customize_collate_err_msg = (
 
 
 def pad_sequence(batch, padding_value=0.0):
-    """ pad_sequence(batch)
+    """ output_batch = pad_sequence(batch)
     
-    Pad a sequence of data sequences to be same length.
-    Assume batch = [data_1, data2, ...], where data_1 has shape (len, dim, ...)
+    input
+    -----
+      batch: list of tensor, [data_1, data2, ...], and data_1 is (len, dim, ...)
     
+    output
+    ------
+      output_batch: list of tensor, [data_1_padded, data_2_padded, ...]
+
+    Pad a batch of data sequences to be same length (maximum length in batch).
     This function is based on 
     pytorch.org/docs/stable/_modules/torch/nn/utils/rnn.html#pad_sequence
     """
+    # get the rest of the dimensions (dim, ...)
     max_size = batch[0].size()
     trailing_dims = max_size[1:]
+    # get the maximum length
     max_len = max([s.size(0) for s in batch])
     
     if all(x.shape[0] == max_len for x in batch):
         # if all data sequences in batch have the same length, no need to pad
         return batch
     else:
-        # we need to pad
+        # else, we need to pad 
         out_dims = (max_len, ) + trailing_dims
         
         output_batch = []
@@ -79,9 +87,7 @@ def pad_sequence(batch, padding_value=0.0):
 
 def customize_collate(batch):
     """ customize_collate(batch)
-    
     Collate a list of data into batch. Modified from default_collate.
-    
     """
 
     elem = batch[0]
@@ -141,7 +147,17 @@ def customize_collate(batch):
 
 
 def customize_collate_from_batch(batch):
-    """ customize_collate_existing_batch
+    """ output = customize_collate_from_batch
+    
+    input
+    -----
+      batch: list of tensor, [tensor1, tensor2, ...], where
+             each tensor has shape (batch, length, dim1, dim2, ...)
+
+    output
+    ------
+      output: tensor (batch_sum, length, dim1, dim2, ...)
+    
     Similar to customize_collate, but input is a list of batch data that have
     been collated through customize_collate.
     The difference is use torch.cat rather than torch.stack to merge tensors.
@@ -160,7 +176,10 @@ def customize_collate_from_batch(batch):
             numel = max([x.numel() for x in batch_new]) * len(batch_new)
             storage = elem.storage()._new_shared(numel)
             out = elem.new(storage)
+
         # here is the difference
+        # concateante (batch1, length, dim1, dim2, ...) (batch2, length, ...)
+        #  into (batch1+batch2+..., length, dim1, dim2, ...)
         return torch.cat(batch_new, 0, out=out)
 
     elif elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_' \

@@ -41,12 +41,17 @@ class merge_loader():
         # initialized iterators 
         self.m_loaders = [x.get_loader() for x in self.m_datasets]
         # utterance index shift
+        # if we merge dataset 1, 2, 3, then
+        #  index for dataset 2: index += dataset_1.get_seq_num()
+        #  index for dataset 3: index += dataset_1 + dataset_2.get_seq_num()
         self.m_idx_shift = np.cumsum([0] + 
                                      [x.get_seq_num() for x in self.m_datasets])
         return
 
     def adjust_utt_idx(self, data_tuple, dataset_idx):
-        """ when merging dataset 1, 2, 3 ...
+        """ adjust_utt_idx(data_tutple, dataset_idx)
+        
+        when merging dataset 1, 2, 3 ...
         index for dataset 2: index += dataset_1.get_seq_num()
         index for dataset 3: index += dataset_1 + dataset_2.get_seq_num()
         
@@ -72,7 +77,7 @@ class merge_loader():
             for dataset_idx, dataloader in enumerate(self.m_loader_iter):
                 data_list.append(
                     self.adjust_utt_idx(next(dataloader), dataset_idx))
-            # data shape should be the same
+            # 
             return nii_collate_fn.customize_collate_from_batch(data_list)
         except StopIteration:
             raise StopIteration
@@ -85,7 +90,11 @@ class ConcatDataset(torch.utils.data.Dataset):
     from each sub corpus
     """
     def __init__(self, datasets):
-        """ datasets must be torch.utils.data.Dataset
+        """ ConcatDataset(datasets)
+        
+        Args
+        ----
+          datasets: list of torch.utils.data.Dataset
         """
         # all the sub sets
         self.datasets = datasets
@@ -122,16 +131,19 @@ class ConcatDataset(torch.utils.data.Dataset):
         return sum(self.len_buffer)
 
     def f_get_seq_len_list(self):
+        """ length = f_get_seq_len_list()
+        Total length of utterance in the merged dataset
+        """
         tmp = []
         for sub_dataset in self.datasets:
             tmp += sub_dataset.f_get_seq_len_list()
         return tmp
 
 class NII_MergeDataSetLoader():
-    """ Dataset loader that supports loading multiple data corpora into a single
-    Dataset object.
+    """ DatasetLoader for loading multiple data corpora as a single one
 
-    Similar to NIIDataSetLoader.
+    Similar to NIIDataSetLoader, this merges the DataSet and DataLoader
+    into a single class. 
     """
     def __init__(self,
                  dataset_name, \
@@ -149,7 +161,10 @@ class NII_MergeDataSetLoader():
                  wav_samp_rate = None, \
                  flag_lang = 'EN', \
                  way_to_merge = 'concatenate', 
-                 global_arg = None):
+                 global_arg = None,
+                 dset_config = None,
+                 augment_funcs = None,
+                 transform_funcs = None):
         """ Signature is similar to default_io.NIIDataSetLoader.
         file_list, input_dirs, and output_dirs are different.
         One additional optional argument is way_to_merge.
@@ -196,6 +211,8 @@ class NII_MergeDataSetLoader():
                      'merge': create minibatch by merging data from each copora
             global_arg: argument parser returned by arg_parse.f_args_parsed()
                       default None
+            augment_funcs: None, or list of functions for data augmentation
+            transform_funcs: None, or list of functions for data transformation
 
         Methods
         -------
@@ -256,12 +273,14 @@ class NII_MergeDataSetLoader():
         self.m_datasets = lst_dset
         
         self.way_to_merge = way_to_merge
+
         # create data loader
         if way_to_merge == 'concatenate':
             
             # to create DataLoader, we need the pytorch.dataset
             py_datasets = ConcatDataset([x.get_dataset() for x in lst_dset])
-
+            
+            # legacy implementation, no need to use
             ####
             # Although members in l_dset have Dataloader, we need to 
             # create a dataloder for the concatenate dataset
@@ -292,15 +311,18 @@ class NII_MergeDataSetLoader():
             # collate function
             if 'batch_size' in tmp_params and tmp_params['batch_size'] > 1:
                 # use customize_collate to handle data with unequal length
+                #  we cannot use default collate_fn
                 collate_fn = nii_collate_fn.customize_collate
             else:
                 collate_fn = None
             
+            # use default DataLoader
             self.m_loader = torch.utils.data.DataLoader(
                 py_datasets, collate_fn=collate_fn, **tmp_params)
 
-
         else:
+            # sample mini-batches of equal size from each sub dataset
+            # use specific dataloader
             self.m_loader = merge_loader(lst_dset)
             self.m_params = lst_dset[0].get_loader_params()
         return
