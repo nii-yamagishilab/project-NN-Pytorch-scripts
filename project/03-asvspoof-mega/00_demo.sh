@@ -88,7 +88,12 @@ else
 fi
 #############
 # setup PYTHONPATH and conda
+#  this ENVFILE must be accessed inside a folder
+mkdir __tmp
+cd __tmp
 source ${ENVFILE}
+cd ..
+rm -r __tmp
 
 # go to the model directory
 MODEL=$1
