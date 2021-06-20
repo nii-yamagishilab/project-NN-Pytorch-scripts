@@ -215,7 +215,9 @@ class WaveNetBlock_v2(torch_nn.Module):
     """ WaveNet block based on dilated-1D, gated-activation, and skip-connect.
     Based on http://tonywangx.github.io/slide.html#misc CURRENNT WaveNet
     (page 19-31) and WN in Pytorch WaveGlow. 
-    The difference from WaveNetBlock is the weight_norm
+    The difference from WaveNetBlock 
+    1. weight_norm
+    2. skip_channel is computed from gated-activation's output, not res_channel
     """
     def __init__(self, input_dim, skip_ch_dim, gated_act_dim, cond_dim,
                  dilation_size, cnn_kernel_size=2, causal=True):
@@ -272,7 +274,8 @@ class WaveNetBlock_v2(torch_nn.Module):
         self.l_res_trans = torch.nn.utils.weight_norm(tmp_layer, name='weight') 
         
         # transformation for skip channels
-        tmp_layer = torch_nn.Linear(self.res_ch_dim, self.skip_ch_dim)
+        #tmp_layer = torch_nn.Linear(self.res_ch_dim, self.skip_ch_dim)
+        tmp_layer = torch_nn.Linear(self.gated_act_dim, self.skip_ch_dim)
         self.l_skip_trans = torch.nn.utils.weight_norm(tmp_layer, name='weight')
         
         return
@@ -303,7 +306,10 @@ class WaveNetBlock_v2(torch_nn.Module):
         res_feat = self.l_res_trans(hid) + input_feat
         
         # skip-channel transform
-        skip_feat = self.l_skip_trans(res_feat)
+        #   if we use skip_feat = self.l_skip_trans(res_feat), this cause
+        #   exploding output when using skip_feat to produce scale and bias
+        #   of affine transformation (e.g., in WaveGlow)
+        skip_feat = self.l_skip_trans(hid)
 
         # done
         return res_feat, skip_feat
@@ -340,6 +346,7 @@ class WaveNetBlock_v2(torch_nn.Module):
           skip_feat: skip channel feat tensor, , (batchsize, length, skip_dim)
         """
         return self._forward(input_feat, cond_feat, step_idx)
+
 
 
 class OutputBlock(torch_nn.Module):
