@@ -43,7 +43,7 @@ def main():
     prj_model = importlib.import_module(args.module_model)
 
     # initialization
-    nii_startup.set_random_seed(args.seed)
+    nii_startup.set_random_seed(args.seed, args)
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
