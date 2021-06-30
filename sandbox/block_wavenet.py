@@ -371,9 +371,9 @@ class OutputBlock(torch_nn.Module):
 
         # transformation layers before softmax
         self.l_trans = torch_nn.Sequential(
-            torch_nn.Linear(self.input_dim, self.hid_dim),
+            torch_nn.Linear(self.input_dim, self.hid_dim // 2),
             torch_nn.LeakyReLU(),
-            torch_nn.Linear(self.hid_dim, self.hid_dim),
+            torch_nn.Linear(self.hid_dim // 2, self.hid_dim),
             torch_nn.LeakyReLU(),
             torch_nn.Linear(self.hid_dim, self.output_dim))
 
@@ -416,11 +416,17 @@ class OutputBlock(torch_nn.Module):
         return self.l_dist.inference(tmp_logit)
         
 
-class WaveNet(torch_nn.Module):
-    """ Model definition
-    Example definition of WaveNet. Not finished
+
+
+################################
+## Example of WaveNet definition
+################################
+class WaveNet_v1(torch_nn.Module):
+    """ Model definition of WaveNet
+    Example definition of WaveNet, version 1
+
     """
-    def __init__(self, in_dim, up_sample_rate, num_bits = 10):
+    def __init__(self, in_dim, up_sample_rate, num_bits = 10, wnblock_ver=1):
         """ WaveNet(in_dim, up_sample_rate, num_bits=10)
         
         Args
@@ -429,6 +435,9 @@ class WaveNet(torch_nn.Module):
           up_sample_rate, int, condition feature will be up-sampled by
                    using this rate
           num_bits: int, number of bits for mu-law companding, default 10
+          wnblock_ver: int, version of the WaveNet Block, default 1
+                       wnblock_ver = 1 uses WaveNetBlock
+                       wnblock_ver = 2 uses WaveNetBlock_v2
 
         up_sample_rate can be calculated using frame_shift of condition feature
         and waveform sampling rate. For example, 16kHz waveform, condition
@@ -436,7 +445,7 @@ class WaveNet(torch_nn.Module):
         up_sample_rate = 16000 * 0.005 = 80. In other words, every frame will
         be replicated 80 times.
         """
-        super(WaveNet, self).__init__()
+        super(WaveNet_v1, self).__init__()
         
         #################
         ## model config
@@ -460,7 +469,11 @@ class WaveNet(torch_nn.Module):
         #  dilation size
         self.dilations = [2 ** (x % 10) for x in range(30)]
         
+        # input dimension of (conditional feature)
+        self.input_dim = in_dim
         
+        # version of wavenet block
+        self.wnblock_ver = wnblock_ver
         ###############
         ## network definition
         ###############
@@ -473,10 +486,16 @@ class WaveNet(torch_nn.Module):
         # dilated convolution layers
         tmp_wav_blocks = []
         for dilation in self.dilations:
-            tmp_wav_blocks.append(
-                WaveNetBlock(
-                    self.res_ch_dim, self.skip_ch_dim, self.gate_act_dim,
-                    self.cond_dim, dilation))
+            if self.wnblock_ver == 2:
+                tmp_wav_blocks.append(
+                    WaveNetBlock_v2(
+                        self.res_ch_dim, self.skip_ch_dim, self.gate_act_dim,
+                        self.cond_dim, dilation))
+            else:
+                tmp_wav_blocks.append(
+                    WaveNetBlock(
+                        self.res_ch_dim, self.skip_ch_dim, self.gate_act_dim,
+                        self.cond_dim, dilation))
         self.l_wavenet_blocks = torch_nn.ModuleList(tmp_wav_blocks)
         
         # output block
@@ -507,7 +526,6 @@ class WaveNet(torch_nn.Module):
         Note: returned loss can be directly used as the loss value
         no need to write Loss()
         """
-        input_feat = self.normalize_input(input_feat)
         
         # step1. prepare the target waveform and feedback waveform
         #  do mu-law companding
@@ -559,8 +577,6 @@ class WaveNet(torch_nn.Module):
         """        
 
         # prepare
-        input_feat = self.normalize_input(input_feat)
-
         batchsize = input_feat.shape[0]
         wavlength = input_feat.shape[1] * self.up_sample
         
@@ -587,13 +603,13 @@ class WaveNet(torch_nn.Module):
         print("Time steps: {:d}".format(wavlength), end=' ', flush=True)
         for time_idx in range(wavlength):
             # show messages
-            print(time_idx, end=' ', flush=True) 
+            if time_idx % 500 == 1:
+                print(time_idx, end=' ', flush=True) 
 
             # feedback
             if time_idx > 0:
                 fb_wav_buf = gen_wav_buf[:, time_idx-1:time_idx, :]
                 
-
             # initialize skip
             skip_ch_feat *= 0
 

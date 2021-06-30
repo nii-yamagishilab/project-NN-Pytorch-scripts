@@ -163,8 +163,8 @@ class NII_MergeDataSetLoader():
                  way_to_merge = 'concatenate', 
                  global_arg = None,
                  dset_config = None,
-                 augment_funcs = None,
-                 transform_funcs = None):
+                 input_augment_funcs = None,
+                 output_augment_funcs = None):
         """ Signature is similar to default_io.NIIDataSetLoader.
         file_list, input_dirs, and output_dirs are different.
         One additional optional argument is way_to_merge.
@@ -211,9 +211,11 @@ class NII_MergeDataSetLoader():
                      'merge': create minibatch by merging data from each copora
             global_arg: argument parser returned by arg_parse.f_args_parsed()
                       default None
-            augment_funcs: None, or list of functions for data augmentation
-            transform_funcs: None, or list of functions for data transformation
-
+            dset_config: object, data set configuration, default None
+            input_augment_funcs: list of functions for input data transformation
+                                 default None
+            output_augment_funcs: list of output data transformation functions
+                                 default None
         Methods
         -------
             get_loader(): return a torch.util.data.DataLoader
@@ -255,8 +257,12 @@ class NII_MergeDataSetLoader():
 
         # create individual datasets
         lst_dset = []
+        cnt = 0
         for sub_input_dirs, sub_output_dirs, sub_file_list, tmp_name in \
             zip(list_input_dirs, list_output_dirs, list_file_list, tmp_dnames):
+            
+            inaug = input_augment_funcs[cnt] if input_augment_funcs else None
+            ouaug = output_augment_funcs[cnt] if output_augment_funcs else None
             
             lst_dset.append(
                 nii_default_dset.NIIDataSetLoader(
@@ -266,9 +272,11 @@ class NII_MergeDataSetLoader():
                     input_norm, \
                     sub_output_dirs, output_exts, output_dims, output_reso, \
                     output_norm, \
-                    stats_path, data_format, params, truncate_seq, min_seq_len,
-                    save_mean_std, wav_samp_rate, flag_lang, global_arg))
-        
+                    stats_path, data_format, params, truncate_seq, min_seq_len, 
+                    save_mean_std, wav_samp_rate, flag_lang, 
+                    global_arg, dset_config, inaug, ouaug))
+            cnt += 1
+
         # list of the datasets
         self.m_datasets = lst_dset
         

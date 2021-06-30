@@ -79,6 +79,17 @@ truncate_seq = 16000 * 3
 #  minimum_len can be None
 minimum_len = 80 * 50
     
+# Optional argument
+#  Just a buffer for convenience
+#  It can contain anything
+optional_argument = ['']
+
+# Data transformation function, you can import here
+#  these functions are applied before casting np.array data into tensor arrays
+#  
+#input_trans_fns = [[func_for_mel, fun_for_f0]]
+#output_trans_fns = [[func_for_wav]]
+
 
 #########################################################
 ## Configuration for inference stage
@@ -103,3 +114,8 @@ test_input_dirs = [[tmp + '/5ms/melspec', tmp + '/5ms/f0']]
 test_output_dirs = [[]]
 
 
+# Data transformation function, you can import here
+#  these functions are applied before casting np.array data into tensor arrays
+#
+#test_input_trans_fns = [[func_for_mel, fun_for_f0]]
+#test_output_trans_fns = [[func_for_wav]]

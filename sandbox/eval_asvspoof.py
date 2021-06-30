@@ -49,6 +49,41 @@ def protocol_parse_asvspoof2019(protocol_filepath):
             data_buffer[row[1]] = 0
     return data_buffer
 
+def protocol_parse_general(protocol_filepaths, sep=' '):
+    """ Parse protocol of ASVspoof2019 and get bonafide/spoof for each trial
+    The format is:
+      SPEAKER  TRIAL_NAME  - SPOOF_TYPE TAG
+      LA_0031 LA_E_5932896 - A13        spoof
+      LA_0030 LA_E_5849185 - -          bonafide
+    ...
+
+    input:
+    -----
+      protocol_filepath: string, path to the protocol file
+    
+    output:
+    -------
+      data_buffer: dic, data_bufer[filename] -> 1 (bonafide), 0 (spoof)
+    
+    
+    """
+    data_buffer = {}
+    if type(protocol_filepaths) is str:
+        tmp = [protocol_filepaths]
+    else:
+        tmp = protocol_filepaths
+    for protocol_filepath in tmp:
+        with open(protocol_filepath, 'r') as file_ptr:
+            for line in file_ptr:
+                line = line.rstrip('\n')
+                cols = line.split(sep)
+
+                if cols[-1] == 'bonafide':
+                    data_buffer[cols[1]] = 1
+                else:
+                    data_buffer[cols[1]] = 0
+    return data_buffer
+
 
 def protocol_parse_attack_label_asvspoof2019(protocol_filepath):
     """ Parse protocol of ASVspoof2019 and get bonafide/spoof for each trial

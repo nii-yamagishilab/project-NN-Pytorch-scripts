@@ -58,6 +58,12 @@ def main():
                   'num_workers': args.num_workers, 
                   'sampler': args.sampler}
         
+        in_trans_fns = prj_conf.input_trans_fns \
+                       if hasattr(prj_conf, 'input_trans_fns') else None
+        out_trans_fns = prj_conf.output_trans_fns \
+                        if hasattr(prj_conf, 'output_trans_fns') else None
+        
+
         # Load file list and create data loader
         trn_lst = prj_conf.trn_list
         trn_set = nii_dset.NII_MergeDataSetLoader(
@@ -79,7 +85,11 @@ def main():
             min_seq_len = prj_conf.minimum_len,
             save_mean_std = True,
             wav_samp_rate = prj_conf.wav_samp_rate,
-            way_to_merge = args.way_to_merge_datasets)
+            way_to_merge = args.way_to_merge_datasets,
+            global_arg = args,
+            dset_config = prj_conf,
+            input_augment_funcs = in_trans_fns,
+            output_augment_funcs = out_trans_fns)
 
         if prj_conf.val_list is not None:
             val_lst = prj_conf.val_list
@@ -102,7 +112,11 @@ def main():
                 min_seq_len = prj_conf.minimum_len,
                 save_mean_std = False,
                 wav_samp_rate = prj_conf.wav_samp_rate,
-                way_to_merge = args.way_to_merge_datasets)
+                way_to_merge = args.way_to_merge_datasets,
+                global_arg = args,
+                dset_config = prj_conf,
+                input_augment_funcs = in_trans_fns,
+                output_augment_funcs = out_trans_fns)
         else:
             val_set = None
 
@@ -136,6 +150,11 @@ def main():
         params = {'batch_size':  args.batch_size,
                   'shuffle': False,
                   'num_workers': args.num_workers}
+
+        in_trans_fns = prj_conf.test_input_trans_fns \
+                       if hasattr(prj_conf, 'test_input_trans_fns') else None
+        out_trans_fns = prj_conf.test_output_trans_fns \
+                        if hasattr(prj_conf, 'test_output_trans_fns') else None
         
         if type(prj_conf.test_list) is list:
             t_lst = prj_conf.test_list
@@ -161,12 +180,17 @@ def main():
             min_seq_len = None,
             save_mean_std = False,
             wav_samp_rate = prj_conf.wav_samp_rate,
-            way_to_merge = args.way_to_merge_datasets)
+            way_to_merge = args.way_to_merge_datasets,
+            global_arg = args,
+            dset_config = prj_conf,
+            input_augment_funcs = in_trans_fns,
+            output_augment_funcs = out_trans_fns)
         
         # initialize model
         model = prj_model.Model(test_set.get_in_dim(), \
                                 test_set.get_out_dim(), \
                                 args, prj_conf)
+
         if args.trained_model == "":
             print("No model is loaded by ---trained-model for inference")
             print("By default, load %s%s" % (args.save_trained_name,

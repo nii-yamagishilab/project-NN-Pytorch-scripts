@@ -25,93 +25,114 @@ __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2021, Xin Wang"
 
-def wavformRaw2MuLaw(wavdata, bit=16, signed=True, quanLevel = 256.0):
-    """ 
-    wavConverted = wavformRaw2MuLaw(wavdata, bit=16, signed=True, \
-                                    quanLevel = 256.0)
-    Assume wavData is int type:
-        step1. convert int wav -> float wav
-        step2. convert linear scale wav -> mu-law wav
 
-    Args: 
-      wavdata: np array of int-16 or int-32 waveform 
-      bit: number of bits to encode waveform
-      signed: input is signed or not
-      quanLevel: level of quantization (default 2 ^ 8)
-    Returned:
-      wav: integer stored as float numbers
+
+def mulaw_encode(x, quantization_channels, scale_to_int=True):
+    """x_mu = mulaw_encode(x, quantization_channels, scale_to_int=True)
+    
+    mu-law companding
+
+    input
+    -----
+       x: np.array, float-valued waveforms in (-1, 1)
+       quantization_channels (int): Number of channels
+       scale_to_int: Bool
+         True: scale mu-law to int
+         False: return mu-law in (-1, 1)
+
+    output
+    ------
+       x_mu: np.array, mulaw companded wave
     """
-    if wavdata.dtype != np.int16 and wavdata.dtype != np.int32:
-        print("Input waveform data in not int16 or int32")
-        sys.exit(1)
+    mu = quantization_channels - 1.0
+    x_mu = np.sign(x) * np.log1p(mu * np.abs(x)) / np.log1p(mu)
+    if scale_to_int:
+        x_mu = np.array((x_mu + 1) / 2 * mu + 0.5, dtype=np.int32)
+    return x_mu
 
-    # convert to float numbers
-    if signed==True:
-        wavdata = np.array(wavdata, dtype=np.float32) / \
-                  np.power(2.0, bit-1)
+def mulaw_decode(x_mu, quantization_channels, input_int=True):
+    """mulaw_decode(x_mu, quantization_channels, input_int=True)
+    
+    mu-law decoding
+
+    input
+    -----
+      x_mu: np.array, mu-law waveform
+      quantization_channels: int, Number of channels
+      input_int: Bool
+        True: convert x_mu (int) from int to float, before mu-law decode
+        False: directly decode x_mu (float)
+
+    output
+    ------
+        x: np.array, waveform from mulaw decoding
+    """
+    mu = quantization_channels - 1.0
+    if input_int:
+        x = x_mu / mu * 2 - 1.0
     else:
-        wavdata = np.array(wavdata, dtype=np.float32) / \
-                  np.power(2.0, bit)
+        x = x_mu
+    x = np.sign(x) * (np.exp(np.abs(x) * np.log1p(mu)) - 1.0) / mu
+    return x
     
-    tmp_quan_level = quanLevel - 1
-    # mu-law compansion
-    wavtrans = np.sign(wavdata) * \
-               np.log(1.0 + tmp_quan_level * np.abs(wavdata)) / \
-               np.log(1.0 + tmp_quan_level)
-    wavtrans = np.round((wavtrans + 1.0) * tmp_quan_level / 2.0)
-    return wavtrans
+def alaw_encode(x, quantization_channels, scale_to_int=True, A=87.6):
+    """x_a = alaw_encoder(x, quantization_channels, scale_to_int=True, A=87.6)
 
-
-def wavformMuLaw2Raw(wavdata, quanLevel = 256.0):
-    """ 
-    waveformMuLaw2Raw(wavdata, quanLevel = 256.0)
-    
-    Convert Mu-law waveform  back to raw waveform
-    
-    Args:
-      wavdata: np array
-      quanLevel: level of quantization (default: 2 ^ 8)
-    
-    Return:
-      raw waveform: np array, float
+    input
+    -----
+       x: np.array, float-valued waveforms in (-1, 1)
+       quantization_channels (int): Number of channels
+       scale_to_int: Bool
+         True: scale mu-law to int
+         False: return mu-law in (-1, 1)
+       A: float, parameter for a-law, default 87.6
+    output
+    ------
+       x_a: np.array, a-law companded waveform
     """
-    tmp_quan_level = quanLevel - 1
-    wavdata = wavdata * 2.0 / tmp_quan_level - 1.0
-    wavdata = np.sign(wavdata) * (1.0/ tmp_quan_level) * \
-              (np.power(quanLevel, np.abs(wavdata)) - 1.0)
-    return wavdata
-
-
-def float2wav(rawData, wavFile, bit=16, samplingRate = 16000):
-    """ 
-    float2wav(rawFile, wavFile, bit=16, samplingRate = 16000)
-    Convert float waveform into waveform in int
-
-    This is identitcal to waveFloatToPCMFile
-    To be removed
-
-    Args: 
-         rawdata: float waveform data in np-arrary
-         wavFile: output file path
-         bit: number of bits to encode waveform in output *.wav
-         samplingrate: 
-    """
-    rawData = rawData * np.power(2.0, bit-1)
-    rawData[rawData >= np.power(2.0, bit-1)] = np.power(2.0, bit-1)-1
-    rawData[rawData < -1*np.power(2.0, bit-1)] = -1*np.power(2.0, bit-1)
+    num = quantization_channels - 1.0
+    x_abs = np.abs(x)
+    flag = (x_abs * A) >= 1
     
-    # write as signed 16bit PCM
-    if bit == 16:
-        rawData  = np.asarray(rawData, dtype=np.int16)
-    elif bit == 32:
-        rawData  = np.asarray(rawData, dtype=np.int32)
+    x_a = A * x_abs
+    x_a[flag] = 1 + np.log(x_a[flag])
+    x_a = np.sign(x) * x_a / (1 + np.log(A))
+    
+    if scale_to_int:
+        x_a = np.array((x_a + 1) / 2 * num + 0.5, dtype=np.int32)
+    return x_a
+    
+def alaw_decode(x_a, quantization_channels, input_int=True, A=87.6):
+    """alaw_decode(x_a, quantization_channels, input_int=True)
+
+    input
+    -----
+      x_a: np.array, mu-law waveform
+      quantization_channels: int, Number of channels
+      input_int: Bool
+        True: convert x_mu (int) from int to float, before mu-law decode
+        False: directly decode x_mu (float)
+       A: float, parameter for a-law, default 87.6
+    output
+    ------
+       x: np.array, waveform
+    """
+    num = quantization_channels - 1.0
+    if input_int:
+        x = x_a / num * 2 - 1.0
     else:
-        print("Only be able to save wav in int16 and int32 type")
-        print("Save to int16")
-        rawData  = np.asarray(rawData, dtype=np.int16)
-    scipy.io.wavfile.write(wavFile, samplingRate, rawData)
-    return
+        x = x_a
+        
+    sign = np.sign(x)
+    x_a_abs = np.abs(x)
     
+    x = x_a_abs * (1 + np.log(A))
+    flag = x >= 1
+    
+    x[flag] = np.exp(x[flag] - 1)
+    x = sign * x / A
+    return x
+
 def waveReadAsFloat(wavFileIn):
     """ sr, wavData = wavReadToFloat(wavFileIn)
     Wrapper over scipy.io.wavfile
@@ -340,6 +361,97 @@ def silence_handler(wav, sr, fl=320, fs=80,
         return sil_buf
     else:
         return spe_buf, sil_buf, frame_tag
+
+
+###################
+# legacy functions
+###################
+def wavformRaw2MuLaw(wavdata, bit=16, signed=True, quanLevel = 256.0):
+    """ 
+    wavConverted = wavformRaw2MuLaw(wavdata, bit=16, signed=True, \
+                                    quanLevel = 256.0)
+    Assume wavData is int type:
+        step1. convert int wav -> float wav
+        step2. convert linear scale wav -> mu-law wav
+
+    Args: 
+      wavdata: np array of int-16 or int-32 waveform 
+      bit: number of bits to encode waveform
+      signed: input is signed or not
+      quanLevel: level of quantization (default 2 ^ 8)
+    Returned:
+      wav: integer stored as float numbers
+    """
+    if wavdata.dtype != np.int16 and wavdata.dtype != np.int32:
+        print("Input waveform data in not int16 or int32")
+        sys.exit(1)
+
+    # convert to float numbers
+    if signed==True:
+        wavdata = np.array(wavdata, dtype=np.float32) / \
+                  np.power(2.0, bit-1)
+    else:
+        wavdata = np.array(wavdata, dtype=np.float32) / \
+                  np.power(2.0, bit)
+    
+    tmp_quan_level = quanLevel - 1
+    # mu-law compansion
+    wavtrans = np.sign(wavdata) * \
+               np.log(1.0 + tmp_quan_level * np.abs(wavdata)) / \
+               np.log(1.0 + tmp_quan_level)
+    wavtrans = np.round((wavtrans + 1.0) * tmp_quan_level / 2.0)
+    return wavtrans
+
+
+def wavformMuLaw2Raw(wavdata, quanLevel = 256.0):
+    """ 
+    waveformMuLaw2Raw(wavdata, quanLevel = 256.0)
+    
+    Convert Mu-law waveform  back to raw waveform
+    
+    Args:
+      wavdata: np array
+      quanLevel: level of quantization (default: 2 ^ 8)
+    
+    Return:
+      raw waveform: np array, float
+    """
+    tmp_quan_level = quanLevel - 1
+    wavdata = wavdata * 2.0 / tmp_quan_level - 1.0
+    wavdata = np.sign(wavdata) * (1.0/ tmp_quan_level) * \
+              (np.power(quanLevel, np.abs(wavdata)) - 1.0)
+    return wavdata
+
+
+def float2wav(rawData, wavFile, bit=16, samplingRate = 16000):
+    """ 
+    float2wav(rawFile, wavFile, bit=16, samplingRate = 16000)
+    Convert float waveform into waveform in int
+
+    This is identitcal to waveFloatToPCMFile
+    To be removed
+
+    Args: 
+         rawdata: float waveform data in np-arrary
+         wavFile: output file path
+         bit: number of bits to encode waveform in output *.wav
+         samplingrate: 
+    """
+    rawData = rawData * np.power(2.0, bit-1)
+    rawData[rawData >= np.power(2.0, bit-1)] = np.power(2.0, bit-1)-1
+    rawData[rawData < -1*np.power(2.0, bit-1)] = -1*np.power(2.0, bit-1)
+    
+    # write as signed 16bit PCM
+    if bit == 16:
+        rawData  = np.asarray(rawData, dtype=np.int16)
+    elif bit == 32:
+        rawData  = np.asarray(rawData, dtype=np.int32)
+    else:
+        print("Only be able to save wav in int16 and int32 type")
+        print("Save to int16")
+        rawData  = np.asarray(rawData, dtype=np.int16)
+    scipy.io.wavfile.write(wavFile, samplingRate, rawData)
+    return
 
 if __name__ == "__main__":
     print("Definition of tools for wav")

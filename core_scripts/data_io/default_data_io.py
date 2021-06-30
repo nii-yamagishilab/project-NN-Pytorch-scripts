@@ -99,7 +99,10 @@ class NIIDataSet(torch.utils.data.Dataset):
                  save_mean_std = True, \
                  wav_samp_rate = None, \
                  flag_lang = 'EN', \
-                 global_arg = None):
+                 global_arg = None, \
+                 dset_config = None, \
+                 input_augment_funcs = None, \
+                 output_augment_funcs = None):
         """
         args
         ----
@@ -133,6 +136,11 @@ class NIIDataSet(torch.utils.data.Dataset):
                      language for the text processer. It is used by _data_reader
           global_arg: argument parser returned by arg_parse.f_args_parsed()
                       default None
+          dset_config: object, dataset configuration, default None
+          input_augment_funcs: list of functions for input data transformation
+                               default None
+          output_augment_funcs: list of output data transformation functions
+                                default None
         """
         # initialization
         self.m_set_name = dataset_name
@@ -180,7 +188,22 @@ class NIIDataSet(torch.utils.data.Dataset):
             nii_warn.f_die("len(input_norm) != len(input_dims) in config")
         if len(self.m_output_norm) != len(self.m_output_dims):
             nii_warn.f_die("len(output_norm) != len(output_dims) in config")
-        
+
+        # check augmentation funcctions
+        if input_augment_funcs:
+            if len(input_augment_funcs) != len(self.m_input_dims):
+                nii_warn.f_die("len(input_augment_funcs) != len(input_dims)")
+            self.m_inaug_funcs = input_augment_funcs
+        else:
+            self.m_inaug_funcs = []
+            
+        if output_augment_funcs:
+            if len(output_augment_funcs) != len(self.m_output_dims):
+                nii_warn.f_die("len(output_augment_funcs) != len(output_dims)")
+            self.m_ouaug_funcs = output_augment_funcs
+        else:
+            self.m_ouaug_funcs = []
+
         # dimensions
         self.m_input_all_dim = sum(self.m_input_dims)
         self.m_output_all_dim = sum(self.m_output_dims)
@@ -434,45 +457,97 @@ class NIIDataSet(torch.utils.data.Dataset):
     def f_post_data_process(self, in_data, out_data, seq_info, idx):
         """A wrapper to process the data after loading from files
         """
-
-        if self.m_opt_wav_handler > 0:
         
+        if self.m_opt_wav_handler == 0 \
+           and not self.m_inaug_funcs and not self.m_ouaug_funcs:
+            # no any post-processing process
+            return in_data, out_data, seq_info, idx
+
+        else:
+            
             # Do post processing one by one
             tmp_seq_info = nii_seqinfo.SeqInfo(
                 seq_info.length, seq_info.seq_name, seq_info.seg_idx,
                 seq_info.start_pos, seq_info.info_id)
-        
-            # waveform silence handler
-            if len(self.m_input_exts) == 1 \
-               and self.m_input_exts[0][-3:] == 'wav':
-                in_data_n = nii_wav_tk.silence_handler(
-                    in_data[:, 0], self.m_wav_sr, 
-                    flag_output = self.m_opt_wav_handler)
-                in_data_n = np.expand_dims(in_data_n, axis=1)
             
-                # this is temporary setting, use length if it is compatible
-                if tmp_seq_info.length == in_data.shape[0]:
-                    tmp_seq_info.length = in_data_n.shape[0]
+            # waveform silence handler
+            # waveform handler, this is kept for compatibility
+            if self.m_opt_wav_handler > 0:
+                if len(self.m_input_exts) == 1 \
+                   and self.m_input_exts[0][-3:] == 'wav':
+                    in_data_n = nii_wav_tk.silence_handler(
+                        in_data[:, 0], self.m_wav_sr, 
+                        flag_output = self.m_opt_wav_handler)
+                    in_data_n = np.expand_dims(in_data_n, axis=1)
+            
+                    # this is temporary setting, if in_data.shape[0] 
+                    #  corresponds to waveform length, update it
+                    if tmp_seq_info.length == in_data.shape[0]:
+                        tmp_seq_info.length = in_data_n.shape[0]
+                else:
+                    in_data_n = in_data
+
+                if len(self.m_output_exts) == 1 \
+                   and self.m_output_exts[0][-3:] == 'wav':
+                    out_data_n = nii_wav_tk.silence_handler(
+                        out_data[:,0], self.m_wav_sr, 
+                        flag_output = self.m_opt_wav_handler)
+                    out_data_n = np.expand_dims(out_data_n, axis=1)
+            
+                    # this is temporary setting, use length if it is compatible
+                    if tmp_seq_info.length == out_data.shape[0]:
+                        tmp_seq_info.length = out_data_n.shape[0]
+                else:
+                    out_data_n = out_data
             else:
                 in_data_n = in_data
-
-            if len(self.m_output_exts) == 1 \
-               and self.m_output_exts[0][-3:] == 'wav':
-                out_data_n = nii_wav_tk.silence_handler(
-                    out_data[:,0], self.m_wav_sr, 
-                    flag_output = self.m_opt_wav_handler)
-                out_data_n = np.expand_dims(out_data_n, axis=1)
-            
-                # this is temporary setting, use length if it is compatible
-                if tmp_seq_info.length == out_data.shape[0]:
-                    tmp_seq_info.length = out_data_n.shape[0]
-            else:
                 out_data_n = out_data
 
-            return in_data_n, out_data_n, tmp_seq_info, idx
+            # augmentation functions for input data
+            if self.m_inaug_funcs:
+                if len(self.m_input_exts) == 1:
+                    # only a single input feature, 
+                    in_data_n = self.m_inaug_funcs[0](in_data_n)
 
-        else:
-            return in_data, out_data, seq_info, idx
+                    # more rules should be applied to handle the data length
+                    # here, simply set length
+                    if tmp_seq_info.length > in_data_n.shape[0]:
+                        tmp_seq_info.length = in_data_n.shape[0]
+                else:
+                    # multiple input features, 
+                    # must check whether func changes the feature length
+                    # only fun that keeps the length will be applied
+                    s_dim = 0
+                    for func, dim in zip(self.m_inaug_funcs, self.m_input_dims):
+                        e_dim = s_dim + dim
+                        tmp_data = func(in_data_n[:, s_dim:e_dim])
+                        if tmp_data.shape[0] == in_data_n.shape[0]:
+                            in_data_n[:, s_dim:e_dim]  = tmp_data
+                        s_dim = s_dim + dim
+
+            # augmentation functions for output data
+            if self.m_ouaug_funcs:
+                if len(self.m_output_exts) == 1:
+                    # only a single output feature type
+                    out_data_n = self.m_ouaug_funcs[0](out_data_n)
+
+                    # more rules should be applied to handle the data length
+                    # here, simply set length
+                    if tmp_seq_info.length > out_data_n.shape[0]:
+                        tmp_seq_info.length = out_data_n.shape[0]
+                else:
+                    # multiple output features, 
+                    # must check whether func changes the feature length
+                    # only fun that keeps the length will be applied
+                    s_dim = 0
+                    for func, dim in zip(self.m_ouaug_funcs,self.m_output_dims):
+                        e_dim = s_dim + dim
+                        tmp_data = func(out_data_n[:,s_dim:e_dim])
+                        if tmp_data.shape[0] == out_data_n.shape[0]:
+                            out_data_n[:, s_dim:e_dim] = tmp_data
+                        s_dim = s_dim + dim
+            
+            return in_data_n, out_data_n, tmp_seq_info, idx
         
     
     def f_get_num_seq(self):
@@ -868,9 +943,37 @@ class NIIDataSet(torch.utils.data.Dataset):
         mes += "\n    Dims:{:s}".format(str(self.m_output_dims))
         mes += "\n    Reso:{:s}".format(str(self.m_output_reso))
         mes += "\n    Norm:{:s}".format(str(self.m_output_norm))
+
         if self.m_opt_wav_handler > 0:
-            mes += "\n  Waveform silence handler will be used"
+            # wav handler
+            if len(self.m_input_exts) == 1 \
+               and self.m_input_exts[0][-3:] == 'wav':
+                mes += "\n    Waveform silence handler will be used on input"
+            else:
+                mes += "\n    Waveform silence handler NOT used on input"
+                if len(self.m_input_exts) > 1:
+                    mes += "\t    because multiple input features are used"
+                
+            if len(self.m_output_exts) == 1 \
+               and self.m_output_exts[0][-3:] == 'wav':
+                mes += "\n    Waveform silence handler will be used on output"
+            else:
+                mes += "\n    Waveform silence handler NOT used on output"
+                if len(self.m_output_exts) > 1:
+                    mes += "\t    because multiple output features are used"
+
+        if self.m_inaug_funcs:
+            mes += "\n    Use input feature transformation functions"
+            if len(self.m_input_exts) > 1:
+                mes += "\n    Note function that feature length will be ignored"
+            
+        if self.m_ouaug_funcs:
+            mes += "\n    Use output feature transformation functions"
+            if len(self.m_output_exts) > 1:
+                mes += "\n    Note function that feature length will be ignored"
+
         nii_warn.f_print_message(mes)
+
         return
     
     def f_calculate_stats(self, flag_cal_data_len, flag_cal_mean_std):
@@ -900,6 +1003,12 @@ class NIIDataSet(torch.utils.data.Dataset):
         # ending dimension of one type of feature        
         e_dim = 0
         
+        # print information
+        load_cnt = 0
+        total_cnt = len(tmp_dirs) * len(self.m_file_list)
+        nii_warn.f_print("Get data statistis (20 . will be printed)", end='')
+        loading_marker = total_cnt // 20
+
         # loop over each input/output feature type
         for t_dir, t_ext, t_dim, t_reso, t_norm in \
             zip(tmp_dirs, tmp_exts, tmp_dims, tmp_reso, tmp_norm):
@@ -911,6 +1020,11 @@ class NIIDataSet(torch.utils.data.Dataset):
             
             # loop over all the data
             for file_name in self.m_file_list:
+                                
+                load_cnt += 1
+                if load_cnt % loading_marker == 0:
+                    nii_warn.f_print('.', end='', flush=True)
+
                 # get file path
                 file_path = nii_str_tk.f_realpath(t_dir, file_name, t_ext)
                 if not nii_io_tk.file_exist(file_path):
@@ -965,6 +1079,8 @@ class NIIDataSet(torch.utils.data.Dataset):
         if flag_cal_mean_std:
             self.f_save_mean_std(self.m_ms_input_path,
                                  self.m_ms_output_path)
+            
+        nii_warn.f_print('')
         # done
         return
         
@@ -1066,8 +1182,8 @@ class NIIDataSetLoader:
                  flag_lang = 'EN',
                  global_arg = None,
                  dset_config = None,
-                 augment_funcs = None,
-                 transform_funcs = None):
+                 input_augment_funcs = None,
+                 output_augment_funcs = None):
         """
         NIIDataSetLoader(
                data_set_name,
@@ -1084,8 +1200,7 @@ class NIIDataSetLoader:
                flag_lang = 'EN',
                global_arg = None,
                dset_config = None,
-               augment_funcs = None,
-               transform_funcs = None):
+               augment_funcs = None):
         Args
         ----
             data_set_name: a string to name this dataset
@@ -1126,8 +1241,10 @@ class NIIDataSetLoader:
                        language for the text processer, used by _data_reader
             global_arg: argument parser returned by arg_parse.f_args_parsed()
                       default None
-            augment_funcs: None, or list of functions for data augmentation
-            transform_funcs: None, or list of functions for data transformation
+            input_augment_funcs: list of functions for input data augmentation,
+                      default None
+            output_augment_funcs: list of functions for output data augmentation
+                      default None
         Methods
         -------
             get_loader(): return a torch.util.data.DataLoader
@@ -1150,7 +1267,10 @@ class NIIDataSetLoader:
                                     save_mean_std, \
                                     wav_samp_rate, \
                                     flag_lang, \
-                                    global_arg)
+                                    global_arg,\
+                                    dset_config, \
+                                    input_augment_funcs,
+                                    output_augment_funcs)
         
         # create torch.util.data.DataLoader
         if params is None:
@@ -1187,13 +1307,6 @@ class NIIDataSetLoader:
             
         self.m_loader = torch.utils.data.DataLoader(
             self.m_dataset, collate_fn=collate_fn, **tmp_params)
-
-        # augmentation and transformation
-        # currently, only NII_MergeDataSetLoader support
-        if augment_funcs is not None or transform_funcs is not None:
-            print("default DatasetLoader support no augment_funcs ", end='')
-            print(" or transform_funcs")
-            nii_warn.f_die("Please use NII_MergeDataSetLoader")
             
         # done
         return
