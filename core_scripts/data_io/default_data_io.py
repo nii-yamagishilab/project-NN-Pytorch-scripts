@@ -1006,8 +1006,8 @@ class NIIDataSet(torch.utils.data.Dataset):
         # print information
         load_cnt = 0
         total_cnt = len(tmp_dirs) * len(self.m_file_list)
-        nii_warn.f_print("Get data statistis (20 . will be printed)", end='')
-        loading_marker = total_cnt // 20
+        nii_warn.f_print("Get data statistis", end='')
+        loading_marker = total_cnt // 20 + 1
 
         # loop over each input/output feature type
         for t_dir, t_ext, t_dim, t_reso, t_norm in \
