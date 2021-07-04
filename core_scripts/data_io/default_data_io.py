@@ -475,10 +475,10 @@ class NIIDataSet(torch.utils.data.Dataset):
             if self.m_opt_wav_handler > 0:
                 if len(self.m_input_exts) == 1 \
                    and self.m_input_exts[0][-3:] == 'wav':
-                    in_data_n = nii_wav_tk.silence_handler(
-                        in_data[:, 0], self.m_wav_sr, 
-                        flag_output = self.m_opt_wav_handler)
-                    in_data_n = np.expand_dims(in_data_n, axis=1)
+                    in_data_n = nii_wav_tk.silence_handler_wrapper(
+                        in_data, self.m_wav_sr, 
+                        flag_output = self.m_opt_wav_handler,
+                        flag_only_startend_sil = (self.m_opt_wav_handler==3))
             
                     # this is temporary setting, if in_data.shape[0] 
                     #  corresponds to waveform length, update it
@@ -489,10 +489,10 @@ class NIIDataSet(torch.utils.data.Dataset):
 
                 if len(self.m_output_exts) == 1 \
                    and self.m_output_exts[0][-3:] == 'wav':
-                    out_data_n = nii_wav_tk.silence_handler(
-                        out_data[:,0], self.m_wav_sr, 
-                        flag_output = self.m_opt_wav_handler)
-                    out_data_n = np.expand_dims(out_data_n, axis=1)
+                    out_data_n = nii_wav_tk.silence_handler_wrapper(
+                        out_data, self.m_wav_sr, 
+                        flag_output = self.m_opt_wav_handler,
+                        flag_only_startend_sil = (self.m_opt_wav_handler==3))
             
                     # this is temporary setting, use length if it is compatible
                     if tmp_seq_info.length == out_data.shape[0]:

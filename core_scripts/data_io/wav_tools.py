@@ -260,13 +260,20 @@ def windowing(framed_buffer, window_type='hanning'):
     return framed_buffer * window.astype(framed_buffer.dtype)
 
 
-
 def silence_handler(wav, sr, fl=320, fs=80, 
                     max_thres_below=30, 
                     min_thres=-55, 
                     shortest_len_in_ms=50,
-                    flag_output=0):
-    """silence_handler(wav, sr, fs, fl)
+                    flag_output=0, 
+                    flag_norm_amp=True,
+                    flag_only_startend_sil=False):
+    """silence_handler(wav, sr, fl=320, fs=80,
+                    max_thres_below=30, 
+                    min_thres=-55, 
+                    shortest_len_in_ms=50,
+                    flag_output=0, 
+                    flag_norm_amp=True,
+                    flag_only_startend_sil=False)
     
     input
     -----
@@ -285,7 +292,11 @@ def silence_handler(wav, sr, fl=320, fs=80,
       min_thres: int, default -55, the lower threshold for speech frame
       shortest_len_in_ms: int, ms, default 50 ms, 
           segment less than this length is treated as speech
-      
+      flag_norm_amp: bool, whether normalize the waveform amplitude
+          based on window function (default True)
+      flag_only_startend_sil: bool, whether only consider silence in 
+          the begining and end. If False, silence within the utterance
+          will be marked / removed (default False)
     output
     ------
       wav_no_sil: np.array, (length_1, ), waveform after removing silence
@@ -296,9 +307,14 @@ def silence_handler(wav, sr, fl=320, fs=80,
     """
     assert fs < fl, "Frame shift should be smaller than frame length"
     
+    # frame the singal
     frames = buffering(wav, fl, fl - fs, 'nodelay')
+    # apply window to each frame
     windowed_frames = windowing(frames)
+    # buffer to save window prototype, this is used to normalize the amplitude
+    window_proto = windowing(np.ones_like(frames))
     
+    # compute the frame energy and assign a sil/nonsil flag
     frame_energy = 20*np.log10(np.std(frames, axis=1)+np.finfo(np.float32).eps)
     frame_energy_max = np.max(frame_energy)
     
@@ -307,9 +323,9 @@ def silence_handler(wav, sr, fl=320, fs=80,
         frame_energy > min_thres)
     frame_tag = np.asarray(frame_tag, dtype=np.int)
     
+    # post filtering of the sil/nonsil flag sequence
     seg_len_thres = shortest_len_in_ms * sr / 1000 / fs
-    
-    
+    #  function to ignore short segments
     def ignore_short_seg(frame_tag, seg_len_thres):
         frame_tag_new = np.zeros_like(frame_tag) + frame_tag
         # boundary of each segment
@@ -330,30 +346,52 @@ def silence_handler(wav, sr, fl=320, fs=80,
             frame_tag_new[start_frame_idx:end_frame_idx] = 0
         return frame_tag_new
     
-    # work on non-speech, 1-frame_tag indicates non-speech frames
+    # remove short sil segments
+    #  1-frame_tag indicates non-speech frames
     frame_process_sil = ignore_short_seg(1-frame_tag, seg_len_thres)
-    # reverse the sign
+    #  reverse the sign
     frame_process_sil = 1 - frame_process_sil
-    
-    # work on speech
-    frame_process_all = ignore_short_seg(frame_process_sil, seg_len_thres)
-    
+    # remove short nonsil segments
+    frame_process_all = ignore_short_seg(frame_process_sil, seg_len_thres)    
+    frame_tag = frame_process_all
+
+    # if only consder silence in the front and end
+    if flag_only_startend_sil:
+        # start of the first nonsil segment
+        start_nonsil = np.asarray(frame_tag == 1).nonzero()[0]
+        # end of the last nonsil segment
+        end_nonsil = np.asarray(frame_tag == 1).nonzero()[-1]
+        # all segments between are switched to nonsil
+        frame_tag[start_nosil:end_nonsil] = 1
+        
+
     # separate non-speech and speech segments
     #  do overlap and add
-    frame_tag = frame_process_all
     # buffer for speech segments
     spe_buf = np.zeros([np.sum(frame_tag) * fs + fl], dtype=wav.dtype)
+    spe_buf_win = np.zeros([np.sum(frame_tag) * fs + fl], dtype=wav.dtype)
     # buffer for non-speech segments
     sil_buf = np.zeros([np.sum(1-frame_tag) * fs + fl], dtype=wav.dtype)
+    sil_buf_win = np.zeros([np.sum(1-frame_tag) * fs + fl], dtype=wav.dtype)
+    
     spe_fr_pt = 0
     non_fr_pt = 0
     for frame_idx, flag_speech in enumerate(frame_tag):
         if flag_speech:
             spe_buf[spe_fr_pt*fs:spe_fr_pt*fs+fl] += windowed_frames[frame_idx]
+            spe_buf_win[spe_fr_pt*fs:spe_fr_pt*fs+fl] += window_proto[frame_idx]
             spe_fr_pt += 1
         else:
             sil_buf[non_fr_pt*fs:non_fr_pt*fs+fl] += windowed_frames[frame_idx]
+            sil_buf_win[non_fr_pt*fs:non_fr_pt*fs+fl] += window_proto[frame_idx]
             non_fr_pt += 1
+
+    # normalize the amplitude if necessary
+    if flag_norm_amp:
+        spe_buf_win[spe_buf_win < 0.0001] = 1.0
+        sil_buf_win[sil_buf_win < 0.0001] = 1.0
+        spe_buf /= spe_buf_win
+        sil_buf /= sil_buf_win
     
     if flag_output == 1: 
         return spe_buf
@@ -361,6 +399,32 @@ def silence_handler(wav, sr, fl=320, fs=80,
         return sil_buf
     else:
         return spe_buf, sil_buf, frame_tag
+
+
+def silence_handler_wrapper(wav, sr, fl=320, fs=80, 
+                            max_thres_below=30, 
+                            min_thres=-55, 
+                            shortest_len_in_ms=50,
+                            flag_output=0, 
+                            flag_norm_amp=True,
+                            flag_only_startend_sil=False):
+    """Wrapper over silence_handler
+    For conveneince, input and output wav have shape (length, 1)
+    """
+    output = silence_handler(
+        wav[:, 0], sr, fl, fs, max_thres_below, 
+        min_thres, shortest_len_in_ms,
+        flag_output, flag_norm_amp, flag_only_startend_sil)
+    
+    if flag_output == 1:
+        # from (length) to (length, 1)
+        return np.expand_dims(output, axis=1)
+    elif flag_output == 2:
+        return np.expand_dims(output, axis=1)
+    else:
+        return np.expand_dims(output[0], axis=1), \
+            np.expand_dims(output[1], axis=1), \
+            output[2]
 
 
 ###################

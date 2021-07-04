@@ -202,6 +202,7 @@ def f_args_parsed(argument_input = None):
     mes += ' 0: do nothing, use the data as it is (default) \n'
     mes += ' 1: remove segments with small energy, use other segments\n'
     mes += ' 2: keep only segments with small energy, remove other segments\n'
+    mes += ' 3: remove segments with small energy only at begining and end\n'
     mes += 'Code in core_scripts.data_io.wav_tools.silence_handler. '
     mes += 'This option is used when input or output contains only waveform. '
     mes += 'It only processes waveform. Other features will not be trimmed.'
