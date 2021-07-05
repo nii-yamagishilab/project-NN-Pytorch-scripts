@@ -426,8 +426,10 @@ class WaveNet_v1(torch_nn.Module):
     Example definition of WaveNet, version 1
 
     """
-    def __init__(self, in_dim, up_sample_rate, num_bits = 10, wnblock_ver=1):
-        """ WaveNet(in_dim, up_sample_rate, num_bits=10)
+    def __init__(self, in_dim, up_sample_rate, num_bits = 10, wnblock_ver=1,
+                 pre_emphasis=True):
+        """ WaveNet(in_dim, up_sample_rate, num_bits=10, wnblock_ver=1,
+        pre_emphasis=False)
         
         Args
         ----
@@ -438,6 +440,7 @@ class WaveNet_v1(torch_nn.Module):
           wnblock_ver: int, version of the WaveNet Block, default 1
                        wnblock_ver = 1 uses WaveNetBlock
                        wnblock_ver = 2 uses WaveNetBlock_v2
+          pre_emphasis: bool, whether use pre-emphasis on the target waveform
 
         up_sample_rate can be calculated using frame_shift of condition feature
         and waveform sampling rate. For example, 16kHz waveform, condition
@@ -474,6 +477,9 @@ class WaveNet_v1(torch_nn.Module):
         
         # version of wavenet block
         self.wnblock_ver = wnblock_ver
+
+        # whether pre-emphasis
+        self.pre_emphasis = pre_emphasis
         ###############
         ## network definition
         ###############
@@ -531,6 +537,9 @@ class WaveNet_v1(torch_nn.Module):
         #  do mu-law companding
         #  shifting by 1 time step for feedback waveform
         with torch.no_grad():
+            if self.pre_emphasis:
+                wav[:, 1:, :] = wav[:, 1:, :] - 0.97 * wav[:, 0:-1, :]
+
             # mu-law companding (int values)
             # note that _waveform_encoder_target will produce int values
             target_wav = self._waveform_encode_target(wav)
@@ -633,9 +642,13 @@ class WaveNet_v1(torch_nn.Module):
 
 
         # decode mu-law
-        gen_wav_buf = self._waveform_decode_target(gen_wav_buf)
-
-        return gen_wav_buf
+        wave = self._waveform_decode_target(gen_wav_buf)
+         
+        # de-emphasis if necessary
+        if self.pre_emphasis:
+            for idx in range(wave.shape[1] - 1):
+                wave[:, idx+1, :] = wave[:, idx+1, :] + 0.97 * wave[:, idx, :]
+        return wave
 
     
 if __name__ == "__main__":
