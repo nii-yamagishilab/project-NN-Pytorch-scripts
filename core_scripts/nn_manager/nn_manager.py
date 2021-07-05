@@ -75,19 +75,31 @@ def f_run_one_epoch(args,
         ############
         # compute output
         ############
-        data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
+        if isinstance(data_in, torch.Tensor):
+            data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
+        elif isinstance(data_in, list):
+            data_in = [x.to(device, dtype=nii_dconf.d_dtype) for x in data_in]
+        else:
+            nii_display.f_die("data_in is not a tensor or list of tensors")
+
         if args.model_forward_with_target:
             # if model.forward requires (input, target) as arguments
             # for example, for auto-encoder & autoregressive model
             if isinstance(data_tar, torch.Tensor):
                 data_tar_tm = data_tar.to(device, dtype=nii_dconf.d_dtype)
-                if args.model_forward_with_file_name:
-                    data_gen = pt_model(data_in, data_tar_tm, data_info)
-                else:
-                    data_gen = pt_model(data_in, data_tar_tm)
+            elif isinstance(data_tar, list):
+                # if the data_tar is a list of tensors
+                data_tar_tm = [x.to(device, dtype=nii_dconf.d_dtype) \
+                               for x in data_tar]
             else:
                 nii_display.f_print("--model-forward-with-target is set")
-                nii_display.f_die("but data_tar is not loaded")
+                nii_display.f_die("but data_tar is not loaded, or a tensor")
+
+            if args.model_forward_with_file_name:
+                data_gen = pt_model(data_in, data_tar_tm, data_info)
+            else:
+                data_gen = pt_model(data_in, data_tar_tm)
+
         else:
             if args.model_forward_with_file_name:
                 # specifcal case when model.forward requires data_info
@@ -112,6 +124,9 @@ def f_run_one_epoch(args,
             # case 1, pt_model.loss is available
             if isinstance(data_tar, torch.Tensor):
                 data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
+            elif isinstance(data_tar, torch.Tensor):
+                data_tar = [x.to(device, dtype=nii_dconf.d_dtype)  \
+                            for x in data_tar]
             else:
                 data_tar = []
             
@@ -122,6 +137,13 @@ def f_run_one_epoch(args,
                 data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
                 # there is no way to normalize the data inside loss
                 # thus, do normalization here
+                if target_norm_method is None:
+                    normed_target = pt_model.normalize_target(data_tar)
+                else:
+                    normed_target = target_norm_method(data_tar)
+            elif isinstance(data_tar, list):
+                data_tar = [x.to(device, dtype=nii_dconf.d_dtype) \
+                            for x in data_tar]
                 if target_norm_method is None:
                     normed_target = pt_model.normalize_target(data_tar)
                 else:
@@ -524,10 +546,22 @@ def f_inference_wrapper(args, pt_model, device, \
             enumerate(test_data_loader):
 
             # send data to device and convert data type
-            data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
+            if isinstance(data_in, torch.Tensor):
+                data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
+            elif isinstance(data_in, list):
+                data_in = [x.to(device, dtype=nii_dconf.d_dtype) \
+                           for x in data_in]
+            else:
+                nii_display.f_die("data_in is not a tensor or list of tensors")
+                
             if isinstance(data_tar, torch.Tensor):
                 data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
-
+            elif isinstance(data_in, list):
+                data_tar = [x.to(device, dtype=nii_dconf.d_dtype) \
+                            for x in data_tar]
+            else:
+                pass
+            
             # compute output
             start_time = time.time()
             

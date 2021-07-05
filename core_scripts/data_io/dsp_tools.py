@@ -189,7 +189,7 @@ class LPClite(object):
         return
     
     def analysis(self, wav):
-        """lpc_coef, lpc_err, gamma_array, gain, framed_err = analysis(wav)
+        """lpc_coef, ld_err, gamma_array, gain, framed_err, err = analysis(wav)
         
         LPC analysis on each frame
         
@@ -200,10 +200,11 @@ class LPClite(object):
         output
         ------
           lpc_coef: np.array, LPC coeff, (frame_num, lpc_order)
-          lpc_err: np.array, LD analysis error, (frame_num, lpc_order)
+          ld_err: np.array, LD analysis error, (frame_num, lpc_order)
           gamma: np.array, reflection coefficients, (frame_num, lpc_order)
           gain: np.array, gain, (frame_num, 1)
           framed_err: np.array, LPC error, (frame_num, frame_length)
+          eer_signal: np.array, (length, )
         """
         # framing & windowing
         frame_wined = self._windowing(self._framing(wav))
@@ -213,7 +214,9 @@ class LPClite(object):
         lpc_coef, lpc_err, gamma_array, gain = self._levison_durbin(auto)
         # get LPC error
         framed_err = self._lpc_analysis_core(lpc_coef, frame_wined, gain)
-        return lpc_coef, lpc_err, gamma_array, gain, framed_err
+        # overlap add the error signal
+        err_signal = self._overlapadd(framed_err)
+        return lpc_coef, lpc_err, gamma_array, gain, framed_err, err_signal
     
     def synthesis(self, lpc_coef, framed_err, gain):
         """wav = synthesis(lpc_coef, framed_err, gain):
@@ -256,8 +259,8 @@ class LPClite(object):
             frame_s = idx * self.fs
             wavbuf[frame_s : frame_s + self.fl] += framed_x[idx]
             protobuf[frame_s : frame_s + self.fl] += win_prototype[idx]
-        protobuf[protobuf<1e-05] = 1.0
-        wavbuf = wavbuf / protobuf
+        #protobuf[protobuf<1e-05] = 1.0
+        wavbuf = wavbuf / protobuf.mean()
         return wavbuf
     
     def _lpc_analysis_core(self, lpc_coef, framed_x, gain):

@@ -533,8 +533,8 @@ class NIIDataSet(torch.utils.data.Dataset):
 
                     # more rules should be applied to handle the data length
                     # here, simply set length
-                    if tmp_seq_info.length > out_data_n.shape[0]:
-                        tmp_seq_info.length = out_data_n.shape[0]
+                    #if tmp_seq_info.length > out_data_n.shape[0]:
+                    #    tmp_seq_info.length = out_data_n.shape[0]
                 else:
                     # multiple output features, 
                     # must check whether func changes the feature length
