@@ -77,7 +77,7 @@ def f_run_one_epoch(args,
         ############
         if isinstance(data_in, torch.Tensor):
             data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
-        elif isinstance(data_in, list):
+        elif isinstance(data_in, list) and data_in:
             data_in = [x.to(device, dtype=nii_dconf.d_dtype) for x in data_in]
         else:
             nii_display.f_die("data_in is not a tensor or list of tensors")
@@ -87,7 +87,7 @@ def f_run_one_epoch(args,
             # for example, for auto-encoder & autoregressive model
             if isinstance(data_tar, torch.Tensor):
                 data_tar_tm = data_tar.to(device, dtype=nii_dconf.d_dtype)
-            elif isinstance(data_tar, list):
+            elif isinstance(data_tar, list) and data_tar:
                 # if the data_tar is a list of tensors
                 data_tar_tm = [x.to(device, dtype=nii_dconf.d_dtype) \
                                for x in data_tar]
@@ -124,7 +124,7 @@ def f_run_one_epoch(args,
             # case 1, pt_model.loss is available
             if isinstance(data_tar, torch.Tensor):
                 data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
-            elif isinstance(data_tar, torch.Tensor):
+            elif isinstance(data_tar, list) and data_tar:
                 data_tar = [x.to(device, dtype=nii_dconf.d_dtype)  \
                             for x in data_tar]
             else:
@@ -141,7 +141,7 @@ def f_run_one_epoch(args,
                     normed_target = pt_model.normalize_target(data_tar)
                 else:
                     normed_target = target_norm_method(data_tar)
-            elif isinstance(data_tar, list):
+            elif isinstance(data_tar, list) and data_tar:
                 data_tar = [x.to(device, dtype=nii_dconf.d_dtype) \
                             for x in data_tar]
                 if target_norm_method is None:
@@ -548,7 +548,7 @@ def f_inference_wrapper(args, pt_model, device, \
             # send data to device and convert data type
             if isinstance(data_in, torch.Tensor):
                 data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
-            elif isinstance(data_in, list):
+            elif isinstance(data_in, list) and data_in:
                 data_in = [x.to(device, dtype=nii_dconf.d_dtype) \
                            for x in data_in]
             else:
@@ -556,7 +556,7 @@ def f_inference_wrapper(args, pt_model, device, \
                 
             if isinstance(data_tar, torch.Tensor):
                 data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
-            elif isinstance(data_in, list):
+            elif isinstance(data_tar, list) and data_tar:
                 data_tar = [x.to(device, dtype=nii_dconf.d_dtype) \
                             for x in data_tar]
             else:

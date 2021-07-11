@@ -173,7 +173,8 @@ class LPClite(object):
         lpc_coef_tmp = m_lpc._rc2lpc(lpc_coef)
         np.std(lpc_coef_tmp - lpc_coef)
     """
-    def __init__(self, fl=320, fs=80, order=30, window='blackman'):
+    def __init__(self, fl=320, fs=80, order=30, window='blackman', 
+                 flag_emph=True, emph_coef=0.97):
         """LPClite(fl=320, fs=80, order=30, window='blackman')
         Args
         ----
@@ -181,16 +182,27 @@ class LPClite(object):
           fs: int, frame shift
           order: int, order of LPC, [1, a_1, a_2, ..., a_order-1]
           window: str, 'blackman' or 'hanning'
-        
+          flag_emph: bool, whether use pre-emphasis (default True)
+          emph_coef: float, coefficit for pre-emphasis filter (default 0.97)
+
         Note that LPC model is defined as:
-                            Gain 
-        ---------------------------------------------
-        a_0 + a_1 z^-1 + ... + a_order-1 z^-(order-1)
+           1                          Gain 
+        -------- --------------------------------------------- 
+        1- bz^-1 a_0 + a_1 z^-1 + ... + a_order-1 z^-(order-1)
+        
+        b = emph_coef if flag_emph is True
+        b = 0 otherwise
         """
         self.fl = fl
         self.fs = fs
         self.order = order
-        
+        self.flag_emph = flag_emph
+        self.emph_coef = emph_coef
+
+        if np.abs(emph_coef) >= 1.0:
+            print("Warning: emphasis coef {:f} set to 0.97".format(emph_coef))
+            self.emph_coef = 0.97
+
         if window == 'hanning':
             self.win = np.hanning(self.fl)
         else:
@@ -219,8 +231,13 @@ class LPClite(object):
         Note that framed_err is the excitation signal from LPC analysis on each
         frame. eer_signal is the overlap-added excitation signal.
         """
+        if self.flag_emph:
+            wav_tmp = self._preemphasis(wav)
+        else:
+            wav_tmp = wav
+
         # framing & windowing
-        frame_wined = self._windowing(self._framing(wav[:, 0]))
+        frame_wined = self._windowing(self._framing(wav_tmp[:, 0]))
 
         # auto-correlation
         auto = self._auto_correlation(frame_wined)
@@ -255,8 +272,42 @@ class LPClite(object):
         the output waveform by overlap-adding
         """
         framed_x = self._lpc_synthesis_core(lpc_coef, framed_err, gain)
-        return self._overlapadd(framed_x)
-    
+        wav_tmp = self._overlapadd(framed_x)
+        if self.flag_emph:
+            wav_tmp = self._deemphasis(wav_tmp)
+        return wav_tmp
+
+    def _preemphasis(self, wav):
+        """ wav_out = _preemphasis(wav)
+
+        input
+        -----
+          wav: np.array, (length)
+
+        output
+        ------
+          wav: np.array, (length)
+        """
+        wav_out = np.zeros_like(wav) + wav
+        wav_out[1:] = wav_out[1:] - wav_out[0:-1] * self.emph_coef
+        return wav_out
+
+    def _deemphasis(self, wav):
+        """ wav_out = _deemphasis(wav)
+
+        input
+        -----
+          wav: np.array, (length)
+
+        output
+        ------
+          wav: np.array, (length)
+        """
+        wav_out = np.zeros_like(wav) + wav
+        for idx in range(1, wav.shape[0]):
+            wav_out[idx] = wav_out[idx] + wav_out[idx-1] * self.emph_coef
+        return wav_out
+
     def _framing(self, wav):
         """F = _framed(wav)
         

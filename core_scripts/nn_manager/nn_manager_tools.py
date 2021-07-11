@@ -83,20 +83,41 @@ def f_process_loss(loss):
 def f_load_pretrained_model_partially(model, model_paths, model_name_prefix):
     """ f_load_pretrained_model_partially(model, model_paths, model_name_prefix)
     
-    Initialize part of the model with pre-trained models
-    
+    Initialize part of the model with pre-trained models.
+    This function can be used directly. It is also called by nn_manager.py
+    if model.g_pretrained_model_path and model.g_pretrained_model_prefix are 
+    defined. 
+
+    For reference: 
+    https://discuss.pytorch.org/t/how-to-load-part-of-pre-trained-model/1113/3
+
     Input:
     -----
        model: torch model
-       model_paths: list of path to pre-trained models
-       model_prefix: list of model name prefix used by model
-            for example, pre_trained_model.*** may be referred to as 
-            model.m_part1.*** in the new model. The prefix is "m_part1."
-    
+       model_paths: list of str, list of path to pre-trained models (.pt files)
+       model_prefix: list of str, list of model name prefix used by model
+            
     Output:
     ------
        None
+
+    For example, 
+        case1: A module in a pretrained model may be called model.*** 
+               This module will be model.m_part1.*** in the new model. 
+               Then the prefix is "m_part1."
+               new_model.m_part1.*** <- pre_trained_model.***
+        case2: A module in a pretrained model may be called model.*** 
+               This module will still be model..*** in the new model. 
+               Then the prefix is ""
+               new_model.*** <- pre_trained_model.***
+
+    Call f(model, ['./asr.pt', './tts.pt'], ['asr.', 'tts.']), then
+       model.asr <- load_dict(asr.pt)
+       model.tts <- load_dict(tts.pt)
     """
+    cp_names = nii_nn_manage_conf.CheckPointKey()
+
+    # change string to list
     if type(model_paths) is str:
         model_path_tmp = [model_paths]
     else:
@@ -106,21 +127,31 @@ def f_load_pretrained_model_partially(model, model_paths, model_name_prefix):
     else:
         model_prefix_tmp = model_name_prefix
 
+    # get the dictionary format of new model
     model_dict = model.state_dict()
 
+    # for each pre-trained model
     for model_path, prefix in zip(model_path_tmp, model_prefix_tmp):
-        if prefix[-1] != '.':
+        if prefix == '':
+            pass
+        elif prefix[-1] != '.':
             # m_part1. not m_part
             prefix += '.'
         
         pretrained_dict = torch.load(model_path)
         
+        # if this is a epoch***.pt, load only the network weight
+        if cp_names.state_dict in pretrained_dict:
+            pretrained_dict = pretrained_dict[cp_names.state_dict]
+
         # 1. filter out unnecessary keys
         pretrained_dict = {prefix + k: v \
                            for k, v in pretrained_dict.items() \
                            if prefix + k in model_dict}
-        print("Load model {:s} as {:s} ({:d} parameter buffers)".format(
-            model_path, prefix, len(pretrained_dict.keys())))
+        print("Load model {:s} as {:s} ({:d} parameter buffers, ".format(
+            model_path, prefix, len(pretrained_dict.keys())), end=' ')
+        print("{:d} parameters)".format(
+            sum([pretrained_dict[x].numel() for x in pretrained_dict.keys()])))
         
         # 2. overwrite entries in the existing state dict
         model_dict.update(pretrained_dict)
