@@ -1,10 +1,9 @@
-Project for ASVspoof 2021 
-
 General
 ----------
-This project is a toy example ASVspoof 
+This project is a toy example to train and run evaluation on a LFCC-LCNN LSTM system.
+The toy data set contains only a few utterances. It will help to show how
+the project works and how it can be used for other database.
 
-lfcc-lcnn-lstm-sig_toy_example: a toy example to train and run evaluation on LFCC-LCNN LSTM system
 
 Usage
 ----------
@@ -113,6 +112,10 @@ Note
     one by one)
      
 6. The used countermeasure model is detailed here https://arxiv.org/abs/2103.11326.
+
+
+For a high-level explanation on how the functions and objects work in the script, please
+check ../../README.md
 
 
 That's all

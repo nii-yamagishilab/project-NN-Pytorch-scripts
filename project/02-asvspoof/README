@@ -1,27 +1,83 @@
-DATA: folder to store data
+General
+-------
+This project is for ASVspoof.
+It includes a few models for early experiments on ASVspoof 2019 LA.
 
-lfcc-lcnn-sigmoid: LFCC + LCNN + sigmoid output activation function
-lfcc-lcnn-a-softmax: 
-lfcc-lcnn-ocsoftmax:
-lfcc-restnet-ocsoftmax: 
 
-To use this code, please:
-1. Download ASVspoof2019 LA data
-   https://datashare.is.ed.ac.uk/handle/10283/3336
+Folder structure
+----------------
+| - DATA: folder to store data
+|
+| - lfcc-lcnn-sigmoid: LFCC + LCNN + sigmoid output activation function
+| - lfcc-lcnn-a-softmax: LFCC + LCNN + angular-margin softmax
+| - lfcc-lcnn-ocsoftmax: LFCC + LCNN + one-class softmax
+| - lfcc-restnet-ocsoftmax: LFCC + ResNet + one-class softmax
+|
+| - 
 
-2. Convert flac into waveforms
+Usuage
+------
+This is mainly for NII internal experiments on ASVspoof2019.
+If you want to try it on other data, please use ../04-asvspoof2021-toy.
+That project is easier to follow
 
-3. Create symbol links to the waveform files as DATA/asvspoof2019_LA/README suggests
+# Download ASVspoof 2019 data data
+  To use this code, please:
+  1. Download ASVspoof2019 LA from
+     https://datashare.is.ed.ac.uk/handle/10283/3336
+  2. Convert flac into waveforms
+  3. Create symbol links to the waveform files as DATA/asvspoof2019_LA/README suggests
 
-Then, try 00_demo.sh in anyone of the model folder
-$: cd lfcc-lcnn-sigmoid
-$: bash 00_demo.sh > log_batch 2>&1 &
+# Choose one project
+cd lfcc-lcnn-sigmoid
+
+# Run 00_demo.sh
+bash 00_demo.sh > log_batch 2>&1 &
 
 Everything will be running in the background.
 
 
+Notes
+-----
+1. On model.py
+   The model.py of each project is created from a common template.
+   It has many functions unnecessary for ASVspoof model but required for the Pytorch scripts.
 
-Memo:
+   These are the unnecessary functions but must be defined:
+   1. model.prepare_mean_std: to load mean / std of input / target features. 
+      For ASVspoof models, mean = 0, std = 1, no normalization is conducted.
+   2. model.normalize_input: see message above for model.prepare_mean_std
+   3. model.normalize_target:  see message above for model.prepare_mean_std
+   4. model.denormalize_output: ASVspoof model doesn't use this
+
+2. On input and output data in model.py
+   
+   Waveform is the input data of the script. After waveform is loaded, 
+   the front-end computes the acoustic features in each mini-batch.
+   No normalization is conducted.
+   
+   ASVspoof models do not load target labels from disk. It gets the target label from file
+   names and protocol (i.e., target_vec in model.py). Thus, model.normalize_target is not used
+   on the target label. 
+     
+   model.forward() gives [scores, target_vec, True] to the script, and the script will 
+   give [scores, target_vec, True] to Loss().compute() as the 1st non-self argument.
+   Thus, in Loss().compute(outputs, target),
+   outputs[0] denotes scores, and outputs[1] denotes target_vec.
+
+   Note that target in Loss() is an empty list []. This argument "target" is for target data
+   loaded from disk. But for ASVspoof models, the target labels are not loaded from disk, 
+   thus target is []. This behavior is controled by output_dirs = [] in config.py. It tells
+   The script not load anything as "target".
+   
+
+
+For a high-level explanation on how the functions and objects work in the script, please
+check ../../README.md
+
+Memo
+----
+Source:
 lfcc-lcnn-sigmoid: proj-asvspoof/models_stc_lcnn/trial22-1-1-t2
 lfcc-lcnn-ocsoftmax: proj-asvspoof/models_stc_lcnn/trial22-1-5-t3
 lfcc-lcnn-a-softmax: proj-asvspoof/models_stc_lcnn/trial22-1-3-t2/

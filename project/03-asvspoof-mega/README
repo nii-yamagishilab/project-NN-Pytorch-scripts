@@ -1,6 +1,3 @@
-Project for ASVspoof
-
-
 General
 ----------
 This project is detailed in this paper https://arxiv.org/abs/2103.11326.
@@ -142,6 +139,35 @@ If GPU memory is insufficient, please reduce --batch-size in */*/00_train.sh
    Output, LA_E_2504134, 1, 0.999660
 
    Where 0 and 1 denote spoof and bona fide, respectively.
+
+4. model.py in this project was created from a common template.
+   It has many functions unnecessary for ASVspoof model but required for the Pytorch scripts:
+   model.prepare_mean_std, model.normalize_input, model.normalize_target, 
+   model.denormalize_output.
+
+   For ASVspoof models, we set input_norm = [False] in config.py, In this case, 
+   mean = 0 and std = 1 are used for input data (i.e., waveform)
+   
+   After waveform is read, the front-end computes the acoustic features in each mini-batch.
+   No normalization is conducted.
+   
+   ASVspoof models do not load target labels from disk. It gets the target label from file
+   names and protocol (i.e., target_vec in model.py). Thus, model.normalize_target is not used
+   on the target label. 
+     
+   model.forward() gives [scores, target_vec, True] to the script, and the script will 
+   give [scores, target_vec, True] to Loss().compute() as the 1st non-self argument.
+   Thus, in Loss().compute(outputs, target),
+   outputs[0] denotes scores, and outputs[1] denotes target_vec.
+
+   Note that target in Loss() is an empty list []. This argument "target" is for target data
+   loaded from disk. But for ASVspoof models, the target labels are not loaded from disk, 
+   thus target is []. This behavior is controled by output_dirs = [] in config.py. It tells
+   The script not load anything as "target".
+   
+   
+For a high-level explanation on how the functions and objects work in the script, please
+check ../../README.md
 
 If you want to use the code for other database, please check 04-asvspoof2021-baseline
 and try the toy example. It will include a toy dataset for the training process

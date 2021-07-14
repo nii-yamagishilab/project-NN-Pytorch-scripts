@@ -609,7 +609,8 @@ class WaveNet_v1(torch_nn.Module):
             dtype=input_feat.dtype, device=input_feat.device)
 
         # loop over all time steps
-        print("Time steps: {:d}".format(wavlength), end=' ', flush=True)
+        print("Total time steps: {:d}. Progress: ".format(wavlength), 
+              end=' ', flush=True)
         for time_idx in range(wavlength):
             # show messages
             if time_idx % 500 == 1:
