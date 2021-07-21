@@ -24,6 +24,11 @@ bash 01_conda.sh
 echo -e "\n${RED}=======================================================${NC}"
 echo -e "${RED}Step2. untar toy data set${NC}"
 cd DATA
+if [ ! -e "toy_example.tar.gz" ];
+then
+    echo "Downloading toy data set"
+    wget -q --show-progress https://www.dropbox.com/sh/bua2vks8clnl2ha/AAABr4g7NPZH7GhgGSltaztVa/toy_example.tar.gz
+fi
 tar -xzf toy_example.tar.gz
 cd ..
 

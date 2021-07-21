@@ -76,7 +76,7 @@ fi
 
 if [[ ! -e "./${MODELNAME}.tar" ]];then
     echo -e "${RED}Downloading pre-trained model${NC}"
-    wget -q ${MODELLINK}
+    wget -q --show-progress ${MODELLINK}
 fi
 
 if [ -e "./${MODELNAME}.tar" ];then	
@@ -86,6 +86,18 @@ else
     echo "Cannot download ${MODELLINK}. Please contact the author"
     exit
 fi
+
+
+if [ ! -e "${CONVDIR}/project-03-asvspoof-mega-conv.tar" ];
+then
+    cd ${CONVDIR}
+    echo "Downloading some cached files"
+    echo "They are not necessary. But having them will reduce the time to load data for the 1st time"
+    wget -q --show-progress https://www.dropbox.com/sh/bua2vks8clnl2ha/AAAiKsg1KYpNxsyaZi6cmHF7a/project-03-asvspoof-mega-conv.tar
+    tar -xvf project-03-asvspoof-mega-conv.tar
+    cd -
+fi
+
 #############
 # setup PYTHONPATH and conda
 #  this ENVFILE must be accessed inside a folder

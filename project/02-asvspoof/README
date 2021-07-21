@@ -28,6 +28,9 @@ That project is easier to follow
   2. Convert flac into waveforms
   3. Create symbol links to the waveform files as DATA/asvspoof2019_LA/README suggests
 
+# Download pre-trained models
+bash 01_download.sh
+
 # Choose one project
 cd lfcc-lcnn-sigmoid
 
