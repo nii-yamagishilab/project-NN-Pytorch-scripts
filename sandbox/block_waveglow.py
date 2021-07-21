@@ -38,7 +38,7 @@ class Invertible1x1ConvWaveGlow(torch.nn.Module):
             # not necessary
             W = W.transpose(0, 1)
         self.weight = torch_nn.Parameter(W)
-        self.weight_inv = torch_nn.Parameter(W)
+        self.weight_inv = torch_nn.Parameter(W.clone())
         self.weight_inv_flag = False
         self.flag_detjac = flag_detjac
         return

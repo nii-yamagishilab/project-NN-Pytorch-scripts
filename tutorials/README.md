@@ -1,120 +1,124 @@
-# Hands-on materials for NSF models
+# Hands-on materials for Neural vocoders
 
-Xin Wang, National Intitute of Informatics, 2020
+Xin Wang, National Institute of Informatics, 2021
 
-## 1. Usage
+This hands-on material covers only the basics of some neural vocoders. Models and implementations are for the tutorial, therefore lacking intensive tuning and optimization. Neither am I good at that. If you have ideas on how to improve, your feedback is appreciated.
+
+**Table of Contents:**
+* [Usage](#usage)
+* [Part 1 and 2](#part12)
+* [Part 3](#part3)
+* [FAQ](#faq)
+
+
+If you are in the root directory of the hands-on package, please go to the tutorial folder
+```sh
+cd ./tutorial
+```
+
+## <a name="usage"></a>1. Usage
 
 Readers may check the materials in this order:
-* __Part1__: c*.ipynb. These notebooks explain the building blocks of NSF models with codes and figures;
+* __Part1__: c*.ipynb explain 1) Pytorch conventions in this tutorial; 2) building blocks of common neural vocoders;
 
-* __Part2__: s*.ipynb. These notebooks define NSF models using building blocks, load pre-trained models, and generate samples;
+* __Part2__: s*.ipynb are on three types of models: NSF, WaveNet, and WaveGlow. They explain details of each module and contain analysis-synthesis samples using  pre-trained models;
 
-* __Part3__: Pytorch scripts in https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts. This part will show how to train NSF models on CMU-arctic database.
+* __Part3__: `../project` include scripts to train NSF, WaveNet, and WaveGlow using CMU-ARCTIC database.
 
-* __Hands-on-NSF__.pdf: a brief doc. This is to be read while working on Part1, 2, and 3. It can be [downloaded here](https://www.dropbox.com/sh/gf3zp00qvdp3row/AADKGBaLfVSbQVEIEsRUw75Sa/web/pytorch-Hands-on-NSF_v202008.pdf?raw=1)
+* __Hands-on-NSF__.pdf: an optional doc on the tutorial. You may read it while working on Part1, 2, and 3. It can be [downloaded here](https://www.dropbox.com/sh/gf3zp00qvdp3row/AACeanvFQD5Gyu3a5I5jIV_-a/web/Hands-on-neural-vocoders-spcc2021.pdf?dl=1)
 
 
 Alternatively, readers may try this order:
-* __Part2__ s*.ipynb: play with pre-trained NSF models;
+* __Part2__: play with pre-trained NSF models in s*.ipynb;
 
-* __Part1__ c*.ipynb: go through the details of building blocks;
+* __Part1__: go through the details of building blocks in c*.ipynb;
 
-* __Part3__: train NSF models on cmu-arctic using the Pytorch scripts.
+* __Part3__: train to train your models on CMU-ARCTIC database.
 
-Part1 and Part2 can be done on personal computer with web browsers and a few Python tools, no GPU is required.
+Part1 and Part2 can be done on your personal computer with web browsers and a few Python tools; no GPU is required. Note that this tutorial has not been checked on a Windows PC. If you have any issues, please contact with me.
 
 Part3 requires a Linux GPU server.
 
+## <a name="part12"></a>2. Work on Part 1 and 2
+Materials for part 1 and part 2 are in Jupyter notebooks. Readers can open them on personal desktop or laptop.
 
-## 2. Work on Part 1 and 2
-Materials for part 1 and part 2 are written as Jupyter notebooks. Readers can open them on personal desktop or laptop.
+#### 2.1 Setup
 
-#### 2.1 Install softwares
-
-To open and run Jupyter notebooks
-1. Please use Python3
-2. Please install Jupyter notebook or Jupyter Lab https://jupyter.org/;
-3. Please install pytorch (1.4 or later, cpu only), scipy (test on 1.4.1), numpy (test on 1.18.5), Matplotlib (test on 3.1.1);
-4. Optionally, [librosa](https://librosa.org) is required to plot rainbow gram in s2_demonstration_music-nsf.ipynb.
-
-If you use [conda](https://docs.conda.io/en/latest/miniconda.html), you may use `./env-cpu.yml` to install softwares and create a python environment:
+If you use [conda](https://docs.conda.io/en/latest/miniconda.html), please use use `./env-cpu.yml` to install software:
 
 ```sh
+# install software dependency
 conda env create -f ./env-cpu.yml
+
+# activate environment and add PYTHONPATH
+source ./env-cpu.sh
+
+# Download pre-trained models
+bash 00_download_models.sh
 ```
 
-After restarting terminal, you can activate the python environment and run Jupyter lab
+If you don't use conda, you may install software in env-cpu.yml manually.
 
-```sh
-conda activate pytorch-cpu
-jupyter lab
-```
 
+Pre-trained models of WaveGlow and Blow are quite large. They are shared through Dropbox. If you cannot access Dropbox, please let me know. You may also ignore the pre-trained models if you don't want to try the analysis-synthesis examples in s2*.ipynb.
 
 #### 2.2 Run Jupyter lab
-
-After installing required softwares, please open terminal to go to this directory. Then 
-
+Open the sh terminal and run shell command
 ```sh
 jupyter lab
 ```
 
-The browser will open, and you can click the jupyter notebooks and start to run it.
+The browser will open, and the Jupyter notebook GUI will be displayed. You can click a jupyter notebook and start to run it. If you are not familiar with Jupyter notebook, please check docs on this [website](https://jupyter.org/). 
 
-If you are not familiar with Jupyter notebook, please check docs on this [website](https://jupyter.org/). 
 
 #### 2.3 Use HTML files
 
-If you don't want to run Jupyter notebooks, please use any web browser to open the HTML files. HTML files are exported from Jupyter notebooks. They have the same contents as Jupyter notebooks.
+If you don't want to run Jupyter notebooks, please use any web browser to open the HTML files. HTML files are exported from the Jupyter notebooks. 
 
 
-## 3. Work on Part 3
+## <a name="part3"></a>3. Work on Part 3
 
 Part3 requires a Linux server with GPU card.
 
-#### 3.1 Install softwares
-1. Python3
-2. pytorch (1.4 or later) with GPU support
-3. scipy (test on 1.4.1), numpy (test on 1.18.5)
+How-to is written in `../README`. For convenience, I summarize it here:
 
-If *conda* is used to manage python environment, you may try this [env.yml](https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts/blob/master/env.yml) or this [env2.yml](https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts/blob/master/env2.yml) to create an environment called *pytorch-1.4*:
+#### 3.1 Install software with support for GPU
+If you use conda
 
 ```sh
+# Go to the root directory of this repo
+cd ..
+
+# Install Pytorch with GPU and other software
 conda env create -f env.yml
-conda activate pytorch-1.4
+
 ```
+
+You may also manually install the software in env.yml.
 
 #### 3.2 Run script
-1. Download script if you haven't done so
+
+For example:
 ```sh
-git clone https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts
-```
+# Inside the root directory of this repo
+cd project/01-nsf/cyc-noise-nsf-4
 
-
-2. Load installed Python environment (for example, pytorch-1.4 installed above)
-```
-conda activate pytorch-1.4
-```
-
-
-3. Run script in one project folder
-```sh
-cd project/cyc-noise-nsf-4
+# Run script
 bash 00_demo.sh > log_train 2>log_err &
 ```
 
-This 00_demo.sh will download CMU-arctic data, train one cyclic noise NSF model, and generate speech waveforms. The job will be running in background, and you can check log_train and log_err.
+This 00_demo.sh will download CMU-ARCTIC data, train one NSF model, and generate speech waveforms. The job will be running in the background. Please check log_train and log_err to monitor the process.
 
 It may take 1 or more days to finish. 
 
-Please check Hands-on-NSF.pdf for details on Part3.
+You can check `../README` and Part3 in Hands-on-NSF.pdf for more details.
 
 
-### 4. FAQ
+## <a name="faq"></a>4. FAQ
 
 1. Jupyter Lab cannot be opened in the browser
     
-    If you a similar problem like [this](https://github.com/jupyterlab/jupyterlab/issues/6921), please change another browser. 
+    If you a similar problem like [this](https://github.com/jupyterlab/jupyterlab/issues/6921), please use another browser. 
     
     Simply copy the http address shown in the terminal that runs command Jupyter Lab and open it in another browser. 
     
@@ -133,4 +137,10 @@ Please check Hands-on-NSF.pdf for details on Part3.
     If you have installed Jupyter Lab before, you may not find the Python kernel corresponding to the newly created Python environment. 
     
     Please check this [page](https://ipython.readthedocs.io/en/stable/install/kernel_install.html#kernels-for-different-environments) to add the kernel to Jupyter Lab.
-    
+ 
+
+3. If you want to run the Jupyter notebook on a remote server
+
+   You may check how-to on this [webpage](https://docs.anaconda.com/anaconda/user-guide/tasks/remote-jupyter-notebook/). 
+   
+The end

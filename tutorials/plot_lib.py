@@ -30,7 +30,7 @@ def plot_imshow(data, fig, axis, xlabel, ylabel):
     axis.set_ylabel(ylabel)
     return fig, axis
 
-def plot_spectrogram(data, fig, axis, xlabel, ylabel, sampling_rate=None):
+def plot_spectrogram(data, fig, axis, xlabel, ylabel, sampling_rate=None, title=''):
     axis.imshow(data, aspect='auto', origin='lower', cmap='jet')
     axis.set_xlabel(xlabel)
     axis.set_ylabel(ylabel)
@@ -39,6 +39,8 @@ def plot_spectrogram(data, fig, axis, xlabel, ylabel, sampling_rate=None):
         ytickslabels = ["%1.1f" % (x / data.shape[0] * sampling_rate / 2.0 / 1000.0) for x in yticks]
         axis.set_yticks(yticks)
         axis.set_yticklabels(ytickslabels)
+    if title:
+        axis.set_title(title)
     return fig, axis
 
 def plot_surface(data, fig, ax, xlabel='', ylabel='', zlabel='', angleX=30, angleY=30):

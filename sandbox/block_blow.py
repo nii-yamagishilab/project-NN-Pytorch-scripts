@@ -103,7 +103,7 @@ class OverlapAdder(torch_nn.Module):
         self.fs = fs
         self.flag_win_ana = flag_win_analysis
         
-        # assume oven 
+        # assume even 
         self.m_win = torch_nn.Parameter(torch.hann_window(self.fl))
         return
     

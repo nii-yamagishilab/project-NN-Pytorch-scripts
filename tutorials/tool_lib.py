@@ -7,6 +7,57 @@ import scipy.signal
 import numpy as np
 import scipy.io.wavfile
 
+
+def waveReadAsFloat(wavFileIn):
+    """ sr, wavData = wavReadToFloat(wavFileIn)
+    Wrapper over scipy.io.wavfile
+    Return: 
+        sr: sampling_rate
+        wavData: waveform in np.float32 (-1, 1)
+    """
+    sr, wavdata = scipy.io.wavfile.read(wavFileIn)
+    
+    if wavdata.dtype is np.dtype(np.int16):
+        wavdata = np.array(wavdata, dtype=np.float32) / \
+                  np.power(2.0, 16-1)
+    elif wavdata.dtype is np.dtype(np.int32):
+        wavdata = np.array(wavdata, dtype=np.float32) / \
+                  np.power(2.0, 32-1)
+    elif wavdata.dtype is np.dtype(np.float32):
+        pass
+    else:
+        print("Unknown waveform format %s" % (wavFileIn))
+        sys.exit(1)
+    return sr, wavdata
+
+def waveFloatToPCMFile(waveData, wavFile, bit=16, sr=16000):
+    """waveSaveFromFloat(waveData, wavFile, bit=16, sr=16000)
+    Save waveData (np.float32) as PCM *.wav
+    
+    Args:
+       waveData: waveform data as np.float32
+       wavFile: output PCM waveform file
+       bit: PCM bits
+       sr: sampling rate
+    """
+    
+    # recover to 16bit range [-32768, +32767]
+    rawData  = waveData * np.power(2.0, bit-1)
+    rawData[rawData >= np.power(2.0, bit-1)] = np.power(2.0, bit-1)-1
+    rawData[rawData < -1*np.power(2.0, bit-1)] = -1*np.power(2.0, bit-1)
+    
+    # write as signed 16bit PCM
+    if bit == 16:
+        rawData  = np.asarray(rawData, dtype=np.int16)
+    elif bit == 32:
+        rawData  = np.asarray(rawData, dtype=np.int32)
+    else:
+        print("Only be able to save wav in int16 and int32 type")
+        print("Save to int16")
+        rawData  = np.asarray(rawData, dtype=np.int16)
+    scipy.io.wavfile.write(wavFile, sr, rawData)
+    return
+
 def read_raw_mat(filename,col,format='f4',end='l'):
     """read_raw_mat(filename,col,format='float',end='l')
        Read the binary data from filename

@@ -237,16 +237,18 @@ class SineGen(torch_nn.Module):
         
         input
         -----
-          F0: tensor(batchsize, length, dim=1)
+          F0: tensor, in shape (batchsize, length, dim=1)
+              up-sampled F0, length should be equal to the waveform length
               Input F0 should be discontinuous.
               F0 for unvoiced steps should be 0
-       
+        
         output
         ------
-          sine_tensor: tensor(batchsize, length, output_dim)
-          output uv: tensor(batchsize, length, 1)
-
-        where output_dim = 1 + harmonic_num
+          sine_tensor: tensor, (batchsize, length, output_dim)
+          output uv: tensor, (batchsize, length, 1)
+          noise: tensor, (batchsize, length, 1)
+        
+        note that output_dim = 1 + harmonic_num
         """
         with torch.no_grad():
             f0_buf = torch.zeros(f0.shape[0], f0.shape[1], self.dim, \
@@ -277,6 +279,81 @@ class SineGen(torch_nn.Module):
 
         return sine_waves, uv, noise
 
+
+
+class PulseGen(torch_nn.Module):
+    """ Definition of Pulse train generator
+    
+    There are many ways to implement pulse generator. 
+    Here, PulseGen is based on SinGen. 
+    
+    This is used in cyclic-noise NSF
+    """
+    def __init__(self, samp_rate, pulse_amp = 0.1,
+                 noise_std = 0.003, voiced_threshold = 0):
+        super(PulseGen, self).__init__()
+        self.pulse_amp = pulse_amp
+        self.sampling_rate = samp_rate
+        self.voiced_threshold = voiced_threshold
+        self.noise_std = noise_std
+        self.l_sinegen = SineGen(self.sampling_rate, harmonic_num=0,\
+                                 sine_amp=self.pulse_amp, noise_std=0,\
+                                 voiced_threshold=self.voiced_threshold,\
+                                 flag_for_pulse=True)
+    
+    def forward(self, f0):
+        """ Pulse train generator
+        pulse_train, uv = forward(f0)
+
+        input 
+        -----
+          F0: tensor, (batchsize, length, dim=1)
+              up-sampled F0
+              f0 for unvoiced steps should be 0
+              length should be equal to the expected waveform length
+
+        output
+        ------
+          pulse_train: tensor, (batchsize, length, dim)
+          sine_wave: tensor, (batchsize, length, dim), sine waveform that
+                     is used to derive the pulse train
+          uv: tensor, (batchsize, length, 1), u/v flag
+          pulse_noise: tensor, (batchsize, length, dim), additive noise in
+                       pulse_train         
+        """
+        with torch.no_grad():
+            sine_wav, uv, noise = self.l_sinegen(f0)
+            
+            # sine without additive noise
+            pure_sine = sine_wav - noise
+            
+            # step t corresponds to a pulse if
+            # sine[t] > sine[t+1] & sine[t] > sine[t-1] 
+            # & sine[t-1], sine[t+1], and sine[t] are voiced
+            # or 
+            # sine[t] is voiced, sine[t-1] is unvoiced
+            # we use torch.roll to simulate sine[t+1] and sine[t-1]
+            sine_1 = torch.roll(pure_sine, shifts=1, dims=1)
+            uv_1 = torch.roll(uv, shifts=1, dims=1)
+            uv_1[:, 0, :] = 0
+            sine_2 = torch.roll(pure_sine, shifts=-1, dims=1)
+            uv_2 = torch.roll(uv, shifts=-1, dims=1)
+            uv_2[:, -1, :] = 0
+            
+            loc = (pure_sine > sine_1) * (pure_sine > sine_2) \
+                * (uv_1 > 0) * (uv_2 > 0) * (uv > 0) \
+                + (uv_1 < 1) * (uv > 0)
+            
+            # pulse train without noise
+            pulse_train = pure_sine * loc
+
+            # additive noise to pulse train
+            # note that noise from sinegen is zero in voiced regions
+            pulse_noise = torch.randn_like(pure_sine) * self.noise_std
+            
+            # with additive noise on pulse, and unvoiced regions
+            pulse_train += pulse_noise * loc + pulse_noise * (1 - uv)
+        return pulse_train, sine_wav, uv, pulse_noise
 
 
 

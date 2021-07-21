@@ -237,6 +237,59 @@ class Model(torch_nn.Module):
                                       True)
 
 
+    def convert(self, wav, src_id, tar_id):
+        """wav = inference(mels)
+
+        input
+        -----
+          wav: tensor, target waveform (batchsize, length2, 1)
+          src_id: int, ID of source speaker
+          tar_id: int, ID of target speaker
+          
+        output
+        ------
+          wav_new: tensor, same shape
+        """ 
+        # framing the input waveform into frames
+        #   m_overlap.forward does framing
+        # framed_wav (batchsize, frame_num, frame_length)
+        framed_wav = self.m_overlap(wav)
+        batch, frame_num, frame_len = framed_wav.shape
+        
+        # change frames into batch
+        # framed_Wav (batchsize * frame_num, frame_length, 1)
+        framed_wav = framed_wav.view(-1, frame_len).unsqueeze(-1)
+
+        
+        # source speaker IDs
+        # (batch, )
+        speaker_ids = torch.tensor([src_id for x in wav],
+                                   dtype=torch.long, device=wav.device)
+        # (batch * frame_num)
+        speaker_ids = speaker_ids.repeat_interleave(frame_num)
+        # get embeddings (batch * frame_num, 1, cond_dim)
+        speaker_emd = self.m_spk_emd(speaker_ids).unsqueeze(1)
+        
+        
+        # target speaker IDs
+        tar_speaker_ids = torch.tensor([tar_id for x in wav],
+                                   dtype=torch.long, device=wav.device)
+        # (batch * frame_num)
+        tar_speaker_ids = tar_speaker_ids.repeat_interleave(frame_num)
+        target_speaker_emb = self.m_spk_emd(tar_speaker_ids).unsqueeze(1)
+        
+        # analysis 
+        z, _, _, _ = self.m_blow(framed_wav, speaker_emd)
+        
+        # synthesis
+        # output_framed (batch * frame, frame_length, 1)
+        output_framed = self.m_blow.reverse(z, target_speaker_emb)
+
+        # overlap and add
+        # view -> (batch, frame_num, frame_length)
+        return self.m_overlap.reverse(
+            output_framed.view(batch, -1, frame_len), True)
+
 # Loss is returned by model.forward(), no need to specify 
 # just a place holder so that the output of model.forward() can be 
 # sent to the optimizer

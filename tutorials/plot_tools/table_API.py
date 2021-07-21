@@ -44,14 +44,31 @@ def return_latex_color_cell(value, val_min, val_max, scale, wrap, color_func):
     color_code = color_func(value)[:-1]
     color_code = ', '.join(["{:0.2f}".format(x) for x in color_code])
     return r"\cellcolor[rgb]{" + color_code + "}"
+
+def is_valid_float(val):
+    try:
+        float(val)
+    except ValueError:
+        return False
+    else:
+        if val != np.inf and val == val:
+            return True
+        else:
+            return False
+
+def return_valid_number_idx(data_array):
+    is_numeric_3 = np.vectorize(is_valid_float, otypes = [bool])
+    return is_numeric_3(data_array)
+
     
 def print_table(data_array, column_tag, row_tag, 
-                print_format="1.2f", 
+                print_format = "1.2f", 
                 with_color_cell = True,
                 colormap='Greys', colorscale=0.5, colorwrap=0, col_sep='', 
-                print_latex_table=True, print_text_table=True):
+                print_latex_table=True, print_text_table=True,
+                print_format_along_row=True):
     """
-    print a latex table given the data and tags
+    print a latex table given the data (np.array) and tags    
     
     input
     -----
@@ -59,8 +76,13 @@ def print_table(data_array, column_tag, row_tag,
       column_tag: list of str, length N, tag in the first row
       row_tag: list of str, length M, tags in first col of each row
       
-      print_format: str, default "1.2f", used to specify number format
-      
+      print_format: str or list of str, specify the format to print number
+                    default "1.2f"
+      print_format_along_row: bool, when print_format is a list, is this
+                    list specified for rows? Default True
+                    If True, row[n] will use print_format[n]
+                    If False, col[n] will use print_format[n]
+
       with_color_cell: bool, default True,
                       whether to use color in each latex cell
       colormap: str, color map name (matplotlib)
@@ -80,13 +102,32 @@ def print_table(data_array, column_tag, row_tag,
     Tables will be printed to the screen.
     The latex table will be surrounded by begin{tabular}...end{tabular}
     It can be directly pasted to latex file.
-    However, it requires usepackage{colortbl} to show color in table cell.
-    
+    However, it requires usepackage{colortbl} to show color in table cell.    
     """
+    if column_tag is None:
+        column_tag = ["" for data in data_array[0, :]]
+    if row_tag is None:
+        row_tag = ["" for data in data_array]
+
+    # check print_format
+    if type(print_format) is not list:
+        if print_format_along_row:
+            # repeat the tag
+            print_format = [print_format for x in row_tag]
+        else:
+            print_format = [print_format for x in column_tag]
+    else:
+        if print_format_along_row:
+            assert len(print_format) == len(row_tag)
+        else:
+            assert len(print_format) == len(column_tag)
+
+
     # color configuration
     color_func = cm.get_cmap(colormap)
-    value_min = np.min(data_array[data_array != np.inf])
-    value_max = np.max(data_array[data_array != np.inf])
+    data_idx = return_valid_number_idx(data_array)
+    value_min = np.min(data_array[data_idx])
+    value_max = np.max(data_array[data_idx])
     
     def get_latex_color(x):
         # return a color command for latex cell
@@ -95,11 +136,21 @@ def print_table(data_array, column_tag, row_tag,
     
     # maximum width for tags in 1st column
     row_tag_max_len = max([len(x) for x in row_tag])
+
     # maximum width for data and tags for other columns
-    col_tag_max_len = max(
-        [len("{num:{form}}".format(num=x, form=print_format)) \
-         for x in data_array.flatten()])
-    col_tag_max_len = max([len(x) for x in column_tag] + [col_tag_max_len])
+    if print_format_along_row:
+        tmp_len = []
+        for idx, data_row in enumerate(data_array):
+            tmp_len.append(
+                max([len("{num:{form}}".format(num=x, form=print_format[idx])) \
+                     for x in data_row]))
+    else:
+        tmp_len = []
+        for idx, data_col in enumerate(data_array.T):
+            tmp_len.append(
+                max([len("{num:{form}}".format(num=x, form=print_format[idx])) \
+                     for x in data_col]))
+    col_tag_max_len = max([len(x) for x in column_tag] + tmp_len)
     
     # prepare buffer
     text_buffer = ""
@@ -129,10 +180,20 @@ def print_table(data_array, column_tag, row_tag,
         
         # each column in the raw
         for col_idx in np.arange(col):
-            if not np.isinf(data_array[row_idx,col_idx]):
+
+            if print_format_along_row:
+                tmp_print_format = print_format[row_idx]
+            else:
+                tmp_print_format = print_format[col_idx]
+
+            if is_valid_float(data_array[row_idx,col_idx]):
                 num_str = "{num:{form}}".format(num=data_array[row_idx,col_idx],
-                                                form=print_format)
+                                                form=tmp_print_format)
                 latex_color_cell = get_latex_color(data_array[row_idx,col_idx])
+            elif type(data_array[row_idx,col_idx]) is str:
+                num_str = "{num:{form}}".format(num=data_array[row_idx,col_idx],
+                                                form=tmp_print_format)
+                latex_color_cell = ''
             else:
                 num_str = ''
                 latex_color_cell = ''

@@ -3,22 +3,40 @@ By Xin Wang, National Institute of Informatics, 2021
 
 I am a new pytorch user. If you have any suggestions or questions, pleas email wangxin at nii dot ac dot jp
 
-------
-## 1. Update log
 
-* 2021-04: Add projects on ASVspoof [./project/03-asvspoof-mega](./project/03-asvspoof-mega) for [paper A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection
- (on arxiv)](https://arxiv.org/abs/2103.11326)
-* 2020-04: Update core_scripts and functions
-* 2020-11: Update for Pytorch 1.6
+* [Note](#note)
+* [Overview](#overview)
+* [Requirement](#env)
+* [How to use](#use)
+* [Project design](#conv)
+* [Misc](#miscs)
+
+
+------
+<a name="note"></a>
+## 1. For SPCC 2021 participants
+
+Hands-on materials are in `./tutorial`. Please go to this folder
+```sh
+cd ./tutorial
+```
+and follow README.md there.
+
+The root folder here holds materials for part3 of the hands-on.
+
+<!---
+## <a name="update"></a>1. Update log
+
+* 2021-04: Add projects on ASVspoof [./project/03-asvspoof-mega](./project/03-asvspoof-mega) for paper [A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection (on arxiv)](https://arxiv.org/abs/2103.11326)
 * 2020-11: Add preliminary projects on ASVspoof [./project/02-asvspoof](./project/02-asvspoof)
 * 2020-08: Add tutorial materials [./tutorials](./tutorials). Most of the materials are Jupyter notebooks and can be run on your Laptop using CPU. 
+--->
 
-<br />
-
+<a name="overview"></a>
 ## 2. Overview
 This repository hosts Pytorch codes for the following projects:
 
-### 2.1 Neural waveform model [./project/01-nsf](./project/01-nsf)
+### Neural source-filter waveform model [./project/01-nsf](./project/01-nsf)
 
 1. [Cyclic-noise neural source-filter waveform model (NSF)](https://nii-yamagishilab.github.io/samples-nsf/nsf-v4.html)
 
@@ -26,15 +44,31 @@ This repository hosts Pytorch codes for the following projects:
 
 3. [Harmonic-plus-noise NSF with fixed FIR filter](https://nii-yamagishilab.github.io/samples-nsf/nsf-v2.html) 
 
-All NSF projects come with pre-trained models on CMU-arctic (4 speakers) and a one-click demo script to run, train, do inference.
+All NSF projects come with pre-trained models on CMU-arctic (4 speakers) and a one-click demo script to run, train, do inference. Please check [./project/01-nsf/README](./project/03-asvspoof-mega/READNE).
 
-Generated samples from pre-trained models can be found in ./project/01-nsf/\*/__pre_trained/output.
+Generated samples from pre-trained models are in `./project/01-nsf/*/__pre_trained/output`.
+
+Tutorial is also available in [./tutorial/](./tutorial)
 
 Note that this is the re-implementation of projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/).
 
-<br />
 
-### 2.2 ASVspoof project with toy example [./project/04-asvspoof2021-toy](./project/04-asvspoof2021-toy)
+### Neural source-filter waveform model [./project/05-nn-vocoders](./project/05-nn-vocoders)
+
+1. [WaveNet vocoder](https://deepmind.com/blog/wavenet-generative-model-raw-audio/)
+
+2. [WaveGlow](https://ieeexplore.ieee.org/document/8683143)
+
+3. [Blow](https://blowconversions.github.io/)
+
+All projects come with pre-trained models and a one-click demo script. Please check [./project/01-nsf/README](./project/03-asvspoof-mega/READNE).
+
+Generated samples from pre-trained models are in `./project/05-nn-vocoders/*/__pre_trained/output`.
+
+Tutorial is also available in [./tutorial/](./tutorial)
+
+
+### ASVspoof project with toy example [./project/04-asvspoof2021-toy](./project/04-asvspoof2021-toy)
 
 It takes time to download ASVspoof2019. Therefore, this project demonstrates how to train and evaluate the ASVspoof model using a toy dataset.
 
@@ -42,9 +76,7 @@ Please try this project before checking other ASVspoof projects.
 
 A similar project is adopted for ASVspoof2021 LFCC-LCNN baseline (https://www.asvspoof.org/), although the LFCC front-end is slightly different.
 
-<br />
-
-### 2.3 Speech anti-spoofing for ASVspoof 2019 LA [./project/03-asvspoof-mega](./project/02-asvspoof-mega)
+### Speech anti-spoofing for ASVspoof 2019 LA [./project/03-asvspoof-mega](./project/02-asvspoof-mega)
 
 Projects for [this anti-spoofing project (A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection, paper on arxiv)](https://arxiv.org/abs/2103.11326).
 
@@ -52,22 +84,10 @@ There were 36 systems investigated, each of which was trained and evaluated for 
 
 ![EER-mintDCF](./misc/fig_eer_table.png)
 
-Pre-trained models, scores, training recipes are all available.
+Pre-trained models, scores, training recipes are all available. Please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/READNE).
 
-To use this project, please do:
-1. Follow **4. Usage** below and setup the Pytorch environment
-2. Download [ASVspoof 2019 LA](https://doi.org/10.7488/ds/2555) and convert FLAC to WAV;
-3. Put evaluation set waveforms to [./project/03-asvspoof-mega/DATA/asvspoof2019_LA/eval](./project/03-asvspoof-mega/DATA/asvspoof2019_LA/eval) and others to [DATA/asvspoof2019_LA/train_dev](./project/03-asvspoof-mega/DATA/asvspoof2019_LA/train_dev)
-4. Go to [./project/03-asvspoof-mega](./project/03-asvspoof-mega), run this script [./project/03-asvspoof-mega/00_demo.sh](./project/03-asvspoof-mega/00_demo.sh). 
-It will run pre-trained models, compute EERs, and train a new model.
-
-
-
-Now the script also accepts FLAC as input. Please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/READNE).
-
-<br />
  
-### 2.4 (Preliminary) speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
+### (Preliminary) speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
 1. Baseline LFCC + LCNN-binary-classifier (lfcc-lcnn-sigmoid)
 2. LFCC + LCNN + angular softmax (lfcc-lcnn-a-softmax)
 3. LFCC + LCNN + one-class softmax (lfcc-lcnn-ocsoftmax)
@@ -80,66 +100,48 @@ As you can see how the results vary a lot when simply changing the initial rando
 
 For LCNN, please check (Lavrentyeva 2019); for LFCC, please check (Sahidullah 2015); for one-class softmax in ASVspoof, please check (Zhang 2020).
 
-<br />
- 
+<a name="env"></a>
 ## 3. Python environment
 
-Only a few packages are required:
-1. Python 3 (test on python3.8) 
-2. Pytorch 1.6 and above (test on pytorch-1.6)
-3. numpy (test on  1.18.1)
-4. scipy (test on 1.4.1)
-5. torchaudio (test on 0.6.0)
-6. librosa (0.8.0) with numba (0.48.0) and mir_eval (0.6) for some music projects 
+You may use [./env.yml](./env.yml) or [./env2.yml](./env2.yml) to create the environment: 
 
-I use miniconda to manage Python environment. You may use [./env.yml](./env.yml) or [./env2.yml](./env2.yml) to create the environment: 
-
-```
+```sh
 # create environment
-$: conda env create -f env.yml
+conda env create -f env.yml
+
 # load environment (whose name is pytorch-1.6)
-$: conda activate pytorch-1.6
+conda activate pytorch-1.6
 ```
- <br />
- 
-## 4. Usage
-Take cyc-noise-nsf as an example:
+<a name="use"></a>
+## 4. How to use
+Take `project/01-nsf/cyc-noise-nsf` as an example:
 
-```
-# Load python environment
-# (Alternatively, you may use env.sh to activate conda environment)
-$: conda activate pytorch-1.6
-
+```sh
 # cd into one project
-$: cd project/01-nsf/cyc-noise-nsf-4
+cd project/01-nsf/cyc-noise-nsf-4
 
 # add PYTHONPATH and activate conda environment
-$: source ../../../env.sh 
+source ../../../env.sh 
 
 # run the script
-$: bash 00_demo.sh
+bash 00_demo.sh
 ``` 
 
 The printed info will tell you what is happening. The script may need 1 day or more to finish.
 
 You may also put the job to background rather than waiting for the job while keeping the terminal open:
 
-```
+```sh
 # run the script in background
-$: bash 00_demo.sh > log_batch 2>&1 &
+bash 00_demo.sh > log_batch 2>&1 &
 ``` 
 
-The above steps will download the CMU-arctic data, run waveform generation using a pre-trained model, and train a new model (which may take 1 day or more on Nvidia V100 GPU). 
+The above steps will download the CMU-arctic data, run waveform generation using a pre-trained model, and train a new model. 
 
-<br />
+<a name="conv"></a>
+## 5. Project design and convention
 
-## 5. Notes 
-
-### 5.1 Project organization and design
-
-Here are some details on the data format and project file structure:
-
-#### Data format
+### Data format
 
 * Waveform: 16/32-bit PCM or 32-bit float WAV that can be read by [scipy.io.wavfile.read](https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.wavfile.read.html) 
 
@@ -165,9 +167,12 @@ There are helper functions in ./core_scripts/data_io/io_tools.py to read and wri
 # result should 0
 ```
 
-#### Files
+More can be found in [./tutorials](./tutorials)
 
-Directory | Function
+
+### File directory
+
+Name | Function
 ------------ | -------------
 ./core_scripts | scripts to manage the training process, data io, and so on
 ./core_modules | finished pytorch modules 
@@ -179,23 +184,20 @@ Directory | Function
 
 The motivation is to separate the training and inference process, the model definition, and the data configuration. For example:
 
-* To define a new model, change model.py only
-* To run on a new database, change config.py only
+* To define a new model, change model.py
+* To run on a new database, change config.py
+
+### How the script works
+
+The script calls different function during model training and inference. 
+A detailed flowchat is [./misc/APPENDIX_1.md](./misc/APPENDIX_1.md).
+
+This may be useful if you want to hack on the code.
 
 
-### 5.2 On NSF projects (./project/01-nsf)
-* Input data: 00_demo.sh above will download a data package for the CMU-arctic corpus, including wav (normalized), f0, and Mel-spectrogram. If you want to train the model on your own data, please prepare the input/output data by yourself. There are scripts to extract features from 16kHz in the CMU-arctic data package (in ./project/DATA after running 00_demo.sh)
-
-* Batch size: implementation works only for batchsize = 1. My previous experiments only used batchsize = 1. I haven't update the data I/O to load varied length utterances
-
-* To 24kHz: most of my experiments are done on 16 kHz waveforms. If you want to try 24 kHz waveforms, FIR or sinc digital filters in the model may be changed for better performance:
-    
-    1. in hn-nsf: lp_v, lp_u, hp_v, and hp_u are calculated on for 16 kHz configurations. For different sampling rate, you may use this online tool http://t-filter.engineerjs.com to get the filter coefficients. In this case, the stop-band for lp_v and lp_u is extended to 12k, while the pass-band for hp_v and hp_u is extended to 12k. The reason is that, no matter what is the sampling rate, the actual formats (in Hz) and spectral of sounds don't change along the sampling rate;
-
-    2. in hn-sinc-nsf and cyc-noise-nsf: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
-
-
-### 5.3 Differences from CURRENNT NSF implementation
+<a name="miscs"></a>
+## 6 On NSF projects (./project/01-nsf)
+### Differences from CURRENNT NSF implementation
 There may be more, but here are the important ones:
 
 * "Batch-normalization": in CURRENNT, "batch-normalization" is conducted along the length sequence, i.e., assuming each frame as one sample. There is no equivalent implementation on this Pytorch repository;
@@ -214,18 +216,12 @@ The learning curves look similar to the CURRENNT (cuda) version.
 ![learning_curve](./misc/fig1_curve.png)
 
 
-<br />
+### 24kHz
+Most of my experiments are done on 16 kHz waveforms. For 24 kHz waveforms, FIR or sinc digital filters in the model may be changed for better performance:
+    
+    1. in hn-nsf: lp_v, lp_u, hp_v, and hp_u are calculated on for 16 kHz configurations. For different sampling rate, you may use this online tool http://t-filter.engineerjs.com to get the filter coefficients. In this case, the stop-band for lp_v and lp_u is extended to 12k, while the pass-band for hp_v and hp_u is extended to 12k. The reason is that, no matter what is the sampling rate, the actual formats (in Hz) and spectral of sounds don't change along the sampling rate;
 
-## Reference
+    2. in hn-sinc-nsf and cyc-noise-nsf: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
 
-1. Xin Wang and Junichi Yamagishi. 2019. Neural Harmonic-plus-Noise Waveform Model with Trainable Maximum Voice Frequency for Text-to-Speech Synthesis. In Proc. SSW, pages 1–6, ISCA, September. ISCA. http://www.isca-speech.org/archive/SSW_2019/abstracts/SSW10_O_1-1.html
 
-2. Xin Wang, Shinji Takaki, and Junichi Yamagishi. 2020. Neural source-filter waveform models for statistical parametric speech synthesis. IEEE/ACM Transactions on Audio, Speech, and Language Processing, 28:402–415. https://ieeexplore.ieee.org/document/8915761/
-
-3. Xin Wang, Junichi Yamagishi. 2020. Using Cyclic-noise as source for Neural source-filter waveform model. Accepted, Interspeech
-
-4. Galina Lavrentyeva, Sergey Novoselov, Andzhukaev Tseren, Marina Volkova, Artem Gorlanov, and Alexandr Kozlov. 2019. STC Antispoofing Systems for the ASVspoof2019 Challenge. In Proc. Interspeech, 1033–1037.
-
-5. You Zhang, Fei Jiang, and Zhiyao Duan. 2020. One-Class Learning towards Generalized Voice Spoofing Detection. ArXiv Preprint ArXiv:2010.13995.
-
-6. Md Sahidullah, Tomi Kinnunen, and Cemal Hanilçi. 2015. A Comparison of Features for Synthetic Speech Detection. In Proc. Interspeech, 2087–2091.
+The end

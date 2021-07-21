@@ -38,25 +38,29 @@ class DistCategorical(torch_nn.Module):
       inference(input_feat): computes the categorical
       distribution given input_feat and generate output
       
+    Input_feat is the logits before softmax. It will be converted
+    into a probablity vector inside this Module.
+    In other words, input_feat does not need to be a probablity vector.
+
     Example:
         dim = 4
-        prob_vec = torch.rand([2, 3, dim])
-        prob_vec[0, 1, 0] += 9.9
-        prob_vec[0, 2, 1] += 9.9
-        prob_vec[0, 0, 2] += 9.9
+        logits = torch.rand([2, 3, dim])
+        logits[0, 1, 0] += 9.9
+        logits[0, 2, 1] += 9.9
+        logits[0, 0, 2] += 9.9
 
-        prob_vec[1, 1, 1] += 9.9
-        prob_vec[1, 2, 2] += 9.9
-        prob_vec[1, 0, 0] += 9.9
+        logits[1, 1, 1] += 9.9
+        logits[1, 2, 2] += 9.9
+        logits[1, 0, 0] += 9.9
 
         target = torch.tensor([[[2], [0], [1]], [[0], [1], [2]]])
 
         l_cat = DistCategorical(dim)
-        samples = l_cat.inference(prob_vec)
-        print(prob_vec)
+        samples = l_cat.inference(logits)
+        print(logits)
         print(samples)
 
-        loss = l_cat.forward(prob_vec, target)
+        loss = l_cat.forward(logits, target)
         print(loss)
     """
     def __init__(self, category_size):
@@ -96,6 +100,11 @@ class DistCategorical(torch_nn.Module):
         output
         ------
           likelihood: tensor scaler
+
+        Note that input_feat is the logits, it will be converted to prob. vec 
+        through LogSoftmax, Then NLLoss is computed. 
+        In practice, we directly use this API that will do the two steps
+        https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
         """
         self._check_input(input_feat)
         # transpose input_feat to (batchsize, cateogrical_size, length)
@@ -113,6 +122,9 @@ class DistCategorical(torch_nn.Module):
         output
         ------
           sample: (batchsize, length, dim=1)
+
+        Note that input_feat is the logits, it will be converted to prob. vec 
+        through Softmax in this method
         """
         # check
         self._check_input(input_feat)
