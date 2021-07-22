@@ -26,14 +26,14 @@ tmp = '../DATA/cmu-arctic-data-set'
 
 # File lists (text file, one data name per line, without name extension)
 # trin_file_list: list of files for training set
-trn_list = tmp + '/scp/train.lst'  
+trn_list = [tmp + '/scp/train.lst']
 # val_file_list: list of files for validation set. It can be None
-val_list = tmp + '/scp/val.lst'
+val_list = [tmp + '/scp/val.lst']
 
 # Directories for input features
 # input_dirs = [path_of_feature_1, path_of_feature_2, ..., ]
 #  we assume train and validation data are put in the same sub-directory
-input_dirs = [tmp + '/5ms/melspec', tmp + '/5ms/f0']
+input_dirs = [[tmp + '/5ms/melspec', tmp + '/5ms/f0']]
 
 # Dimensions of input features
 # input_dims = [dimension_of_feature_1, dimension_of_feature_2, ...]
@@ -56,7 +56,7 @@ input_reso = [80, 80]
 input_norm = [True, True]
     
 # Similar configurations for output features
-output_dirs = [tmp + '/wav_16k_norm']
+output_dirs = [[tmp + '/wav_16k_norm']]
 output_dims = [1]
 output_exts = ['.wav']
 output_reso = [1]
@@ -82,21 +82,21 @@ minimum_len = 80 * 50
 #########################################################
 # similar options to training stage
 
-test_set_name = 'cmu_all_test_tiny'
+test_set_name = ['cmu_all_test_tiny']
 
 # List of test set data
 # for convenience, you may directly load test_set list here
-test_list = ['slt_arctic_b0474', 'slt_arctic_b0475', 'slt_arctic_b0476',
-             'bdl_arctic_b0474', 'bdl_arctic_b0475', 'bdl_arctic_b0476',
-             'rms_arctic_b0474', 'rms_arctic_b0475', 'rms_arctic_b0476',
-             'clb_arctic_b0474', 'clb_arctic_b0475', 'clb_arctic_b0476']
+test_list = [['slt_arctic_b0474', 'slt_arctic_b0475', 'slt_arctic_b0476',
+              'bdl_arctic_b0474', 'bdl_arctic_b0475', 'bdl_arctic_b0476',
+              'rms_arctic_b0474', 'rms_arctic_b0475', 'rms_arctic_b0476',
+              'clb_arctic_b0474', 'clb_arctic_b0475', 'clb_arctic_b0476']]
 
 # Directories for input features
 # input_dirs = [path_of_feature_1, path_of_feature_2, ..., ]
 #  we assume train and validation data are put in the same sub-directory
-test_input_dirs = [tmp + '/5ms/melspec', tmp + '/5ms/f0']
+test_input_dirs = [[tmp + '/5ms/melspec', tmp + '/5ms/f0']]
 
 # Directories for output features, which are []
-test_output_dirs = []
+test_output_dirs = [[]]
 
 

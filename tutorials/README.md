@@ -2,18 +2,24 @@
 
 Xin Wang, National Institute of Informatics, 2021
 
-This hands-on material covers only the basics of some neural vocoders. Models and implementations are for the tutorial, therefore lacking intensive tuning and optimization. Neither am I good at that. If you have ideas on how to improve, your feedback is appreciated.
+This hands-on material covers only the basics of some neural vocoders. Models and implementations are for the tutorial, therefore lacking intensive tuning and optimization. Neither am I good at that. If you have ideas on how to improve, your feedback is appreciated!
 
 **Table of Contents:**
 * [Usage](#usage)
-* [Part 1 and 2](#part12)
-* [Part 3](#part3)
+* [Work on Part 1 and 2](#part12)
+* [Work Part 3](#part3)
 * [FAQ](#faq)
 
 
 If you are in the root directory of the hands-on package, please go to the tutorial folder
 ```sh
-cd ./tutorial
+# go to the tutorial folder
+cd ./tutorials
+
+# you should be able to see many ipynb files
+ls *.ipynb
+c01_data_format.ipynb 
+...
 ```
 
 ## <a name="usage"></a>1. Usage
@@ -29,7 +35,7 @@ Readers may check the materials in this order:
 
 
 Alternatively, readers may try this order:
-* __Part2__: play with pre-trained NSF models in s*.ipynb;
+* __Part2__: play with pre-trained models in s*.ipynb;
 
 * __Part1__: go through the details of building blocks in c*.ipynb;
 
@@ -60,7 +66,7 @@ bash 00_download_models.sh
 If you don't use conda, you may install software in env-cpu.yml manually.
 
 
-Pre-trained models of WaveGlow and Blow are quite large. They are shared through Dropbox. If you cannot access Dropbox, please let me know. You may also ignore the pre-trained models if you don't want to try the analysis-synthesis examples in s2*.ipynb.
+Pre-trained models of WaveGlow and Blow are quite large. They are shared through Dropbox. If you cannot access Dropbox, please let me know. You may also skip the pre-trained models if you don't want to try the analysis-synthesis examples in s2*.ipynb.
 
 #### 2.2 Run Jupyter lab
 Open the sh terminal and run shell command
@@ -73,12 +79,12 @@ The browser will open, and the Jupyter notebook GUI will be displayed. You can c
 
 #### 2.3 Use HTML files
 
-If you don't want to run Jupyter notebooks, please use any web browser to open the HTML files. HTML files are exported from the Jupyter notebooks. 
+If you don't want to run Jupyter notebooks, please use any web browser to browse the static HTML files. HTML files are exported from the Jupyter notebooks. 
 
 
 ## <a name="part3"></a>3. Work on Part 3
 
-Part3 requires a Linux server with GPU card.
+Part 3 requires a Linux server with GPU card.
 
 How-to is written in `../README`. For convenience, I summarize it here:
 

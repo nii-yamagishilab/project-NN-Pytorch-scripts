@@ -13,7 +13,7 @@ import torch
 import torch.nn as torch_nn
 import torch.nn.functional as torch_nn_func
 import core_scripts.other_tools.debug as nii_debug
-import config as prj_conf
+
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -938,7 +938,7 @@ class FilterModuleCycNoiseNSF(torch_nn.Module):
 class Model(torch_nn.Module):
     """ Model definition
     """
-    def __init__(self, in_dim, out_dim, args, mean_std=None):
+    def __init__(self, in_dim, out_dim, args, prj_conf, mean_std=None):
         super(Model, self).__init__()
 
         # mean std of input and output
