@@ -5,13 +5,18 @@ Xin Wang, National Institute of Informatics, 2021
 This hands-on material covers only the basics of some neural vocoders. Models and implementations are for the tutorial, therefore lacking intensive tuning and optimization. Neither am I good at that. If you have ideas on how to improve, your feedback is appreciated!
 
 **Table of Contents:**
+
 * [Usage](#usage)
+
 * [Work on Part 1 and 2](#part12)
+
 * [Work Part 3](#part3)
+
 * [FAQ](#faq)
 
 
 If you are in the root directory of the hands-on package, please go to the tutorial folder
+
 ```sh
 # go to the tutorial folder
 cd ./tutorials
@@ -25,6 +30,7 @@ c01_data_format.ipynb
 ## <a name="usage"></a>1. Usage
 
 Readers may check the materials in this order:
+
 * __Part1__: c*.ipynb explain 1) Pytorch conventions in this tutorial; 2) building blocks of common neural vocoders;
 
 * __Part2__: s*.ipynb are on three types of models: NSF, WaveNet, and WaveGlow. They explain details of each module and contain analysis-synthesis samples using  pre-trained models;
@@ -35,6 +41,7 @@ Readers may check the materials in this order:
 
 
 Alternatively, readers may try this order:
+
 * __Part2__: play with pre-trained models in s*.ipynb;
 
 * __Part1__: go through the details of building blocks in c*.ipynb;
@@ -70,6 +77,7 @@ Pre-trained models of WaveGlow and Blow are quite large. They are shared through
 
 #### 2.2 Run Jupyter lab
 Open the sh terminal and run shell command
+
 ```sh
 jupyter lab
 ```
@@ -105,6 +113,7 @@ You may also manually install the software in env.yml.
 #### 3.2 Run script
 
 For example:
+
 ```sh
 # Inside the root directory of this repo
 cd project/01-nsf/cyc-noise-nsf-4
@@ -123,12 +132,13 @@ You can check `../README` and Part3 in Hands-on-NSF.pdf for more details.
 ## <a name="faq"></a>4. FAQ
 
 1. Jupyter Lab cannot be opened in the browser
-    
+   
     If you a similar problem like [this](https://github.com/jupyterlab/jupyterlab/issues/6921), please use another browser. 
     
     Simply copy the http address shown in the terminal that runs command Jupyter Lab and open it in another browser. 
     
     The http address can be found in the terminal:
+    
     ```
     To access the notebook, open this file in a browser:
         file://...
@@ -143,10 +153,10 @@ You can check `../README` and Part3 in Hands-on-NSF.pdf for more details.
     If you have installed Jupyter Lab before, you may not find the Python kernel corresponding to the newly created Python environment. 
     
     Please check this [page](https://ipython.readthedocs.io/en/stable/install/kernel_install.html#kernels-for-different-environments) to add the kernel to Jupyter Lab.
- 
+
 
 3. If you want to run the Jupyter notebook on a remote server
 
    You may check how-to on this [webpage](https://docs.anaconda.com/anaconda/user-guide/tasks/remote-jupyter-notebook/). 
-   
+
 The end

@@ -890,6 +890,15 @@ class NIIDataSet(torch.utils.data.Dataset):
                 self.m_seq_info = []
                 self.m_data_length = {}
                 self.m_data_total_length = 0
+                
+            # check wheteher truncating length has been changed
+            if self.m_truncate_seq is not None and flag is False:
+                tmp_max_len = max([x.seq_length() for x in self.m_seq_info])
+                if tmp_max_len != self.m_truncate_seq:
+                    mes = "WARNING: truncate_seq conflicts with cached infor. "
+                    mes += "Please delete cache files *.dic if you want to"
+                    mes += "  use the new truncate_seq"
+                    nii_warn.f_print(mes, "warning")
 
         return flag
 

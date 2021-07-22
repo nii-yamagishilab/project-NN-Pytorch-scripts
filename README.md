@@ -4,33 +4,43 @@ By Xin Wang, National Institute of Informatics, 2021
 I am a new pytorch user. If you have any suggestions or questions, pleas email wangxin at nii dot ac dot jp
 
 **Table of Contents**
+
 * [Note](#note)
+
 * [Overview](#overview)
+
 * [Requirement](#env)
+
 * [How to use](#use)
+
 * [Project design](#conv)
+
 * [Misc](#miscs)
 
 
 ------
 <a name="note"></a>
-## 1. For SPCC 2021 participants
+## 1. Note 
 
-Hands-on materials are in `./tutorials`. Please go to this folder
+**To SPCC 2021 participants**
+
+Hands-on materials are in `./tutorials`. Please follow the `./tutorials/README` and work in this folder first
+
 ```sh
 cd ./tutorials
+head -n 2 README.md
+# Hands-on materials for Neural vocoders
 ```
-and follow README.md there.
 
-The top directory `./` holds materials for the hands-on part 3.
 
-<!---
-## <a name="update"></a>1. Update log
 
-* 2021-04: Add projects on ASVspoof [./project/03-asvspoof-mega](./project/03-asvspoof-mega) for paper [A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection (on arxiv)](https://arxiv.org/abs/2103.11326)
-* 2020-11: Add preliminary projects on ASVspoof [./project/02-asvspoof](./project/02-asvspoof)
-* 2020-08: Add tutorial materials [./tutorials](./tutorials). Most of the materials are Jupyter notebooks and can be run on your Laptop using CPU. 
---->
+If you haven't obtained the package from SPCC, you can clone it from this repository. The repository is relatively large. You may use `--depth 1` option to skip unnecessary files.
+
+```sh
+git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts.git
+```
+
+
 
 <a name="overview"></a>
 ## 2. Overview
@@ -90,15 +100,21 @@ There were 36 systems investigated, each of which was trained and evaluated for 
 
 Pre-trained models, scores, training recipes are all available. Please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/READNE).
 
- 
+
 ### (Preliminary) speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
+
 1. Baseline LFCC + LCNN-binary-classifier (lfcc-lcnn-sigmoid)
+
 2. LFCC + LCNN + angular softmax (lfcc-lcnn-a-softmax)
+
 3. LFCC + LCNN + one-class softmax (lfcc-lcnn-ocsoftmax)
+
 4. LFCC + ResNet18 + one-class softmax (lfcc-restnet-ocsoftmax)
 
 This is a preliminart experiment on ASVspoof2019 LA task. I trained each system for 6 times on various GPU devices (single V100 or P100 card), each time with a different random initial seed. Figure below shows the DET curves for these systems:
-![det_curve](./misc/fig_det_baselines.png). The results vary a lot when simply changing the initial random seends, even with the same random seed, Pytorch environment, and [deterministic algorithm selected](https://pytorch.org/docs/stable/notes/randomness.html). This preliminary test motivated the study in `./project-03-asvspoof-mega`.
+![det_curve](./misc/fig_det_baselines.png)
+
+The results vary a lot when simply changing the initial random seends, even with the same random seed, Pytorch environment, and [deterministic algorithm selected](https://pytorch.org/docs/stable/notes/randomness.html). This preliminary test motivated the study in `./project-03-asvspoof-mega`.
 
 For LCNN, please check [this paper](https://www.isca-speech.org/archive/Interspeech_2019/abstracts/1768.html); for LFCC, please check [this paper](https://www.isca-speech.org/archive/interspeech_2015/i15_2087.html); for one-class softmax in ASVspoof, please check [this paper](https://arxiv.org/pdf/2010.13995).
 
@@ -114,6 +130,7 @@ conda env create -f env.yml
 # load environment (whose name is pytorch-1.6)
 conda activate pytorch-1.6
 ```
+
 <a name="use"></a>
 ## 4. How to use
 Take `project/01-nsf/cyc-noise-nsf` as an example:
@@ -127,7 +144,7 @@ source ../../../env.sh
 
 # run the script
 bash 00_demo.sh
-``` 
+```
 
 The printed info will show what is happening. The script may need 1 day or more to finish.
 
@@ -136,7 +153,7 @@ You may also put the job to the background rather than waiting for the job in fr
 ```sh
 # run the script in background
 bash 00_demo.sh > log_batch 2>&1 &
-``` 
+```
 
 The above steps will download the CMU-arctic data, run waveform generation using a pre-trained model, and train a new model. 
 
@@ -148,6 +165,7 @@ The above steps will download the CMU-arctic data, run waveform generation using
 * Waveform: 16/32-bit PCM or 32-bit float WAV that can be read by [scipy.io.wavfile.read](https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.wavfile.read.html) 
 
 * Other data: binary, float-32bit, litten endian ([numpy dtype <f4](https://numpy.org/doc/1.18/reference/generated/numpy.dtype.html)). The data can be read in python by:
+
 ```python
 # for a data of shape [N, M]
 f = open(filepath,'rb')
@@ -158,6 +176,7 @@ f.close()
 
 I assume data should be stored in [c_continuous format](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.flags.html) (row-major). 
 There are helper functions in ./core_scripts/data_io/io_tools.py to read and write binary data:
+
 ```python
 # create a float32 data array
 import numpy as np
@@ -190,6 +209,7 @@ Name | Function
 The motivation is to separate the training and inference process, the model definition, and the data configuration. For example:
 
 * To define a new model, change model.py
+
 * To run on a new database, change config.py
 
 ### How the script works
@@ -292,12 +312,16 @@ The learning curves look similar to the CURRENNT version.
 
 ### 24kHz
 Most of my experiments are done on 16 kHz waveforms. For 24 kHz waveforms, FIR or sinc digital filters in the model may be changed for better performance:
+
 1. **hn-nsf**: lp_v, lp_u, hp_v, and hp_u are calculated for 16 kHz configurations. For different sampling rate, you may use this online tool http://t-filter.engineerjs.com to get the filter coefficients. In this case, the stop-band for lp_v and lp_u is extended to 12k, while the pass-band for hp_v and hp_u is extended to 12k. The reason is that, no matter what is the sampling rate, the actual formats (in Hz) and spectral of sounds don't change with the sampling rate;
+
 2. **hn-sinc-nsf and cyc-noise-nsf**: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
 
 
 ## Links
+
 * [NSF model homepage](https://nii-yamagishilab.github.io/samples-nsf/)
+
 * [Presentation slides related to this projects](http://tonywangx.github.io/slide.html)
 
 
