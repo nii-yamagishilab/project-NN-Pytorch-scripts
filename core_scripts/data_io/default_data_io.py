@@ -887,6 +887,8 @@ class NIIDataSet(torch.utils.data.Dataset):
                                     
                 flag = False
             else:
+                nii_warn.f_print("Incompatible cache: %s" % (data_path))
+                nii_warn.f_print("Re-read data statistics")
                 self.m_seq_info = []
                 self.m_data_length = {}
                 self.m_data_total_length = 0

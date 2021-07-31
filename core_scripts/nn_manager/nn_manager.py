@@ -175,7 +175,7 @@ def f_run_one_epoch(args,
             loss_computed)
 
         # Back-propgation using the summed loss
-        if optimizer is not None:
+        if optimizer is not None and loss.requires_grad:
             # backward propagation
             loss.backward()
 
