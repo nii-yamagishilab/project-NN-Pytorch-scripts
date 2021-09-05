@@ -495,16 +495,27 @@ def tDCF_wrapper(bonafide_cm_scores, spoof_cm_scores,
       eer_thre: scalar, value of threshold corresponding to EER
     
     """
-    Pspoof = 0.05
-    cost_model = {
-        'Pspoof': Pspoof,  # Prior probability of a spoofing attack
-        'Ptar': (1 - Pspoof) * 0.99,  # Prior probability of target speaker
-        'Pnon': (1 - Pspoof) * 0.01,  # Prior probability of nontarget speaker
-        'Cmiss_asv': 1,  # Cost of ASV system falsely rejecting target speaker
-        'Cfa_asv': 10,  # Cost of ASV system falsely accepting nontarget speaker
-        'Cmiss_cm': 1,  # Cost of CM system falsely rejecting target speaker
-        'Cfa_cm': 10,  # Cost of CM system falsely accepting spoof
-    }
+    if flag_legacy:
+        Pspoof = 0.05
+        cost_model = {
+            'Pspoof': Pspoof,  # Prior probability of a spoofing attack
+            'Ptar': (1 - Pspoof) * 0.99,  # Prior probability of target speaker
+            'Pnon': (1 - Pspoof) * 0.01,  # Prior probability of nontarget speaker
+            'Cmiss_asv': 1,  # Cost of ASV system falsely rejecting target speaker
+            'Cfa_asv': 10,  # Cost of ASV system falsely accepting nontarget speaker
+            'Cmiss_cm': 1,  # Cost of CM system falsely rejecting target speaker
+            'Cfa_cm': 10,  # Cost of CM system falsely accepting spoof
+        }
+    else:
+        Pspoof = 0.05
+        cost_model = {
+            'Pspoof': Pspoof,  # Prior probability of a spoofing attack
+            'Ptar': (1 - Pspoof) * 0.99,  # Prior probability of target speaker
+            'Pnon': (1 - Pspoof) * 0.01,  # Prior probability of nontarget speaker
+            'Cmiss': 1,  # Cost of tandem system falsely rejecting target speaker
+            'Cfa': 10,  # Cost of tandem system falsely accepting nontarget speaker
+            'Cfa_spoof': 10,  # Cost of tandem system falsely accepting spoof
+        }
 
 
     # read provided ASV scores

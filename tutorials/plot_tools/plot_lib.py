@@ -390,19 +390,21 @@ def plot_det(data, fig, axis, config_dic):
         if "grid" in config_dic and config_dic["grid"]["b"] is False:
             pass
         else:
-            axis.plot([probit(0.0001), probit(0.99)], 
-                      [probit(0.0001), probit(0.99)], 
-                      c='lightgrey', linestyle='--')
-            axis.plot([probit(0.5), probit(0.5)], 
-                      [probit(0.0001), probit(0.99)],     
-                      c='lightgrey', linestyle='--')
-            axis.plot([probit(0.0001), probit(0.99)], 
-                      [probit(0.5), probit(0.5)],      
-                      c='lightgrey', linestyle='--')
-            
+            #axis.plot([probit(0.0001), probit(0.99)], 
+            #          [probit(0.0001), probit(0.99)], 
+            #          c='lightgrey', linestyle='--')
+            #axis.plot([probit(0.5), probit(0.5)], 
+            #          [probit(0.0001), probit(0.99)],     
+            #          c='lightgrey', linestyle='--')
+            #axis.plot([probit(0.0001), probit(0.99)], 
+            #          [probit(0.5), probit(0.5)],      
+            #          c='lightgrey', linestyle='--')
+            pass
+
         # plot using the plot_signal function
         plot_signal([x, y], fig, axis, tmp_config_dic)
 
+            
         # options on label
         if "xlabel" not in config_dic:
             axis.set_xlabel("False alarm rate (FAR {:s})".format("\%"))

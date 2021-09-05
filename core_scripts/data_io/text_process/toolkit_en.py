@@ -45,8 +45,8 @@ _arpabet_symbol_marker = '@'
 _arpabet_symbols = [_arpabet_symbol_marker + x for x in _arpabet_symbols_raw]
 
 # create pool of symbols
-_symbols = [_pad] + list(_special) + list(_punctuation) \
-           + list(_letters) + _arpabet_symbols
+_symbols = [_pad] + list(_special) + list(_letters) + list(_punctuation) \
+           + _arpabet_symbols
 
 # create the mapping table
 #  x+1 so that 0 can be reserved for other purposes

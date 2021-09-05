@@ -539,6 +539,7 @@ class WaveNet_v1(torch_nn.Module):
         with torch.no_grad():
             if self.pre_emphasis:
                 wav[:, 1:, :] = wav[:, 1:, :] - 0.97 * wav[:, 0:-1, :]
+                wav = wav.clamp(-1, 1)
 
             # mu-law companding (int values)
             # note that _waveform_encoder_target will produce int values
