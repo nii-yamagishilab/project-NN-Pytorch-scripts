@@ -67,6 +67,9 @@ def f_read_log_err(file_path, train_num, val_num):
     return data_train, data_val
 
 
+def pass_number(input_str):
+    return np.array([float(x) for x in input_str.split()]).sum()
+
 def f_read_log_train(file_path):
     """ 
     data_train, data_val, time_per_epoch = read_log_train(path_to_log_train)
@@ -104,8 +107,8 @@ def f_read_log_train(file_path):
         trn_data = line.split('|')[2].split('/')
         val_data = line.split('|')[3].split('/')
         for idx2 in np.arange(len(trn_data)):
-            data_train[idx, idx2] = float(trn_data[idx2])
-            data_val[idx,idx2] = float(val_data[idx2])
+            data_train[idx, idx2] = pass_number(trn_data[idx2])
+            data_val[idx,idx2] = pass_number(val_data[idx2])
 
     return data_train, data_val, time_per_epoch
     

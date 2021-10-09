@@ -264,7 +264,7 @@ def plot_boxplot(data, fig, axis, config):
     # 
     axis.boxplot(data_for_plot, **bp_config)
 
-    xpos = temp_confg["positions"] if "positions" in bp_config \
+    xpos = bp_config["positions"] if "positions" in bp_config \
            else np.arange(len(data_for_plot))+1
     
     if marker_config:
@@ -402,14 +402,14 @@ def plot_det(data, fig, axis, config_dic):
             pass
 
         # plot using the plot_signal function
-        plot_signal([x, y], fig, axis, tmp_config_dic)
+        plot_signal(np.stack([x, y], axis=1), fig, axis, tmp_config_dic)
 
             
         # options on label
         if "xlabel" not in config_dic:
-            axis.set_xlabel("False alarm rate (FAR {:s})".format("\%"))
+            axis.set_xlabel("False alarm probablity ({:s})".format("\%"))
         if "ylabel" not in config_dic:
-            axis.set_ylabel("Miss probability (FRR {:s})".format("\%"))
+            axis.set_ylabel("Miss probability ({:s})".format("\%"))
             
         # ticks
         if "xticks" not in config_dic:

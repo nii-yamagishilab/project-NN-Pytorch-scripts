@@ -31,7 +31,10 @@ def _print_loss(loss_array):
     else:
         mes = []
         for data in loss_array:
-            mes.append('%6.2f' % (data))
+            if data > 1:
+                mes.append('%6.2f' % (data))
+            else:
+                mes.append('%1.4f' % (data))
         mes = ' '.join(mes)
     mes += "| "
     return mes

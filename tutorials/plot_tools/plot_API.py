@@ -358,7 +358,7 @@ def plot_API2(data_list, plot_funcs, grid_configs,
         if "sharey" in config_dic and config_dic["sharey"]:
             axis.set_ylim(ylim_bag)
 
-    return fig, axis
+    return fig, axis_bags
 
 
 ##############

@@ -475,10 +475,25 @@ class NIIDataSet(torch.utils.data.Dataset):
             if self.m_opt_wav_handler > 0:
                 if len(self.m_input_exts) == 1 \
                    and self.m_input_exts[0][-3:] == 'wav':
+                    
+                    if self.m_opt_wav_handler == 1:
+                        tmp_flag_output = self.m_opt_wav_handler
+                        tmp_only_twoends = False
+                    elif self.m_opt_wav_handler == 2:
+                        tmp_flag_output = self.m_opt_wav_handler
+                        tmp_only_twoends = False
+                    elif self.m_opt_wav_handler == 3:
+                        tmp_flag_output = 1
+                        tmp_only_twoends = True
+                    else:
+                        print("Unknown option for wav handler {:d}".format(
+                            self.m_opt_wav_handler))
+                        sys.exit(1)
+
                     in_data_n = nii_wav_tk.silence_handler_wrapper(
                         in_data, self.m_wav_sr, 
-                        flag_output = self.m_opt_wav_handler,
-                        flag_only_startend_sil = (self.m_opt_wav_handler==3))
+                        flag_output = tmp_flag_output,
+                        flag_only_startend_sil = tmp_only_twoends)
             
                     # this is temporary setting, if in_data.shape[0] 
                     #  corresponds to waveform length, update it

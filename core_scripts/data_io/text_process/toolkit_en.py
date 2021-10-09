@@ -21,8 +21,8 @@ __copyright__ = "Copyright 2021, Xin Wang"
 
 # symbols
 _pad = '_'
-_punctuation = '!\'(),.:;? '
-_special = '-'
+_punctuation = '!\'(),-.:;? '
+_eos = '~'
 _letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 _skip_symbols = ['_', '~']
 
@@ -45,12 +45,12 @@ _arpabet_symbol_marker = '@'
 _arpabet_symbols = [_arpabet_symbol_marker + x for x in _arpabet_symbols_raw]
 
 # create pool of symbols
-_symbols = [_pad] + list(_special) + list(_letters) + list(_punctuation) \
+_symbols = [_pad] + list(_eos) + list(_letters) + list(_punctuation) \
            + _arpabet_symbols
 
 # create the mapping table
 #  x+1 so that 0 can be reserved for other purposes
-_symbol_to_index = {y: x+1 for x, y in enumerate(_symbols)}
+_symbol_to_index = {y: x for x, y in enumerate(_symbols)}
 
 def symbol_num():
     return len(_symbols)
@@ -59,7 +59,7 @@ def symbol2index(x):
     return _symbol_to_index[x]
 
 def index2symbol(x):
-    return _symbols[x-1]
+    return _symbols[x]
 
 #####
 ## Functions for text normalization
@@ -134,7 +134,9 @@ def rawtext2indices(text):
 
     for example, 'text' -> [23, 16, 28, 23]
     """
-    return [symbol2index(x) for x in text if flag_convert_symbol(x)]
+    output = [symbol2index(x) for x in text if flag_convert_symbol(x)]
+    output.append(symbol2index(_eos))
+    return output
 
 def arpabet2indices(arpa_text):
     """ Look up the table and return the index for input symbol in input text
