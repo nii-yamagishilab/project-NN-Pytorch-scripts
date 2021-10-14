@@ -62,13 +62,13 @@ class Monitor():
         """
         try:
             if self.seq_num != state_dic['seq_num']:
-                nii_display.f_print("Number of samples are different \
-                from previous training", 'error')
-                nii_display.f_print("Please make sure that you are \
-                using the same training/development sets as before.", "error")
-                nii_display.f_print("Or\nPlease add --")
-                nii_display.f_print("ignore_training_history_in_trained_model")
-                nii_display.f_die(" to avoid loading training history")
+                nii_display.f_print("Number of training data changed", 'error')
+                mes = "Please make sure that you are "
+                mes += "using the same train/dev sets as before."
+                mes += "\nOr\nUse --ignore-training-history-in-trained-model"
+                mes += " to ignore the training log from previous settings"
+                nii_display.f_print(mes)
+                nii_display.f_die("Fail to load pretrained model")
 
             if self.epoch_num == state_dic['epoch_num']:
                 self.loss_mat = state_dic['loss_mat']

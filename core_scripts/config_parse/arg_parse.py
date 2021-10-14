@@ -163,6 +163,13 @@ def f_args_parsed(argument_input = None):
                         action='store_true', \
                         default=False, help=mes)    
 
+
+    mes = 'load pre-trained model even if there is mismatch on the number of'
+    mes += " parameters. Mismatched part will not be loaded (default: false)"
+    parser.add_argument('--allow-mismatched-pretrained-model', 
+                        action='store_true', \
+                        default=False, help=mes)    
+
     mes = 'run inference mode (default: False, run training script)'
     parser.add_argument('--inference', action='store_true', \
                         default=False, help=mes)    

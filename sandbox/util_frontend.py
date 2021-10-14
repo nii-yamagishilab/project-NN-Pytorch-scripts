@@ -38,6 +38,35 @@ __copyright__ = "Copyright 2021, Xin Wang"
 ##################
 ## other utilities
 ##################
+def stft_wrapper(x, fft_n, frame_shift, frame_length, window, 
+                 pad_mode="constant"):
+    """Due to the different signature of torch.stft, write a 
+    wrapper to handle this
+
+    input
+    -----
+      x: tensor, waveform, (batch, length)
+      window: tensor, window coef, (frame_length, )
+    
+    output
+    ------
+      tensor: (batch, frame_num, bin_num, 2)
+    
+    """
+    # there are better ways, but for convenience
+    if torch.__version__.split('.')[1].isnumeric() and \
+       int(torch.__version__.split('.')[1]) < 7:
+        #  torch 1.6.*
+        return torch.stft(x, fft_n, frame_shift, frame_length, 
+                          window=window, onesided=True, pad_mode=pad_mode)
+    else:
+        #  torch > 1.7
+        return torch.stft(x, fft_n, frame_shift, frame_length, 
+                          window=window, onesided=True, pad_mode=pad_mode,
+                          return_complex=False)
+
+
+
 def trimf(x, params):
     """
     trimf: similar to Matlab definition
@@ -189,7 +218,10 @@ class LFCC(torch_nn.Module):
         self.flag_for_LFB = flag_for_LFB
         if self.num_coef is None:
             self.num_coef = filter_num
-        
+
+        # Add a buf to store window coefficients
+        #  
+        self.window_buf = None
         return
     
     def forward(self, x):
@@ -211,10 +243,15 @@ class LFCC(torch_nn.Module):
         else:
             x_copy = x
         
+        if self.window_buf is None:
+            self.window_buf = torch.hamming_window(self.fl).to(x.device)
+
         # STFT
-        x_stft = torch.stft(x_copy, self.fn, self.fs, self.fl, 
-                            window=torch.hamming_window(self.fl).to(x.device), 
-                            onesided=True, pad_mode="constant")        
+        #x_stft = torch.stft(x_copy, self.fn, self.fs, self.fl, 
+        #                    window=torch.hamming_window(self.fl).to(x.device), 
+        #                    onesided=True, pad_mode="constant")
+        x_stft = stft_wrapper(x_copy, self.fn, self.fs, self.fl,self.window_buf)
+
         # amplitude
         sp_amp = torch.norm(x_stft, 2, -1).pow(2).permute(0, 2, 1).contiguous()
         
@@ -326,6 +363,9 @@ class Spectrogram(torch_nn.Module):
         self.with_emphasis = with_emphasis
         self.with_delta = with_delta
         self.in_db = in_db
+
+        # buf to store window coefficients
+        self.window_buf = None
         return
     
     def forward(self, x):
@@ -343,10 +383,16 @@ class Spectrogram(torch_nn.Module):
         if self.with_emphasis:
             x[:, 1:] = x[:, 1:]  - 0.97 * x[:, 0:-1]
         
+        if self.window_buf is None:
+            self.window_buf = torch.hamming_window(self.fl).to(x.device)
+
         # STFT
-        x_stft = torch.stft(x, self.fn, self.fs, self.fl, 
-                            window=torch.hamming_window(self.fl).to(x.device), 
-                            onesided=True, pad_mode="constant")        
+        #x_stft = torch.stft(x, self.fn, self.fs, self.fl, 
+        #                    window=torch.hamming_window(self.fl).to(x.device), 
+        #                    onesided=True, pad_mode="constant")        
+        x_stft = stft_wrapper(x, self.fn, self.fs, self.fl, self.window_buf)
+        
+
         # amplitude
         sp_amp = torch.norm(x_stft, 2, -1).pow(2).permute(0, 2, 1).contiguous()
         

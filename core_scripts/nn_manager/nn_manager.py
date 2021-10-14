@@ -315,56 +315,17 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     nii_nn_tools.f_model_show(pt_model)
     nii_nn_tools.f_loss_show(loss_wrapper)
 
+    cp_names = nii_nn_manage_conf.CheckPointKey()
     ###############################
     ## Resume training if necessary
     ###############################
     # resume training or initialize the model if necessary
-    cp_names = nii_nn_manage_conf.CheckPointKey()
-    if checkpoint is not None:
-        if type(checkpoint) is dict:
-            # checkpoint
-
-            # load model parameter and optimizer state
-            if cp_names.state_dict in checkpoint:
-                # wrap the state_dic in f_state_dict_wrapper 
-                # in case the model is saved when DataParallel is on
-                pt_model.load_state_dict(
-                    nii_nn_tools.f_state_dict_wrapper(
-                        checkpoint[cp_names.state_dict], 
-                        flag_multi_device))
-
-            # load optimizer state
-            if cp_names.optimizer in checkpoint and \
-               not args.ignore_optimizer_statistics_in_trained_model:
-                optimizer.load_state_dict(checkpoint[cp_names.optimizer])
-            
-            # optionally, load training history
-            if not args.ignore_training_history_in_trained_model:
-                #nii_display.f_print("Load ")
-                if cp_names.trnlog in checkpoint:
-                    monitor_trn.load_state_dic(
-                        checkpoint[cp_names.trnlog])
-                if cp_names.vallog in checkpoint and monitor_val:
-                    monitor_val.load_state_dic(
-                        checkpoint[cp_names.vallog])
-                if cp_names.info in checkpoint:
-                    train_log = checkpoint[cp_names.info]
-                if cp_names.lr_scheduler in checkpoint and \
-                   checkpoint[cp_names.lr_scheduler] and lr_scheduler.f_valid():
-                    lr_scheduler.f_load_state_dict(
-                        checkpoint[cp_names.lr_scheduler])
-                    
-                nii_display.f_print("Load check point, resume training")
-            else:
-                nii_display.f_print("Load pretrained model and optimizer")
-        else:
-            # only model status
-            pt_model.load_state_dict(
-                nii_nn_tools.f_state_dict_wrapper(
-                    checkpoint, flag_multi_device))
-            nii_display.f_print("Load pretrained model")
+    if nii_nn_tools.f_load_checkpoint(
+            checkpoint, args, flag_multi_device, pt_model, 
+            optimizer, monitor_trn, monitor_val, train_log, 
+            lr_scheduler):
+        pass
     
-
     ######################
     ### User defined setup 
     ######################
@@ -531,12 +492,8 @@ def f_inference_wrapper(args, pt_model, device, \
     nii_nn_tools.f_model_show(pt_model)
     
     # load trained model parameters from checkpoint
-    cp_names = nii_nn_manage_conf.CheckPointKey()
-    if type(checkpoint) is dict and cp_names.state_dict in checkpoint:
-        pt_model.load_state_dict(checkpoint[cp_names.state_dict])
-    else:
-        pt_model.load_state_dict(checkpoint)
-
+    nii_nn_tools.f_load_checkpoint_for_inference(checkpoint, pt_model)
+    
     # start generation
     nii_display.f_print("Start inference (generation):", 'highlight')
     

@@ -141,6 +141,37 @@ def mulaw_decode(x_mu, quantization_channels, input_int=True):
 ### 
 ######################
 
+def rfft_wrapper(x, onesided=True, inverse=False):
+    # compatiblity with torch fft API 
+    if hasattr(torch, "rfft"):
+        # for torch < 1.8.0, rfft is the API to use
+
+        if not inverse:
+            # FFT
+            return torch.rfft(x, 1, onesided=onesided)
+        else:
+            # inverse FFT
+            return torch.irfft(x, 1, onesided=onesided)
+    else:
+        # for torch > 1.8.0, rfft is the API to use
+        if not inverse:
+            # FFT
+            if onesided:
+                data = torch.fft.rfft(x)
+            else:
+                data = torch.fft.fft(x)
+            return torch.stack([data.real, data.imag], dim=-1)
+        else:
+            # It requires complex-tensor
+            real_image = torch.chunk(x, 2, dim=1)
+            x = torch.complex(real_image[0].squeeze(-1), 
+                              real_image[1].squeeze(-1))
+            if onesided:
+                return torch.fft.irfft(x)
+            else:
+                return torch.fft.ifft(x)
+            
+
 def dct1(x):
     """
     Discrete Cosine Transform, Type I
@@ -150,8 +181,8 @@ def dct1(x):
     x_shape = x.shape
     x = x.view(-1, x_shape[-1])
 
-    return torch.rfft(
-        torch.cat([x, x.flip([1])[:, 1:-1]], dim=1), 1)[:, :, 0].view(*x_shape)
+    return rfft_wrapper(
+        torch.cat([x, x.flip([1])[:, 1:-1]], dim=1))[:, :, 0].view(*x_shape)
 
 
 def idct1(X):
@@ -180,7 +211,7 @@ def dct(x, norm=None):
 
     v = torch.cat([x[:, ::2], x[:, 1::2].flip([1])], dim=1)
 
-    Vc = torch.rfft(v, 1, onesided=False)
+    Vc = rfft_wrapper(v, onesided=False)
 
     k = - torch.arange(N, dtype=x.dtype, device=x.device)[None, :] * np.pi/(2*N)
     W_r = torch.cos(k)
@@ -230,7 +261,7 @@ def idct(X, norm=None):
 
     V = torch.cat([V_r.unsqueeze(2), V_i.unsqueeze(2)], dim=2)
 
-    v = torch.irfft(V, 1, onesided=False)
+    v = rfft_wrapper(V, onesided=False, inverse=True)
     x = v.new_zeros(v.shape)
     x[:, ::2] += v[:, :N - (N // 2)]
     x[:, 1::2] += v.flip([1])[:, :N // 2]
@@ -239,11 +270,24 @@ def idct(X, norm=None):
 
 
 class LinearDCT(torch_nn.Linear):
-    """Implement any DCT as a linear layer; in practice this executes around
-    50x faster on GPU. Unfortunately, the DCT matrix is stored, which will 
-    increase memory usage.
-    :param in_features: size of expected input
-    :param type: which dct function in this file to use"""
+    """DCT implementation as linear transformation
+    
+    Original Doc is in:
+    https://github.com/zh217/torch-dct/blob/master/torch_dct/_dct.py
+
+    This class implements DCT as a linear transformation layer. 
+    This layer's weight matrix is initialized using the DCT transformation mat.
+    Accordingly, this API assumes that the input signal has a fixed length.
+    Please pad or trim the input signal when using this LinearDCT.forward(x)
+
+    Args:
+    ----
+      in_features: int, expected length of the signal. 
+      type: string, dct1, idct1, dct, or idct
+      norm: string, ortho or None, default None
+      bias: bool, whether add bias to this linear layer. Default None
+      
+    """
     def __init__(self, in_features, type, norm=None, bias=False):
         self.type = type
         self.N = in_features

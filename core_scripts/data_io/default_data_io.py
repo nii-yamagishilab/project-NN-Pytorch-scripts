@@ -611,6 +611,10 @@ class NIIDataSet(torch.utils.data.Dataset):
             tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e)
             self.m_file_list = nii_list_tools.common_members(
                 tmp_list, self.m_file_list)
+            if len(self.m_file_list) < 1:
+                nii_warn.f_print("Possible error when scannning", 'error')
+                nii_warn.f_print("{:s} for {:s}".format(tmp_d, tmp_e), 'error')
+                break
 
         if len(self.m_file_list) < 1:
             nii_warn.f_print("No input features found after scannning", 'error')
