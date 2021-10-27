@@ -93,13 +93,14 @@ class Monitor():
             nii_display.f_die("Invalid op_process_monitor state_dic")
 
     def print_error_for_batch(self, cnt_idx, seq_idx, epoch_idx):
+        """print error for each mini-batch
+        """
         try:
             t_1 = self.loss_mat[epoch_idx, seq_idx]
             t_2 = self.time_mat[epoch_idx, seq_idx]
             
             mes = "{}, ".format(self.seq_names[seq_idx])
-            mes += "{:d}/{:d}, ".format(cnt_idx+1, \
-                                             self.seq_num)
+            mes += "{:d}/{:d}, ".format(cnt_idx+1, self.seq_num)
             mes += "Time: {:.6f}s".format(t_2)
             for loss_indi in t_1:
                 mes += ", Loss: {:.6f}".format(loss_indi)

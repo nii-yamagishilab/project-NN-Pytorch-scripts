@@ -412,5 +412,145 @@ class Spectrogram(torch_nn.Module):
 
 
 
+
+#################
+## MFCC front-end
+#################
+from core_scripts.data_io import dsp_tools
+
+class MFCC(torch_nn.Module):
+    """ Based on asvspoof.org baseline Matlab code.
+    Difference: with_energy is added to set the first dimension as energy
+    """
+    def __init__(self, fl, fs, fn, sr, filter_num, 
+                 with_energy=False, with_emphasis=True,
+                 with_delta=True, flag_for_MelSpec=False,
+                 num_coef=None, min_freq=0, max_freq=1):
+        """ Initialize LFCC
+        
+        Para:
+        -----
+          fl: int, frame length, (number of waveform points)
+          fs: int, frame shift, (number of waveform points)
+          fn: int, FFT points
+          sr: int, sampling rate (Hz)
+          filter_num: int, number of filters in filter-bank
+
+          with_energy: bool, (default False), whether replace 1st dim to energy
+          with_emphasis: bool, (default True), whether pre-emphaze input wav
+          with_delta: bool, (default True), whether use delta and delta-delta
+        
+          flag_for_MelSpec: bool (default False), reserved for LFB feature
+          num_coef: int or None, number of coeffs to be taken from filter bank.
+                    Note that this is only used for LFCC, i.e., for_LFB=False
+                    When None, num_coef will be equal to filter_num
+          min_freq: float (default 0), min_freq * sr // 2 will be the minimum 
+                    frequency of extracted FFT spectrum
+          max_freq: float (default 1), max_freq * sr // 2 will be the maximum 
+                    frequency of extracted FFT spectrum
+        """
+        super(MFCC, self).__init__()
+        self.fl = fl
+        self.fs = fs
+        self.fn = fn
+        self.sr = sr
+        self.filter_num = filter_num
+        self.num_coef = num_coef
+
+        # decide the range of frequency bins
+        if min_freq >= 0 and min_freq < max_freq and max_freq <= 1:
+            pass
+        else:
+            print("MFCC cannot work with min_freq {:f} and max_freq {:}".format(
+                min_freq, max_freq))
+            sys.exit(1)
+        
+        # opts
+        self.with_energy = with_energy
+        self.with_emphasis = with_emphasis
+        self.with_delta = with_delta
+        self.flag_for_MelSpec = flag_for_MelSpec
+        if self.num_coef is None:
+            self.num_coef = filter_num
+            
+        # get filter bank
+        tmp_config = dsp_tools.Melspec(sr, fl, fs, fn, filter_num, 
+                                       sr/2*min_freq, sr/2*max_freq)
+        filter_bank = torch.tensor(tmp_config.melfb.T, dtype=nii_conf.d_dtype)
+        self.mel_fb = torch_nn.Parameter(filter_bank, requires_grad=False)
+
+        # DCT as a linear transformation layer
+        if not self.flag_for_MelSpec:
+            self.l_dct = nii_dsp.LinearDCT(filter_num, 'dct', norm='ortho')
+        else:
+            self.l_dct = None
+
+
+        # Add a buf to store window coefficients
+        #  
+        self.window_buf = None
+        return
+    
+    def forward(self, x):
+        """
+        
+        input:
+        ------
+         x: tensor(batch, length), where length is waveform length
+        
+        output:
+        -------
+         lfcc_output: tensor(batch, frame_num, dim_num)
+        """
+        # pre-emphsis 
+        if self.with_emphasis:
+            # to avoid side effect
+            x_copy = torch.zeros_like(x) + x
+            x_copy[:, 1:] = x[:, 1:]  - 0.97 * x[:, 0:-1]
+        else:
+            x_copy = x
+        
+        if self.window_buf is None:
+            self.window_buf = torch.hamming_window(self.fl).to(x.device)
+
+        # STFT
+        x_stft = stft_wrapper(x_copy, 
+                              self.fn, self.fs, self.fl, self.window_buf)
+
+        # amplitude
+        sp_amp = torch.norm(x_stft, 2, -1).pow(2).permute(0, 2, 1).contiguous()
+        
+        # filter bank
+        fb_feature = torch.log10(torch.matmul(sp_amp, self.mel_fb) + 
+                                 torch.finfo(torch.float32).eps)
+        
+        # DCT (if necessary, remove DCT)
+        if not self.flag_for_MelSpec:
+            output = self.l_dct(fb_feature) 
+        else:
+            output = fb_feature
+        
+        # Truncate the output of l_dct when necessary
+        if not self.flag_for_MelSpec and self.num_coef != self.filter_num:
+            output = output[:, :, :self.num_coef]
+
+        # Add energy 
+        if self.with_energy:
+            power_spec = sp_amp / self.fn
+            energy = torch.log10(power_spec.sum(axis=2)+ 
+                                 torch.finfo(torch.float32).eps)
+            output[:, :, 0] = energy
+
+        # Add delta coefficients
+        if self.with_delta:
+            output_delta = delta(output)
+            output_delta_delta = delta(output_delta)
+            output = torch.cat((output, output_delta, output_delta_delta), 2)
+        else:
+            pass
+
+        # done
+        return output
+
 if __name__ == "__main__":
     print("Definition of front-end for Anti-spoofing")

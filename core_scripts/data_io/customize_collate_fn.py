@@ -14,7 +14,10 @@ import os
 import sys
 import torch
 import re
-from torch._six import container_abcs, string_classes, int_classes
+import collections
+
+#from torch._six import container_abcs, string_classes, int_classes
+from torch._six import string_classes
 
 """
 The primary motivation is to handle batch of data with varied length.
@@ -126,16 +129,19 @@ def customize_collate(batch):
         
     elif isinstance(elem, float):
         return torch.tensor(batch, dtype=torch.float64)
-    elif isinstance(elem, int_classes):
+    #elif isinstance(elem, int_classes):
+    elif isinstance(elem, int):
         return torch.tensor(batch)
     elif isinstance(elem, string_classes):
         return batch
-    elif isinstance(elem, container_abcs.Mapping):
+    #elif isinstance(elem, container_abcs.Mapping):
+    elif isinstance(elem, collections.abc.Mapping):
         return {key: customize_collate([d[key] for d in batch]) for key in elem}
     elif isinstance(elem, tuple) and hasattr(elem, '_fields'):  # namedtuple
         return elem_type(*(customize_collate(samples) \
                            for samples in zip(*batch)))
-    elif isinstance(elem, container_abcs.Sequence):
+    #elif isinstance(elem, container_abcs.Sequence):
+    elif isinstance(elem, collections.abc.Sequence):
         # check to make sure that the elements in batch have consistent size
         it = iter(batch)
         elem_size = len(next(it))
@@ -246,7 +252,8 @@ def customize_collate_from_batch(batch):
             return torch.as_tensor(batch)
     elif isinstance(elem, float):
         return torch.tensor(batch, dtype=torch.float64)
-    elif isinstance(elem, int_classes):
+    #elif isinstance(elem, int_classes):
+    elif isinstance(elem, int):
         return torch.tensor(batch)
     elif isinstance(elem, string_classes):
         return batch
@@ -256,7 +263,8 @@ def customize_collate_from_batch(batch):
         for tmp_elem in batch[1:]:
             tmp += tmp_elem 
         return tmp
-    elif isinstance(elem, container_abcs.Sequence):
+    #elif isinstance(elem, container_abcs.Sequence):
+    elif isinstance(elem, collections.abc.Sequence):
         it = iter(batch)
         elem_size = len(next(it))
         if not all(len(elem) == elem_size for elem in it):

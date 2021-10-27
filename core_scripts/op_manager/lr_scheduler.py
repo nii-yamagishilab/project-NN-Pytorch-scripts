@@ -47,6 +47,10 @@ class LRScheduler():
                 self.lr_scheduler = torch.optim.lr_scheduler.StepLR(
                     optimizer=optimizer, step_size=self.lr_stepLR_size, 
                     gamma=self.lr_decay)
+            elif self.lr_scheduler_type == 2:
+                # StepLR
+                self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
+                    optimizer=optimizer, gamma=self.lr_decay)
             else:
                 # by default, ReduceLROnPlateau
                 if args.no_best_epochs < 0:
@@ -78,6 +82,9 @@ class LRScheduler():
             if self.lr_scheduler_type == 1:
                 mes = "\n  LR scheduler, StepLR [gamma %f, step %d]" % (
                     self.lr_decay, self.lr_stepLR_size)
+            elif self.lr_scheduler_type == 2:
+                mes = "\n  LR scheduler, ExponentialLR [gamma %f]" % (
+                    self.lr_decay)
             else:
                 mes = "\n  LR scheduler, ReduceLROnPlateau "
                 mes += "[decay %f, patience %d]" % (
@@ -110,6 +117,8 @@ class LRScheduler():
         if self.f_valid():
             if self.lr_scheduler_type == 1:
                 self.lr_scheduler.step()
+            elif self.lr_scheduler_type == 2:
+                self.lr_scheduler.step()
             else:
                 self.lr_scheduler.step(loss_val)
         return
@@ -117,6 +126,8 @@ class LRScheduler():
     def f_allow_early_stopping(self):
         if self.f_valid():
             if self.lr_scheduler_type == 1:
+                return True
+            elif self.lr_scheduler_type == 2:
                 return True
             else:
                 # ReduceLROnPlateau no need to use early stopping

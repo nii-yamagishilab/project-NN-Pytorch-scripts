@@ -200,9 +200,12 @@ def f_run_one_epoch(args,
                              epoch_idx)
             # print infor for one sentence
             if args.verbose == 1:
-                monitor.print_error_for_batch(data_idx*batchsize + idx,\
-                                              idx_orig.numpy()[idx], \
-                                              epoch_idx)
+                # here we use args.batch_size because len(data_info)
+                # may be < args.batch_size. 
+                monitor.print_error_for_batch(
+                    data_idx * args.batch_size + idx,\
+                    idx_orig.numpy()[idx], \
+                    epoch_idx)
             # 
         # start the timer for a new batch
         start_time = time.time()
@@ -223,6 +226,11 @@ def f_run_one_epoch(args,
                 cp_names.optimizer : optimizer.state_dict()
             }
             torch.save(tmp_dic, tmp_model_name)
+        
+        # If debug mode is used, only run a specified number of mini-batches
+        if args.debug_batch_num > 0 and data_idx >= (args.debug_batch_num - 1):
+            nii_display.f_print("Debug mode is on. This epoch is finished")
+            break
         
     # loop done
     return
@@ -320,11 +328,9 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     ## Resume training if necessary
     ###############################
     # resume training or initialize the model if necessary
-    if nii_nn_tools.f_load_checkpoint(
-            checkpoint, args, flag_multi_device, pt_model, 
-            optimizer, monitor_trn, monitor_val, train_log, 
-            lr_scheduler):
-        pass
+    train_log = nii_nn_tools.f_load_checkpoint(
+        checkpoint, args, flag_multi_device, pt_model, 
+        optimizer, monitor_trn, monitor_val, lr_scheduler)
     
     ######################
     ### User defined setup 
@@ -496,9 +502,15 @@ def f_inference_wrapper(args, pt_model, device, \
     
     # start generation
     nii_display.f_print("Start inference (generation):", 'highlight')
+
+    # output buffer, filename buffer
+    output_buf = []
+    filename_buf = []
     
     pt_model.eval() 
     with torch.no_grad():
+        
+        # run generation
         for _, (data_in, data_tar, data_info, idx_orig) in \
             enumerate(test_data_loader):
 
@@ -519,7 +531,7 @@ def f_inference_wrapper(args, pt_model, device, \
             else:
                 pass
             
-            # compute output
+            
             start_time = time.time()
             
             # in case the model defines inference function explicitly
@@ -528,6 +540,7 @@ def f_inference_wrapper(args, pt_model, device, \
             else:
                 infer_func = pt_model.forward
 
+            # compute output
             if args.model_forward_with_target:
                 # if model.forward requires (input, target) as arguments
                 # for example, for auto-encoder
@@ -548,10 +561,18 @@ def f_inference_wrapper(args, pt_model, device, \
             if data_gen is None:
                 nii_display.f_print("No output saved: %s" % (str(data_info)),\
                                     'warning')
-                for idx, seq_info in enumerate(data_info):
-                    _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
-                continue
             else:
+                output_buf.append(data_gen)
+                filename_buf.append(data_info)
+
+            # print information
+            for idx, seq_info in enumerate(data_info):
+                _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
+                
+        # Writing generatd data to disk
+        nii_display.f_print("Writing output to %s" % (args.output_dir))
+        for data_gen, data_info in zip(output_buf, filename_buf):            
+            if data_gen is not None:
                 try:
                     data_gen = pt_model.denormalize_output(data_gen)
                     data_gen_np = data_gen.to("cpu").numpy()
@@ -562,16 +583,14 @@ def f_inference_wrapper(args, pt_model, device, \
                 
                 # save output (in case batchsize > 1, )
                 for idx, seq_info in enumerate(data_info):
-                    _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
+                    nii_display.f_print(seq_info)
                     test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
                                                  args.output_dir, \
                                                  seq_info)
         
         # done for
     # done with
-
-    # 
-    nii_display.f_print("Generated data to %s" % (args.output_dir))
+    nii_display.f_print("Output data has been saved to %s" % (args.output_dir))
     
     # finish up if necessary
     if hasattr(pt_model, "finish_up_inference"):

@@ -145,7 +145,7 @@ def rfft_wrapper(x, onesided=True, inverse=False):
     # compatiblity with torch fft API 
     if hasattr(torch, "rfft"):
         # for torch < 1.8.0, rfft is the API to use
-
+        # torch 1.7.0 complains about this API, but it is OK to use
         if not inverse:
             # FFT
             return torch.rfft(x, 1, onesided=onesided)
@@ -153,7 +153,7 @@ def rfft_wrapper(x, onesided=True, inverse=False):
             # inverse FFT
             return torch.irfft(x, 1, onesided=onesided)
     else:
-        # for torch > 1.8.0, rfft is the API to use
+        # for torch > 1.8.0, fft.rfft is the API to use
         if not inverse:
             # FFT
             if onesided:

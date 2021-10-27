@@ -81,9 +81,9 @@ def f_process_loss(loss):
 
 
 def f_load_checkpoint(checkpoint, args, flag_multi_device, pt_model, optimizer, 
-                      monitor_trn, monitor_val, train_log, lr_scheduler):
+                      monitor_trn, monitor_val, lr_scheduler):
     """ f_load_checkpoint(checkpoint, args, pt_model, optimizer, 
-                      monitor_trn, monitor_val, train_log, lr_scheduler)
+                      monitor_trn, monitor_val, lr_scheduler)
     Load checkpoint.
     
     Input:
@@ -97,16 +97,14 @@ def f_load_checkpoint(checkpoint, args, flag_multi_device, pt_model, optimizer,
       monitor_trn: log of loss on training set
       monitor_val: log of loss on validation set
       lr_scheduler: scheudler of learning rate
-      train_log: text log of training loss
 
     Output:
-      output_flag: True: no error happened
-                   False: fail to load checkpoint
+      train_log: str, text log of training loss
     """
     #
     if checkpoint is None:
         # no checkpoint
-        return True
+        return ''
     
     # checkpoint exist
     cp_names = nii_nn_manage_conf.CheckPointKey()
@@ -195,7 +193,7 @@ def f_load_checkpoint(checkpoint, args, flag_multi_device, pt_model, optimizer,
                 f_state_dict_wrapper(checkpoint, flag_multi_device))
             nii_display.f_print("Load pretrained model")
 
-    return True
+    return train_log
 
 def f_load_checkpoint_for_inference(checkpoint, pt_model):
     """ f_load_checkpoint_for_inference(checkpoint, pt_model)
@@ -203,7 +201,7 @@ def f_load_checkpoint_for_inference(checkpoint, pt_model):
     
     No matter what is inside the checkpoint, only load the model parameters
     """
-    argscp_names = nii_nn_manage_conf.CheckPointKey()
+    cp_names = nii_nn_manage_conf.CheckPointKey()
     if type(checkpoint) is dict and cp_names.state_dict in checkpoint:
         pt_model.load_state_dict(checkpoint[cp_names.state_dict])
     else:

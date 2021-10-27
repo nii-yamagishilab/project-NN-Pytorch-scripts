@@ -12,11 +12,15 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.pyplot import cm
+import shutil
 
-# turn of latex and set font type
+# Set latex and font type
 from matplotlib import rc
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-rc('text', usetex=True)
+if shutil.which('tex') and shutil.which('latex'):
+    rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+    rc('text', usetex=True)
+else:
+    print("Cannot find tex or latex. matplotlib.rc usetex is disabled")
 # default fontsize
 rc('font', size=9)
 

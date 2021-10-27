@@ -40,8 +40,8 @@ class Melspec(object):
           fs: int, frame shift
           fftl: int, FFT points
           mfbsize: int, mel-filter bank size
-          melmin: int, lowest freq. covered by mel-filter bank, default 0
-          melmax: int, highest freq. covered by mel-filter bank, default sf/2
+          melmin: float, lowest freq. covered by mel-filter bank, default 0
+          melmax: float, highest freq. covered by mel-filter bank, default sf/2
         """
         # sampling rate
         self.sf = sf
