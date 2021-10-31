@@ -121,14 +121,14 @@ For LCNN, please check [this paper](https://www.isca-speech.org/archive/Interspe
 <a name="env"></a>
 ## 3. Python environment
 
-You may use [./env.yml](./env.yml) or [./env2.yml](./env2.yml) to create the environment: 
+You may use [./env.yml](./env.yml) to create the environment: 
 
 ```sh
 # create environment
 conda env create -f env.yml
 
-# load environment (whose name is pytorch-1.6)
-conda activate pytorch-1.6
+# load environment (whose name is nn-script-pt1.6)
+conda activate nn-script-pt1.6
 ```
 
 <a name="use"></a>

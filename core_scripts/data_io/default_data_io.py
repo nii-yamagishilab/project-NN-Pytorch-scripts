@@ -965,6 +965,14 @@ class NIIDataSet(torch.utils.data.Dataset):
                 flag = False
             else:
                 nii_warn.f_print("Incompatible cache: %s" % (data_path))
+
+                tmp = nii_list_tools.members_in_a_not_in_b(
+                    self.m_data_length.keys(), self.m_file_list)
+                nii_warn.f_print("Possibly invalid data (a few examples):")
+                for tmp_name in tmp[:10]:
+                    nii_warn.f_print(tmp_name)
+                nii_warn.f_print("...\nYou may carefully check these data.")
+
                 nii_warn.f_print("Re-read data statistics")
                 self.m_seq_info = []
                 self.m_data_length = {}

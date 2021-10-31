@@ -18,7 +18,10 @@ import os
 import sys
 import numpy as np
 import scipy.io.wavfile
-import soundfile
+try:
+    import soundfile
+except ModuleNotFoundError:
+    pass
 import core_scripts.data_io.io_tools as nii_io_tk
 
 __author__ = "Xin Wang"
@@ -191,7 +194,15 @@ def flacReadAsFloat(wavFileIn):
         sr: sampling_rate
         wavData: waveform in np.float32 (-1, 1)
     """
-    x, sr = soundfile.read(wavFileIn)
+    if 'soundfile' in sys.modules:
+        x, sr = soundfile.read(wavFileIn)
+    else:
+        print("soundfile is not installed.")
+        print("Due to practical reason, soundfile is not included in env.yml")
+        print("To install soundfile with support to flac, try:")
+        print(" conda install libsndfile=1.0.31 -c conda-forge")
+        print(" conda install pysoundfile -c conda-forge")
+        exit(1)
     return sr, x
 
 
