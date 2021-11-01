@@ -74,3 +74,23 @@ else
     echo "Cannot download ${MODELLINK}. Please contact the author"
 fi
 cd -
+
+
+MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AABghKBKxghHaGOPeSJhMLwLa/project-05-nn-vocoders-iLPCNet.tar
+MODELNAME=project-05-nn-vocoders-iLPCNet
+
+DIRNAME=pre_trained_ilpcnet
+
+cd ${SRCDIR}/${DIRNAME}
+${TOOL} ${MODELLINK}
+if [ -e ${MODELNAME}.tar ];
+then
+    tar -xvf ${MODELNAME}.tar
+    if [ ! -e "./__pre-trained/trained_network.pt" ];
+    then
+        echo "Cannot download ${MODELLINK}. Please contact the author"
+    fi
+else
+    echo "Cannot download ${MODELLINK}. Please contact the author"
+fi
+cd -

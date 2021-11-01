@@ -127,8 +127,8 @@ You may use [./env.yml](./env.yml) to create the environment:
 # create environment
 conda env create -f env.yml
 
-# load environment (whose name is nn-script-pt1.6)
-conda activate nn-script-pt1.6
+# load environment (whose name is pytorch-1.6)
+conda activate pytorch-1.6
 ```
 
 <a name="use"></a>

@@ -153,7 +153,6 @@ class Melspec(object):
         M = self._logmelfbspec(M)
         return M
 
-
 class LPClite(object):
     """ A lite LPC analyzer & synthesizr
     Note that this is based on numpy, not Pytorch
@@ -173,14 +172,14 @@ class LPClite(object):
         lpc_coef_tmp = m_lpc._rc2lpc(lpc_coef)
         np.std(lpc_coef_tmp - lpc_coef)
     """
-    def __init__(self, fl=320, fs=80, order=30, window='blackman', 
+    def __init__(self, fl=320, fs=80, order=29, window='blackman', 
                  flag_emph=True, emph_coef=0.97):
         """LPClite(fl=320, fs=80, order=30, window='blackman')
         Args
         ----
           fl: int, frame length
           fs: int, frame shift
-          order: int, order of LPC, [1, a_1, a_2, ..., a_order-1]
+          order: int, order of LPC, [1, a_1, a_2, ..., a_order]
           window: str, 'blackman' or 'hanning'
           flag_emph: bool, whether use pre-emphasis (default True)
           emph_coef: float, coefficit for pre-emphasis filter (default 0.97)
@@ -188,13 +187,14 @@ class LPClite(object):
         Note that LPC model is defined as:
            1                          Gain 
         -------- --------------------------------------------- 
-        1- bz^-1 a_0 + a_1 z^-1 + ... + a_order-1 z^-(order-1)
+        1- bz^-1 a_0 + a_1 z^-1 + ... + a_order z^-(order)
         
         b = emph_coef if flag_emph is True
         b = 0 otherwise
         """
         self.fl = fl
         self.fs = fs
+        # 
         self.order = order
         self.flag_emph = flag_emph
         self.emph_coef = emph_coef
@@ -221,9 +221,9 @@ class LPClite(object):
           
         output
         ------
-          lpc_coef:   np.array, LPC coeff, (frame_num, lpc_order)
-          ld_err:     np.array, LD analysis error, (frame_num, lpc_order)
-          gamma:      np.array, reflection coefficients, (frame_num,lpc_order-1)
+          lpc_coef:   np.array, LPC coeff, (frame_num, lpc_order + 1)
+          ld_err:     np.array, LD analysis error, (frame_num, lpc_order + 1)
+          gamma:      np.array, reflection coefficients, (frame_num,lpc_order)
           gain:       np.array, gain, (frame_num, 1)
           framed_err: np.array, LPC error per frame, (frame_num, frame_length)
           eer_signal: np.array, overlap-added excitation (length, 1)
@@ -260,7 +260,7 @@ class LPClite(object):
         
         input
         -----
-          lpc_coef:   np.array, LPC coeff, (frame_num, lpc_order)
+          lpc_coef:   np.array, LPC coeff, (frame_num, lpc_order + 1)
           framed_err: np.array, LPC excitations, (frame_num, frame_length)
           gain:       np.array, LPC gain, (frame_num, 1)
         
@@ -375,7 +375,7 @@ class LPClite(object):
         
         input
         -----
-          lpc_coef: np.array, (frame_num, order)
+          lpc_coef: np.array, (frame_num, order + 1)
           framed_x: np.array, (frame_num, frame_length)
           gain: np.array,     (frame_num, 1)
           
@@ -383,19 +383,19 @@ class LPClite(object):
         ------
           framed_err: np.array, (frame_num, frame_length)
         
-        Note that lpc_coef[n, :] = (1, a_1, a_2, ..., a_order-1) for n-th frame
+        Note that lpc_coef[n, :] = (1, a_1, a_2, ..., a_order) for n-th frame
         framed_x[n, :] = (x[0], x[1], ..., x[frame_len]) for n-th frame
         """
         # 
         frame_num = framed_x.shape[0]
         frame_len = framed_x.shape[1]
         
-        # including the 1st 1.0
-        order = lpc_coef.shape[1]
+        # lpc order (without the a_0 term)
+        order = lpc_coef.shape[1] - 1
         
         # pad zero, every frame has [0, ..., 0, x[0], x[1], ..., x[frame_len]]
         tmp_framed = np.concatenate(
-            [np.zeros([frame_num, order]), framed_x], axis=1)
+            [np.zeros([frame_num, order + 1]), framed_x], axis=1)
         
         # flip to (x[frame_len], ... x[1], x[0], 0, ..., 0)
         tmp_framed = tmp_framed[:, ::-1]
@@ -405,14 +405,14 @@ class LPClite(object):
         
         # e[n] = \sum_k=0 a[k] x[n-k] 
         # do this for all frames and n simultaneously
-        for k in range(self.order):
+        for k in range(self.order + 1):
             # a[k]
             tmp_coef = lpc_coef[:, k:k+1]
             
             # For each frame
             # RHS = [x[n-k], x[n-k-1], ..., ] * a[k]
             # 
-            # By doing this for k in [0, order-1]
+            # By doing this for k in [0, order]
             # LHS = [e[n],   e[n-1],   ...]
             #       [x[n-0], x[n-0-1], ..., ] * a[0]
             #     + [x[n-1], x[n-1-1], ..., ] * a[1]
@@ -436,7 +436,7 @@ class LPClite(object):
         
         input
         -----
-          lpc_coef:   np.array, (frame_num, order)
+          lpc_coef:   np.array, (frame_num, order + 1)
           framed_err: np.array, (frame_num, frame_length)
           gain:       np.array, (frame_num, 1)
           
@@ -445,12 +445,12 @@ class LPClite(object):
           framed_x:   np.array, (frame_num, frame_length)
         
         Note that 
-        lpc_coef[n, :] = (1, a_1, a_2, ..., a_order-1),  for n-th frame
+        lpc_coef[n, :] = (1, a_1, a_2, ..., a_order),  for n-th frame
         framed_x[n, :] = (x[0], x[1], ..., x[frame_len]), for n-th frame
         """
         frame_num = framed_err.shape[0]
         frame_len = framed_err.shape[1]
-        order = lpc_coef.shape[1]
+        order = lpc_coef.shape[1] - 1
         
         # pad zero 
         # the buffer looks like 
@@ -458,28 +458,28 @@ class LPClite(object):
         #   [0, 0, 0, 0, 0, ... x[0], x[1], x[frame_length -1]],  -> 2nd frame
         #   ...] 
         framed_x = np.concatenate(
-            [np.zeros([frame_num, order-1]), np.zeros_like(framed_err)], axis=1)
+            [np.zeros([frame_num, order]), np.zeros_like(framed_err)], axis=1)
         
-        # flip the cofficients of each frame as [a_order-1, ..., a_1, 1]
+        # flip the cofficients of each frame as [a_order, ..., a_1, 1]
         lpc_coef_tmp = lpc_coef[:, ::-1]
         
         # synthesis (all frames are down at the same time)
         for idx in range(frame_len):
-            # idx+order-1 so that it points to the shifted time idx
-            #                                    idx+order-1
+            # idx+order so that it points to the shifted time idx
+            #                                    idx+order
             # [0, 0, 0, 0, 0, ... x[0], x[1], ... x[idx], ]
             # gain * e[n]
-            framed_x[:, idx+order-1] = framed_err[:, idx] * gain[:, 0]
+            framed_x[:, idx+order] = framed_err[:, idx] * gain[:, 0]
             
-            # [x[idx-1-order-1], ..., x[idx-1]] * [a_order, a_1]
-            pred = np.sum(framed_x[:, idx:idx+order-1] * lpc_coef_tmp[:, :-1], 
+            # [x[idx-1-order], ..., x[idx-1]] * [a_order, a_1]
+            pred = np.sum(framed_x[:, idx:idx+order] * lpc_coef_tmp[:, :-1], 
                           axis=1)
             
-            # gain * e[n] - [x[idx-1-order-1], ..., x[idx-1]] * [a_order, a_1]
-            framed_x[:, idx+order-1] = framed_x[:, idx+order-1] - pred
+            # gain * e[n] - [x[idx-1-order], ..., x[idx-1]] * [a_order, a_1]
+            framed_x[:, idx+order] = framed_x[:, idx+order] - pred
             
         # [0, 0, 0, 0, 0, ... x[0], x[1], ... ] -> [x[0], x[1], ...]
-        return framed_x[:, order-1:] 
+        return framed_x[:, order:] 
     
     def _auto_correlation(self, framed_x):
         """ autocorr = _auto_correlation(framed_x)
@@ -490,13 +490,13 @@ class LPClite(object):
         
         output
         ------
-          autocorr: np.array, auto-correlation coeff (frame_num, lpc_order)
+          autocorr: np.array, auto-correlation coeff (frame_num, lpc_order+1)
         """
         # (frame_num, order)
-        autocor = np.zeros([framed_x.shape[0], self.order])
+        autocor = np.zeros([framed_x.shape[0], self.order+1])
         
         # loop and compute auto-corr (for all frames simultaneously)
-        for i in np.arange(self.order):
+        for i in np.arange(self.order+1):
             autocor[:, i] = np.sum(
                 framed_x[:, 0:self.fl-i] * framed_x[:, i:],
                 axis=1)
@@ -517,13 +517,13 @@ class LPClite(object):
         
         input
         -----
-          autocor: np.array, auto-correlation, (frame_num, lpc_order)
+          autocor: np.array, auto-correlation, (frame_num, lpc_order+1)
         
         output
         ------
-          lpc_coef: np.array, LPC coefficients, (frame_num, lpc_order)
-          lpc_err: np.array, LPC error, (frame_num, lpc_order)
-          gamma: np.array, reflection coeff, (frame_num, lpc_order-1)
+          lpc_coef: np.array, LPC coefficients, (frame_num, lpc_order+1)
+          lpc_err: np.array, LPC error, (frame_num, lpc_order+1)
+          gamma: np.array, reflection coeff, (frame_num, lpc_order)
           gain: np.array, gain, (frame_num, 1)
           
         Note that lpc_coef[n] = (1, a_2, ... a_order) for n-th frame
@@ -553,7 +553,7 @@ class LPClite(object):
             gamma = np.sum(lpc_coef[:, 0, 0:(index)] * autocor[:, 1:(index+1)], 
                            axis=1)
             #   step2. check validity of lpc_err
-            ill_idx = np.abs(lpc_err[:,index-1]) < 1e-07
+            ill_idx = lpc_err[:,index-1] < 1e-07
             #      also frames that should have been stopped in previous iter
             ill_idx = np.bitwise_or(ill_idx, tmp_order < polyOrder)
             #   step3. make invalid frame gamma=0
@@ -571,7 +571,7 @@ class LPClite(object):
             lpc_err[:, index] = lpc_err[:, index-1] * (1 - gamma * gamma)
             lpc_coef[:, 0, :] = lpc_coef[:, 1, :]
         
-        # flip to (1, a_2, ..., a_order)
+        # flip to (1, a_1, ..., a_order)
         lpc_coef = lpc_coef[:, 0, ::-1]
         
         # output LPC coefficients
@@ -599,18 +599,18 @@ class LPClite(object):
         
         input
         -----
-          rc: np.array, (frame_num, lpc_order - 1)
+          rc: np.array, (frame_num, lpc_order)
         
         output
         ------
-          lpc_coef, np.array, (frame_num, lpc_order)
+          lpc_coef, np.array, (frame_num, lpc_order+1)
 
         Note that LPC model is defined as:
                             Gain 
         ---------------------------------------------
-        a_0 + a_1 z^-1 + ... + a_order-1 z^-(order-1)
+        a_0 + a_1 z^-1 + ... + a_order z^-(order)
 
-        Thus, the reflection coefficitns [gamma_1, ... gamma_order-1]
+        Thus, the reflection coefficitns [gamma_1, ... gamma_order]
         """
         # (frame_num, order)
         frame_num, order = rc.shape 
