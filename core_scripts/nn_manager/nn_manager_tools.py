@@ -102,9 +102,11 @@ def f_load_checkpoint(checkpoint, args, flag_multi_device, pt_model, optimizer,
       train_log: str, text log of training loss
     """
     #
+    train_log = ''
+
     if checkpoint is None:
         # no checkpoint
-        return ''
+        return train_log
     
     # checkpoint exist
     cp_names = nii_nn_manage_conf.CheckPointKey()
