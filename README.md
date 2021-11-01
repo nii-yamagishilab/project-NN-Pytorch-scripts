@@ -22,9 +22,9 @@ I am a new pytorch user. If you have any suggestions or questions, pleas email w
 <a name="note"></a>
 ## 1. Note 
 
-**To SPCC 2021 participants**
+**For tutorials**
 
-Hands-on materials are in `./tutorials`. Please follow the `./tutorials/README` and work in this folder first
+Tutorials are available in `./tutorials`. Please follow the `./tutorials/README` and work in this folder first
 
 ```sh
 cd ./tutorials
@@ -32,14 +32,15 @@ head -n 2 README.md
 # Hands-on materials for Neural vocoders
 ```
 
+**For other projects**
 
+Just follow the rest of the README.
 
-If you haven't obtained the package from SPCC, you can clone it from this repository. The repository is relatively large. You may use `--depth 1` option to skip unnecessary files.
+The repository is relatively large. You may use `--depth 1` option to skip unnecessary files.
 
 ```sh
 git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts.git
 ```
-
 
 
 <a name="overview"></a>
