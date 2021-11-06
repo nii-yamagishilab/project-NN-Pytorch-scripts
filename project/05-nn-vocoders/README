@@ -50,6 +50,12 @@ Folder structure
 |
 | - blow: a flow-based waveform model for voice conversion
 | 
+|
+| - ilpcnet: LPCNet using with a Gaussian distribution on waveform
+|            The difference is that we will predict LPC coefficients from the input
+|            Mel-spectrogram
+
+All the models have tutorial notebooks in ../../tutorials
 
 Folder and file annotated by '=' will be produced after running the 00_demo.sh.
 Folder structure of other models is similar to the wavenet's.
@@ -57,7 +63,7 @@ Folder structure of other models is similar to the wavenet's.
 Usuage
 ------
 # choose one project
-cd hn-nsf 
+cd wavenet
 
 # setup the dependency and PYTHONPATH
 source ../../../env.sh 
@@ -106,6 +112,10 @@ Blow: J. Serra, S. Pascual, & C. Segura (2019).
          Blow: a single-scale hyperconditioned flow for non-parallel raw-audio voice conversion. 
 	 In Advances in Neural Information Processing Systems (NeurIPS). 2019
          https://blowconversions.github.io/
+
+iLPCNet: [1] M.-J. Hwang, E. Song, R. Yamamoto, F. Soong, and H.-G. Kang, 
+	 Improving LPCNet-based text-to-speech with linear prediction-structured mixture density 
+	 network. in Proc. ICASSP, 2020, pp. 7219–7223.
 
 That's all
    

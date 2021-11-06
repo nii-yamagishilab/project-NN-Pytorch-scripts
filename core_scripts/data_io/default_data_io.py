@@ -193,8 +193,11 @@ class NIIDataSet(torch.utils.data.Dataset):
         if len(self.m_output_norm) != len(self.m_output_dims):
             nii_warn.f_die("len(output_norm) != len(output_dims) in config")
 
-
-        self.m_ignore_length_invalid = global_arg.ignore_length_invalid_data
+        
+        if global_arg is not None:
+            self.m_ignore_length_invalid = global_arg.ignore_length_invalid_data
+        else:
+            self.m_ignore_length_invalid = False
 
         # check augmentation funcctions
         if input_augment_funcs:

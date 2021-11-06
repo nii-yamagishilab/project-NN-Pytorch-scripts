@@ -74,6 +74,8 @@ Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/s
 
 3. [Blow](https://blowconversions.github.io/)
 
+4. [iLPCNet](https://arxiv.org/pdf/2001.11686.pdf)
+
 All the projects include a pre-trained model and a one-click demo script. Please check [./project/05-nn-vocoders/README](./project/05-nn-vocoders/README).
 
 Generated samples from pre-trained models are in `./project/05-nn-vocoders/*/__pre_trained/output`.
