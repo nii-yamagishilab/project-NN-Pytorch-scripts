@@ -14,7 +14,10 @@ import os
 import sys
 import torch
 import re
-from torch._six import container_abcs, string_classes, int_classes
+import collections
+
+#from torch._six import container_abcs, string_classes, int_classes
+from torch._six import string_classes
 
 """
 The primary motivation is to handle batch of data with varied length.
@@ -55,11 +58,15 @@ def pad_sequence(batch, padding_value=0.0):
 
     Pad a batch of data sequences to be same length (maximum length in batch).
     This function is based on 
-    pytorch.org/docs/stable/_modules/torch/nn/utils/rnn.html#pad_sequence
+    pytorch.org/docs/stable/_modules/torch/nn/utils/rnn.html#pad_sequence.
+
+    Output list of tensor can be stacked into (batchsize, len, dim,...).
+    See customize_collate(batch) below
     """
     # get the rest of the dimensions (dim, ...)
-    max_size = batch[0].size()
-    trailing_dims = max_size[1:]
+    dim_size = batch[0].size()
+    trailing_dims = dim_size[1:]
+
     # get the maximum length
     max_len = max([s.size(0) for s in batch])
     
@@ -122,16 +129,19 @@ def customize_collate(batch):
         
     elif isinstance(elem, float):
         return torch.tensor(batch, dtype=torch.float64)
-    elif isinstance(elem, int_classes):
+    #elif isinstance(elem, int_classes):
+    elif isinstance(elem, int):
         return torch.tensor(batch)
     elif isinstance(elem, string_classes):
         return batch
-    elif isinstance(elem, container_abcs.Mapping):
+    #elif isinstance(elem, container_abcs.Mapping):
+    elif isinstance(elem, collections.abc.Mapping):
         return {key: customize_collate([d[key] for d in batch]) for key in elem}
     elif isinstance(elem, tuple) and hasattr(elem, '_fields'):  # namedtuple
         return elem_type(*(customize_collate(samples) \
                            for samples in zip(*batch)))
-    elif isinstance(elem, container_abcs.Sequence):
+    #elif isinstance(elem, container_abcs.Sequence):
+    elif isinstance(elem, collections.abc.Sequence):
         # check to make sure that the elements in batch have consistent size
         it = iter(batch)
         elem_size = len(next(it))
@@ -144,6 +154,55 @@ def customize_collate(batch):
 
     raise TypeError(customize_collate_err_msg.format(elem_type))
 
+
+
+
+def pad_sequence_batch(list_batch, padding_value=0.0):
+    """ output_batch = pad_sequence(list_batch)
+
+    input
+    -----
+      batch: list of batch, [batch_1, batch_2, ...], and batch_1 is 
+      (batch_size, len, dim1, dim2, ...)
+    
+    output
+    ------
+      output_batch: list of tensor, [batch_1_padded, batch_2_padded, ...]
+
+    Different from pad_sequence, list_batch is a list of batched tensors
+    """
+    # each batched_tensor has shape (batch, length, dim1, ...)
+    #  get dimensions for (dim1, ...)
+    dim_size = list_batch[0].size()
+
+    if len(dim_size) <= 2:
+        return list_batch
+
+    trailing_dims = dim_size[2:]
+    
+    # get the maximum length for each batched tensor
+    max_len = max([s.size(1) for s in list_batch])
+    
+    if all(x.shape[1] == max_len for x in list_batch):
+        # if all data sequences in batch have the same length, no need to pad
+        return list_batch
+    else:
+        output_batch = []
+        for i, tensor in enumerate(list_batch):
+
+            # shape (batch, max_len, dim1, dim2, ...)
+            out_dims = (tensor.shape[0], max_len, ) + trailing_dims
+        
+            # check the rest of dimensions
+            if tensor.size()[2:] != trailing_dims:
+                print("Data in batch has different dimensions:")
+                raise RuntimeError('Fail to pad batched data')
+
+            # save padded results
+            out_tensor = tensor.new_full(out_dims, padding_value)
+            out_tensor[:, :tensor.size(1), ...] = tensor
+            output_batch.append(out_tensor)
+        return output_batch
 
 
 def customize_collate_from_batch(batch):
@@ -170,7 +229,7 @@ def customize_collate_from_batch(batch):
     elem = batch[0]
     elem_type = type(elem)
     if isinstance(elem, torch.Tensor):
-        batch_new = pad_sequence(batch)        
+        batch_new = pad_sequence_batch(batch)        
         out = None
         if torch.utils.data.get_worker_info() is not None:
             numel = max([x.numel() for x in batch_new]) * len(batch_new)
@@ -193,7 +252,8 @@ def customize_collate_from_batch(batch):
             return torch.as_tensor(batch)
     elif isinstance(elem, float):
         return torch.tensor(batch, dtype=torch.float64)
-    elif isinstance(elem, int_classes):
+    #elif isinstance(elem, int_classes):
+    elif isinstance(elem, int):
         return torch.tensor(batch)
     elif isinstance(elem, string_classes):
         return batch
@@ -203,7 +263,8 @@ def customize_collate_from_batch(batch):
         for tmp_elem in batch[1:]:
             tmp += tmp_elem 
         return tmp
-    elif isinstance(elem, container_abcs.Sequence):
+    #elif isinstance(elem, container_abcs.Sequence):
+    elif isinstance(elem, collections.abc.Sequence):
         it = iter(batch)
         elem_size = len(next(it))
         if not all(len(elem) == elem_size for elem in it):

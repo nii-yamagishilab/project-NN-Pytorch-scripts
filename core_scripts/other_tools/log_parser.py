@@ -17,8 +17,34 @@ __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
+def f_read_log_err(file_path):
+    """
+    each line looks like 
+    10753,LJ045-0082,0,9216,0, 22/12100, Time: 0.190877s, Loss: 85.994621, ...
+    """
+    def parse_line(line_input):
+        line_tmps = line_input.split(',')
+        tmp_loss = []
+        for tmp in line_tmps:
+            if tmp.count('Time'):
+                tmp_time = float(tmp.lstrip(' Time:').rstrip('s'))
+            elif tmp.count('Loss'):
+                tmp_loss.append(float(tmp.lstrip(' Loss:')))
+        return tmp_time, tmp_loss
+                
+    time_mat = []
+    error_mat = []
+    with open(file_path, 'r') as file_ptr:
+        for line in file_ptr:
+            line = line.rstrip()
+            if line.count("Loss"):
+                tmp_time, tmp_loss = parse_line(line)
+                time_mat.append(tmp_time)
+                error_mat.append(tmp_loss)
+    return np.array(error_mat), np.array(time_mat)
 
-def f_read_log_err(file_path, train_num, val_num):
+# This function is obsolete
+def f_read_log_err_old(file_path, train_num, val_num):
     """ 
     log_train, log_val = f_read_log_err(log_err, num_train_utt, num_val_utt)
 
@@ -67,7 +93,10 @@ def f_read_log_err(file_path, train_num, val_num):
     return data_train, data_val
 
 
-def f_read_log_train(file_path):
+def pass_number(input_str):
+    return np.array([float(x) for x in input_str.split()]).sum()
+
+def f_read_log_train(file_path, sep='/'):
     """ 
     data_train, data_val, time_per_epoch = read_log_train(path_to_log_train)
     
@@ -81,6 +110,12 @@ def f_read_log_train(file_path):
      data_val: error values per epoch on valiation set
      time_per_epoch: training time per epoch
     """
+    def parse_line(line_input, sep):
+        if sep == ' ':
+            return line_input.split()
+        else:
+            return line_input.split(sep)
+
     read_flag = False
     
     data_str = []
@@ -92,20 +127,26 @@ def f_read_log_train(file_path):
                 read_flag = True
             
     row = len(data_str)
+    data_train = None 
+    data_val   = None
 
-    data_train = np.zeros([row, 3])
-    data_val   = np.zeros([row, 3])
     time_per_epoch = np.zeros(row)
     for idx, line in enumerate(data_str):
         try:
             time_per_epoch[idx] = float(line.split('|')[1])
         except ValueError:
             continue
-        trn_data = line.split('|')[2].split('/')
-        val_data = line.split('|')[3].split('/')
+        
+        trn_data = parse_line(line.split('|')[2], sep)
+        val_data = parse_line(line.split('|')[3], sep)
+        
+        if data_train is None or data_val is None:
+            data_train = np.zeros([row, len(trn_data)])
+            data_val = np.zeros([row, len(val_data)])
+        
         for idx2 in np.arange(len(trn_data)):
-            data_train[idx, idx2] = float(trn_data[idx2])
-            data_val[idx,idx2] = float(val_data[idx2])
+            data_train[idx, idx2] = pass_number(trn_data[idx2])
+            data_val[idx,idx2] = pass_number(val_data[idx2])
 
     return data_train, data_val, time_per_epoch
     

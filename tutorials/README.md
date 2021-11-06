@@ -72,6 +72,7 @@ bash 00_download_models.sh
 
 If you don't use conda, you may install software in env-cpu.yml manually.
 
+Jupyterlab since version 3.0 shows Table of Contents for the opened notebook. This is a highly recommended function. For more details, please check [this page](https://jupyterlab.readthedocs.io/en/stable/user/toc.html).
 
 Pre-trained models of WaveGlow and Blow are quite large. They are shared through Dropbox. If you cannot access Dropbox, please let me know. You may also skip the pre-trained models if you don't want to try the analysis-synthesis examples in s2*.ipynb.
 
@@ -158,5 +159,16 @@ You can check `../README` and Part3 in Hands-on-NSF.pdf for more details.
 3. If you want to run the Jupyter notebook on a remote server
 
    You may check how-to on this [webpage](https://docs.anaconda.com/anaconda/user-guide/tasks/remote-jupyter-notebook/). 
+
+4. If you are asked to submit Jupyter token or password
+   
+   Please check this [page](https://jupyter-notebook.readthedocs.io/en/stable/public_server.html#automatic-password-setup) and set up a password
+
+   ```sh
+
+   $ jupyter notebook password
+   Enter password:  
+   Verify password: 
+   ```
 
 The end

@@ -932,6 +932,39 @@ class Loss():
         # for experiments on CMU-arctic, ATR-F009, VCTK, cutoff_w = 0.0
         self.cutoff_w = 0.0
 
+        return
+
+    def _stft(self, signal, fft_p, frame_shift, frame_len):
+        """ wrapper of torch.stft
+        Remember to use onesided=True, pad_mode="constant"
+        Signal (batchsize, length)
+        Output (batchsize, fft_p/2+1, frame_num, 2)
+        """ 
+        
+        # to be compatible with different torch versions
+        if torch.__version__.split('.')[1].isnumeric() and \
+           int(torch.__version__.split('.')[1]) < 7:
+            return torch.stft(
+                signal, fft_p, frame_shift, frame_len, 
+                window=self.win(frame_len, dtype=signal.dtype, 
+                                device=signal.device), 
+                onesided=True, pad_mode="constant")
+        else:
+            return torch.stft(
+                signal, fft_p, frame_shift, frame_len, 
+                window=self.win(frame_len, dtype=signal.dtype, 
+                                device=signal.device), 
+                onesided=True, pad_mode="constant", return_complex=False)
+
+    def _amp(self, x):
+        """  _amp(stft)
+        x_stft: (batchsize, fft_p/2+1, frame_num, 2)
+        output: (batchsize, fft_p/2+1, frame_num)
+        output[x, y, z] = log(x_stft[x, y, z, 1]^2 + x_stft[x, y, z, 2]^2
+                              + floor)
+        """
+        return torch.log(torch.norm(x, 2, -1).pow(2) + self.amp_floor)
+
     def compute(self, outputs, target):
         """ Loss().compute(outputs, target) should return
         the Loss in torch.tensor format
@@ -950,20 +983,11 @@ class Loss():
         loss = 0
         for frame_shift, frame_len, fft_p in \
             zip(self.frame_hops, self.frame_lens, self.fft_n):
-            x_stft = torch.stft(
-                output, fft_p, frame_shift, frame_len, \
-                window=self.win(frame_len, dtype=output.dtype, 
-                                device=output.device), 
-                onesided=True, pad_mode="constant")
-            y_stft = torch.stft(
-                target, fft_p, frame_shift, frame_len, \
-                window=self.win(frame_len, dtype=output.dtype, 
-                                device=output.device), 
-                onesided=True, pad_mode="constant")
-            x_sp_amp = torch.log(torch.norm(x_stft, 2, -1).pow(2) + \
-                                 self.amp_floor)
-            y_sp_amp = torch.log(torch.norm(y_stft, 2, -1).pow(2) + \
-                                 self.amp_floor)
+            
+            x_stft = self._stft(output, fft_p, frame_shift, frame_len)
+            y_stft = self._stft(target, fft_p, frame_shift, frame_len)
+            x_sp_amp = self._amp(x_stft)
+            y_sp_amp = self._amp(y_stft)
             loss += self.loss(x_sp_amp, y_sp_amp)
         
         # A norm on cut_f, which forces sinc-cut-off-frequency

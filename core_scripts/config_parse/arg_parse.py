@@ -50,8 +50,8 @@ def f_args_parsed(argument_input = None):
     mes = 'number of no-best epochs for early stopping (default: 5)'
     parser.add_argument('--no-best-epochs', type=int, default=5, help=mes)
 
-    mes = 'sampler (default: None). Default sampler is random shuffler'
-    mes += 'default'
+    mes = 'sampler (default: None). Default sampler is random shuffler. '
+    mes += 'Option 1: block_shuffle_by_length, shuffle data by length'
     parser.add_argument('--sampler', type=str, default='None', help=mes)
 
     parser.add_argument('--lr', type=float, default=0.0001, 
@@ -120,6 +120,10 @@ def f_args_parsed(argument_input = None):
     mes += '(default: concatenate)'
     parser.add_argument('--way-to-merge-datasets', type=str, \
                         default='concatenate', help=mes)
+
+    mes = "Ignore invalid data? the length of features does not match"
+    parser.add_argument('--ignore-length-invalid-data', 
+                        action='store_true', default=False, help=mes)
     ######
     # options to save model / checkpoint
     parser.add_argument('--save-model-dir', type=str, \
@@ -163,6 +167,13 @@ def f_args_parsed(argument_input = None):
                         action='store_true', \
                         default=False, help=mes)    
 
+
+    mes = 'load pre-trained model even if there is mismatch on the number of'
+    mes += " parameters. Mismatched part will not be loaded (default: false)"
+    parser.add_argument('--allow-mismatched-pretrained-model', 
+                        action='store_true', \
+                        default=False, help=mes)    
+
     mes = 'run inference mode (default: False, run training script)'
     parser.add_argument('--inference', action='store_true', \
                         default=False, help=mes)    
@@ -178,6 +189,13 @@ def f_args_parsed(argument_input = None):
     mes = mes + ' (default: 1)'
     parser.add_argument('--verbose', type=int, default=1,
                         help=mes)
+
+
+    #######
+    # options for debug mode
+    mes = 'debug mode, each epoch only uses a specified number of mini-batches'
+    mes += ' (default: 0, not used)'
+    parser.add_argument('--debug-batch-num', type=int, default=0, help=mes)
 
     #######
     # options for user defined 

@@ -102,7 +102,8 @@ class NIIDataSet(torch.utils.data.Dataset):
                  global_arg = None, \
                  dset_config = None, \
                  input_augment_funcs = None, \
-                 output_augment_funcs = None):
+                 output_augment_funcs = None,
+                 inoutput_augment_func = None):
         """
         args
         ----
@@ -141,6 +142,9 @@ class NIIDataSet(torch.utils.data.Dataset):
                                default None
           output_augment_funcs: list of output data transformation functions
                                 default None
+          inoutput_augment_func: a single data augmentation function, 
+                                default None
+
         """
         # initialization
         self.m_set_name = dataset_name
@@ -189,6 +193,12 @@ class NIIDataSet(torch.utils.data.Dataset):
         if len(self.m_output_norm) != len(self.m_output_dims):
             nii_warn.f_die("len(output_norm) != len(output_dims) in config")
 
+        
+        if global_arg is not None:
+            self.m_ignore_length_invalid = global_arg.ignore_length_invalid_data
+        else:
+            self.m_ignore_length_invalid = False
+
         # check augmentation funcctions
         if input_augment_funcs:
             if len(input_augment_funcs) != len(self.m_input_dims):
@@ -203,6 +213,11 @@ class NIIDataSet(torch.utils.data.Dataset):
             self.m_ouaug_funcs = output_augment_funcs
         else:
             self.m_ouaug_funcs = []
+
+        if inoutput_augment_func:
+            self.m_inouaug_func = inoutput_augment_func
+        else:
+            self.m_inouaug_func = None
 
         # dimensions
         self.m_input_all_dim = sum(self.m_input_dims)
@@ -279,7 +294,7 @@ class NIIDataSet(torch.utils.data.Dataset):
             nii_warn.f_print("Unsupported dtype %s" % (data_format))
             nii_warn.f_die("Only supports %s " % (nii_dconf.h_dtype_str))
             
-        # check the validity of data
+        # check the validity of data list
         self.f_check_file_list()
         
         # log down statiscs 
@@ -459,26 +474,56 @@ class NIIDataSet(torch.utils.data.Dataset):
         """
         
         if self.m_opt_wav_handler == 0 \
-           and not self.m_inaug_funcs and not self.m_ouaug_funcs:
+           and not self.m_inaug_funcs and not self.m_ouaug_funcs \
+           and not self.m_inouaug_func:
             # no any post-processing process
             return in_data, out_data, seq_info, idx
 
         else:
-            
             # Do post processing one by one
+            # The order is:
+            # waveform silence handler -> input augementation functions ->
+            # output augmentation functions -> input&output augmentation
+            # 
+            # Everthing can be handled in input&output augmentation. 
+            # But to be compatible with old codes, we keep them all.
+            # It is recommended to use the unified input&output augmentation
+            
+            
+            ###
+            # buffer infor
+            ###
+            # create a new sequence information buffer for the input and output
             tmp_seq_info = nii_seqinfo.SeqInfo(
                 seq_info.length, seq_info.seq_name, seq_info.seg_idx,
                 seq_info.start_pos, seq_info.info_id)
             
+            ###
             # waveform silence handler
+            ###
             # waveform handler, this is kept for compatibility
             if self.m_opt_wav_handler > 0:
                 if len(self.m_input_exts) == 1 \
                    and self.m_input_exts[0][-3:] == 'wav':
+                    
+                    if self.m_opt_wav_handler == 1:
+                        tmp_flag_output = self.m_opt_wav_handler
+                        tmp_only_twoends = False
+                    elif self.m_opt_wav_handler == 2:
+                        tmp_flag_output = self.m_opt_wav_handler
+                        tmp_only_twoends = False
+                    elif self.m_opt_wav_handler == 3:
+                        tmp_flag_output = 1
+                        tmp_only_twoends = True
+                    else:
+                        print("Unknown option for wav handler {:d}".format(
+                            self.m_opt_wav_handler))
+                        sys.exit(1)
+
                     in_data_n = nii_wav_tk.silence_handler_wrapper(
                         in_data, self.m_wav_sr, 
-                        flag_output = self.m_opt_wav_handler,
-                        flag_only_startend_sil = (self.m_opt_wav_handler==3))
+                        flag_output = tmp_flag_output,
+                        flag_only_startend_sil = tmp_only_twoends)
             
                     # this is temporary setting, if in_data.shape[0] 
                     #  corresponds to waveform length, update it
@@ -502,8 +547,10 @@ class NIIDataSet(torch.utils.data.Dataset):
             else:
                 in_data_n = in_data
                 out_data_n = out_data
-
+                
+            ###
             # augmentation functions for input data
+            ###
             if self.m_inaug_funcs:
                 if len(self.m_input_exts) == 1:
                     # only a single input feature, 
@@ -524,8 +571,10 @@ class NIIDataSet(torch.utils.data.Dataset):
                         if tmp_data.shape[0] == in_data_n.shape[0]:
                             in_data_n[:, s_dim:e_dim]  = tmp_data
                         s_dim = s_dim + dim
-
+                        
+            ###
             # augmentation functions for output data
+            ###
             if self.m_ouaug_funcs:
                 if len(self.m_output_exts) == 1:
                     # only a single output feature type
@@ -547,6 +596,16 @@ class NIIDataSet(torch.utils.data.Dataset):
                             out_data_n[:, s_dim:e_dim] = tmp_data
                         s_dim = s_dim + dim
             
+            ###
+            # a unified augmentation function for input and output
+            ###
+            if self.m_inouaug_func:
+                # update input output features
+                in_data_n, out_data_n, tmp_len = self.m_inouaug_func(
+                    in_data_n, out_data_n)
+                # update sequence length
+                tmp_seq_info.length = tmp_len
+
             return in_data_n, out_data_n, tmp_seq_info, idx
         
     
@@ -591,14 +650,27 @@ class NIIDataSet(torch.utils.data.Dataset):
                 self.m_input_dirs[0], self.m_input_exts[0])
 
         # check the list of files exist in all input/output directories
-        for tmp_d, tmp_e in zip(self.m_input_dirs, \
-                                self.m_input_exts):
+        for tmp_d, tmp_e in zip(self.m_input_dirs, self.m_input_exts):
             tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e)
-            self.m_file_list = nii_list_tools.common_members(
-                tmp_list, self.m_file_list)
+            tmp_new_list = nii_list_tools.common_members(tmp_list, 
+                                                         self.m_file_list)
+            if len(tmp_new_list) < 1:
+                nii_warn.f_print("Possible error when scanning:", 'error')
+                nii_warn.f_print(" {:s} for {:s}".format(tmp_d, tmp_e), 'error')
+                nii_warn.f_print('Here are some names to be scanned:', 'error')
+                nii_warn.f_print(' ' + ' '.join(self.m_file_list[0:10]),'error')
+                if os.path.isfile(self.m_file_list[0]):
+                    mes = "The above name seems not to be the data name. "
+                    mes += "It seems to be a file path. "
+                    mes += "\nPlease check test_list, trn_list, val_list."
+                    nii_warn.f_print(mes, 'error')
+                self.m_file_list = tmp_new_list
+                break
+            else:
+                self.m_file_list = tmp_new_list
 
         if len(self.m_file_list) < 1:
-            nii_warn.f_print("No input features found after scannning", 'error')
+            nii_warn.f_print("\nNo input features found after scanning",'error')
             nii_warn.f_print("Please check %s" \
                              % (str(self.m_input_dirs)), 'error')
             nii_warn.f_print("They should contain all files in file list", 
@@ -617,7 +689,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                     tmp_list, self.m_file_list)
 
             if len(self.m_file_list) < 1:
-                nii_warn.f_print("No output data found", 'error')
+                nii_warn.f_print("\nNo output data found", 'error')
                 nii_warn.f_print("Please check %s" \
                                  % (str(self.m_output_dirs)), 'error')
                 nii_warn.f_print("They should contain all files in file list", 
@@ -709,8 +781,16 @@ class NIIDataSet(torch.utils.data.Dataset):
             else:
                 nii_warn.f_print("Sequence length mismatch:", 'error')
                 self.f_check_specific_data(file_name)
-                nii_warn.f_print("Please the above features", 'error')
-                nii_warn.f_die("Possible invalid data %s" % (file_name))
+                nii_warn.f_print("Please check the above features", 'error')
+
+                if self.m_ignore_length_invalid:
+                    nii_warn.f_print("ignore-length-invalid-data is on")
+                    nii_warn.f_print("ignore {:s}".format(file_name))
+                    return False
+                else:
+                    nii_warn.f_print("Or remove them from data list", 'error')
+                    nii_warn.f_print("Or --ignore-length-invalid-data",'error')
+                    nii_warn.f_die("Possible invalid data %s" % (file_name))
 
             # adjust the length so that, when reso is used,
             # the sequence length will be N * reso
@@ -720,7 +800,7 @@ class NIIDataSet(torch.utils.data.Dataset):
             # do nothing for unaligned input or sentence-level input
             pass
         
-        return
+        return True
 
     def f_adjust_len(self, length):
         """ When input data will be up-sampled by self.m_single_reso,
@@ -887,6 +967,16 @@ class NIIDataSet(torch.utils.data.Dataset):
                                     
                 flag = False
             else:
+                nii_warn.f_print("Incompatible cache: %s" % (data_path))
+
+                tmp = nii_list_tools.members_in_a_not_in_b(
+                    self.m_data_length.keys(), self.m_file_list)
+                nii_warn.f_print("Possibly invalid data (a few examples):")
+                for tmp_name in tmp[:10]:
+                    nii_warn.f_print(tmp_name)
+                nii_warn.f_print("...\nYou may carefully check these data.")
+
+                nii_warn.f_print("Re-read data statistics")
                 self.m_seq_info = []
                 self.m_data_length = {}
                 self.m_data_total_length = 0
@@ -974,13 +1064,18 @@ class NIIDataSet(torch.utils.data.Dataset):
         if self.m_inaug_funcs:
             mes += "\n    Use input feature transformation functions"
             if len(self.m_input_exts) > 1:
-                mes += "\n    Note function that feature length will be ignored"
-            
+                mes += "\n     Functions that change data length are ignored"
+                mes += "\n     If it is intend to change data length, "
+                mes += "\n     please use inoutput_augment_func"
         if self.m_ouaug_funcs:
             mes += "\n    Use output feature transformation functions"
             if len(self.m_output_exts) > 1:
-                mes += "\n    Note function that feature length will be ignored"
-
+                mes += "\n     Functions that change data length are ignored"
+                mes += "\n     If it is intend to change data length, "
+                mes += "\n     please use inoutput_augment_func"        
+        if self.m_inouaug_func:
+            mes += "\n    Use a unified function to alter input and output data"
+            
         nii_warn.f_print_message(mes)
 
         return
@@ -1015,9 +1110,17 @@ class NIIDataSet(torch.utils.data.Dataset):
         # print information
         load_cnt = 0
         total_cnt = len(tmp_dirs) * len(self.m_file_list)
-        nii_warn.f_print("Get data statistis", end='')
-        loading_marker = total_cnt // 20 + 1
 
+        # print progress
+        nii_warn.f_print("Get data statistis (may be slow due to data I/O)")
+        bar_len = 50
+        loading_marker = total_cnt // bar_len + 1
+        nii_warn.f_print("".join(['-' for x in range(bar_len-2)])+">|", 'plain')
+        
+
+        # list of invalid data
+        invalid_data_lst = []
+        
         # loop over each input/output feature type
         for t_dir, t_ext, t_dim, t_reso, t_norm in \
             zip(tmp_dirs, tmp_exts, tmp_dims, tmp_reso, tmp_norm):
@@ -1032,7 +1135,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                                 
                 load_cnt += 1
                 if load_cnt % loading_marker == 0:
-                    nii_warn.f_print('.', end='', flush=True)
+                    nii_warn.f_print('>', end='', flush=True, opt='')
 
                 # get file path
                 file_path = nii_str_tk.f_realpath(t_dir, file_name, t_ext)
@@ -1042,7 +1145,11 @@ class NIIDataSet(torch.utils.data.Dataset):
                 # read the length of the data
                 if flag_cal_data_len:
                     t_len  = self.f_length_data(file_path) // t_dim
-                    self.f_log_data_len(file_name, t_len, t_reso)
+                    
+                    if not self.f_log_data_len(file_name, t_len, t_reso):
+                        # this data is not valid, ignore it
+                        # but it is OK to use it to compute mean/std
+                        invalid_data_lst.append(file_name)
                     
                     
                 # accumulate the mean/std recursively
@@ -1078,6 +1185,10 @@ class NIIDataSet(torch.utils.data.Dataset):
                     self.m_output_std[tmp_s:tmp_e] = std_i
 
         if flag_cal_data_len:
+            # remove invalid data (remove duplicated entries first)
+            invalid_data_lst = list(set(invalid_data_lst))
+            for tmp_file_name in invalid_data_lst:
+                self.m_data_length.pop(tmp_file_name)
             # 
             self.f_precheck_data_length()
             # create seq_info
@@ -1192,7 +1303,8 @@ class NIIDataSetLoader:
                  global_arg = None,
                  dset_config = None,
                  input_augment_funcs = None,
-                 output_augment_funcs = None):
+                 output_augment_funcs = None,
+                 inoutput_augment_func = None):
         """
         NIIDataSetLoader(
                data_set_name,
@@ -1209,7 +1321,9 @@ class NIIDataSetLoader:
                flag_lang = 'EN',
                global_arg = None,
                dset_config = None,
-               augment_funcs = None):
+               input_augment_funcs = None,
+               output_augment_funcs = None,
+               inoutput_augment_func = None):
         Args
         ----
             data_set_name: a string to name this dataset
@@ -1254,6 +1368,8 @@ class NIIDataSetLoader:
                       default None
             output_augment_funcs: list of functions for output data augmentation
                       default None
+            inoutput_augment_func: a single data augmentation function
+                      default None
         Methods
         -------
             get_loader(): return a torch.util.data.DataLoader
@@ -1279,7 +1395,8 @@ class NIIDataSetLoader:
                                     global_arg,\
                                     dset_config, \
                                     input_augment_funcs,
-                                    output_augment_funcs)
+                                    output_augment_funcs,
+                                    inoutput_augment_func)
         
         # create torch.util.data.DataLoader
         if params is None:

@@ -39,9 +39,14 @@ def wrap_value(data, wrap_factor=0):
         return np.power((1 - np.power(1 - data, ratio)), 1/ratio)
 
 def return_latex_color_cell(value, val_min, val_max, scale, wrap, color_func):
-    value = wrap_value((value - val_min) / (val_max - val_min), wrap) * scale
+    if scale < 0:
+        value = wrap_value((value - val_min) / (val_max - val_min), wrap) * -scale
+        value = -scale - value
+    else:
+        value = wrap_value((value - val_min) / (val_max - val_min), wrap) * scale
     # only use RGB, not RGBA
     color_code = color_func(value)[:-1]
+    
     color_code = ', '.join(["{:0.2f}".format(x) for x in color_code])
     return r"\cellcolor[rgb]{" + color_code + "}"
 
@@ -64,9 +69,14 @@ def return_valid_number_idx(data_array):
 def print_table(data_array, column_tag, row_tag, 
                 print_format = "1.2f", 
                 with_color_cell = True,
-                colormap='Greys', colorscale=0.5, colorwrap=0, col_sep='', 
-                print_latex_table=True, print_text_table=True,
-                print_format_along_row=True):
+                colormap='Greys', 
+                colorscale=0.5, 
+                colorwrap=0, 
+                col_sep='', 
+                print_latex_table=True, 
+                print_text_table=True,
+                print_format_along_row=True,
+                color_minmax_in = 'global'):
     """
     print a latex table given the data (np.array) and tags    
     
@@ -87,14 +97,20 @@ def print_table(data_array, column_tag, row_tag,
                       whether to use color in each latex cell
       colormap: str, color map name (matplotlib)
       colorscale: float, default 0.5, 
-                  the color will be (0, colorscale)
+                    the color value will be between (0, colorscale)
+                  list of float
       colorwrap: float, default 0, wrap the color-value mapping curve
                  colorwrap > 0 works like mels-scale curve
       col_sep: str, additional string to separate columns. 
                   You may use '\t' or ',' for CSV
       print_latex_table: bool, print the table as latex command (default True)
       print_text_table: bool, print the table as text format (default True)
-
+      color_minmax_in: str, how to decide the max and min to compute cell color?
+                 'global': get the max and min values from the input matrix 
+                 'row': get the max and min values from the current row
+                 'col': get the max and min values from the current column
+                 default is global
+                
     output
     ------
       None
@@ -125,14 +141,38 @@ def print_table(data_array, column_tag, row_tag,
 
     # color configuration
     color_func = cm.get_cmap(colormap)
-    data_idx = return_valid_number_idx(data_array)
-    value_min = np.min(data_array[data_idx])
-    value_max = np.max(data_array[data_idx])
+    data_idx = return_valid_number_idx(data_array)    
+    #value_min = np.min(data_array[data_idx])
+    #value_max = np.max(data_array[data_idx])
     
-    def get_latex_color(x):
+    def get_latex_color(data_array, row_idx, col_idx, color_minmax_in):
+        x = data_array[row_idx, col_idx]
+        if color_minmax_in == 'row':
+            data_idx = return_valid_number_idx(data_array[row_idx])
+            value_min = np.min(data_array[row_idx][data_idx])
+            value_max = np.max(data_array[row_idx][data_idx])
+            if type(colorscale) is list:
+                colorscale_tmp = colorscale[row_idx]
+        elif color_minmax_in == 'col':
+            data_idx = return_valid_number_idx(data_array[:, col_idx])
+            value_min = np.min(data_array[:, col_idx][data_idx])
+            value_max = np.max(data_array[:, col_idx][data_idx])    
+            if type(colorscale) is list:
+                colorscale_tmp = colorscale[col_idx]
+        else:
+            data_idx = return_valid_number_idx(data_array)
+            value_min = np.min(data_array[data_idx])
+            value_max = np.max(data_array[data_idx])
+            if type(colorscale) is list:
+                colorscale_tmp = colorscale[row_idx, col_idx]
+            
+        if type(colorscale) is not list:
+            colorscale_tmp = colorscale
+            
+
         # return a color command for latex cell
         return return_latex_color_cell(x, value_min, value_max, 
-                                       colorscale, colorwrap, color_func)
+                                       colorscale_tmp, colorwrap, color_func)
     
     # maximum width for tags in 1st column
     row_tag_max_len = max([len(x) for x in row_tag])
@@ -189,7 +229,8 @@ def print_table(data_array, column_tag, row_tag,
             if is_valid_float(data_array[row_idx,col_idx]):
                 num_str = "{num:{form}}".format(num=data_array[row_idx,col_idx],
                                                 form=tmp_print_format)
-                latex_color_cell = get_latex_color(data_array[row_idx,col_idx])
+                latex_color_cell = get_latex_color(data_array, row_idx, col_idx,
+                                                   color_minmax_in)
             elif type(data_array[row_idx,col_idx]) is str:
                 num_str = "{num:{form}}".format(num=data_array[row_idx,col_idx],
                                                 form=tmp_print_format)

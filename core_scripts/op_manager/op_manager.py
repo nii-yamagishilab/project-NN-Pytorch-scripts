@@ -55,11 +55,18 @@ class OptimizerWrapper():
             else:
                 self.optimizer = torch_optim.Adam(model.parameters(),
                                                   lr=self.lr)
+        elif self.op_flag == 'AdamW':
+            if self.l2_penalty > 0:
+                self.optimizer = torch_optim.AdamW(model.parameters(), 
+                                                   lr=self.lr, 
+                                                   weight_decay=self.l2_penalty)
+            else:
+                self.optimizer = torch_optim.AdamW(model.parameters(),
+                                                   lr=self.lr)
 
         else:
-            nii_warn.f_print("%s not availabel" % (self.op_flag),
-                             "error")
-            nii_warn.f_die("Please change optimizer")
+            nii_warn.f_print("%s not availabel" % (self.op_flag), "error")
+            nii_warn.f_die("Please add optimizer to op_manager")
 
         # number of epochs
         self.epochs = args.epochs

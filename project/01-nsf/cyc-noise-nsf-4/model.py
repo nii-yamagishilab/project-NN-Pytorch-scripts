@@ -1104,17 +1104,30 @@ class Loss():
         # loss function
         self.loss = torch_nn.MSELoss()
 
+        return
+
     def _stft(self, signal, fft_p, frame_shift, frame_len):
         """ wrapper of torch.stft
         Remember to use onesided=True, pad_mode="constant"
         Signal (batchsize, length)
         Output (batchsize, fft_p/2+1, frame_num, 2)
         """ 
-        return torch.stft(
-            signal, fft_p, frame_shift, frame_len, \
-            window=self.win(
-                frame_len, dtype=signal.dtype, device=signal.device), \
-            onesided=True, pad_mode="constant")
+        
+        # to be compatible with different torch versions
+        if torch.__version__.split('.')[1].isnumeric() and \
+           int(torch.__version__.split('.')[1]) < 7:
+            return torch.stft(
+                signal, fft_p, frame_shift, frame_len, 
+                window=self.win(frame_len, dtype=signal.dtype, 
+                                device=signal.device), 
+                onesided=True, pad_mode="constant")
+        else:
+            return torch.stft(
+                signal, fft_p, frame_shift, frame_len, 
+                window=self.win(frame_len, dtype=signal.dtype, 
+                                device=signal.device), 
+                onesided=True, pad_mode="constant", return_complex=False)
+            
     
     def _amp(self, x):
         """  _amp(stft)

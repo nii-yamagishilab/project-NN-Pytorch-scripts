@@ -80,6 +80,137 @@ def f_process_loss(loss):
         return loss, [loss.item()], [True]
 
 
+def f_load_checkpoint(checkpoint, args, flag_multi_device, pt_model, optimizer, 
+                      monitor_trn, monitor_val, lr_scheduler):
+    """ f_load_checkpoint(checkpoint, args, pt_model, optimizer, 
+                      monitor_trn, monitor_val, lr_scheduler)
+    Load checkpoint.
+    
+    Input:
+      checkpoint: check point saved by the script. Either a dict or a pt model
+      args: command line arguments when running the script
+      flag_multi_device: bool, does this code uses multiple GPUs?
+
+    Input (which will be modified by the function)
+      pt_model: Pytorch model, this will load the model saved in checkpoint
+      optimizer: optimizer, this will load the optimizer saved in checkpoint
+      monitor_trn: log of loss on training set
+      monitor_val: log of loss on validation set
+      lr_scheduler: scheudler of learning rate
+
+    Output:
+      train_log: str, text log of training loss
+    """
+    #
+    train_log = ''
+
+    if checkpoint is None:
+        # no checkpoint
+        return train_log
+    
+    # checkpoint exist
+    cp_names = nii_nn_manage_conf.CheckPointKey()
+
+    if args.allow_mismatched_pretrained_model:
+        if type(checkpoint) is dict:
+            # if it is a epoch*.pt, ignore training histories
+            # only load the model parameter
+            nii_display.f_print("allow-mismatched-pretrained-model is on")
+            nii_display.f_print("ignore training history in pre-trained model")
+            pretrained_dict = f_state_dict_wrapper(
+                    checkpoint[cp_names.state_dict], flag_multi_device)
+        else:
+            # it is only a dictionary of trained parameters
+            pretrained_dict = f_state_dict_wrapper(
+                    checkpoint, flag_multi_device)
+                    
+        # target model dict
+        model_dict = pt_model.state_dict()
+                
+        # methods similar to f_load_pretrained_model_partially
+        # 1. filter out mismatched keys
+        pre_dict_tmp = {
+            k: v for k, v in pretrained_dict.items() \
+            if k in model_dict \
+            and model_dict[k].numel() == pretrained_dict[k].numel()}
+            
+        mismatch_keys = [k for k in model_dict.keys() if k not in pre_dict_tmp]
+                
+        if mismatch_keys:
+            print("Partially load model, ignoring buffers: {:s}".format(
+                ' '.join(mismatch_keys)))
+                    
+            # 2. overwrite entries in the existing state dict
+            model_dict.update(pre_dict_tmp)
+        
+            # 3. load the new state dict
+            pt_model.load_state_dict(model_dict)
+        else:
+            # the usual case
+            # only model status
+            pt_model.load_state_dict(pretrained_dict)
+            nii_display.f_print("Load pretrained model")
+    else:
+        if type(checkpoint) is dict:
+            # checkpoint is a dict (trained model + optimizer + other logs)
+            
+            # load model parameter and optimizer state
+            if cp_names.state_dict in checkpoint:
+                # wrap the state_dic in f_state_dict_wrapper 
+                # in case the model is saved when DataParallel is on
+                pt_model.load_state_dict(
+                    f_state_dict_wrapper(checkpoint[cp_names.state_dict], 
+                                         flag_multi_device))
+
+            # load optimizer state
+            if cp_names.optimizer in checkpoint and \
+               not args.ignore_optimizer_statistics_in_trained_model:
+                optimizer.load_state_dict(checkpoint[cp_names.optimizer])
+            
+            # optionally, load training history
+            if not args.ignore_training_history_in_trained_model:
+                #nii_display.f_print("Load ")
+                if cp_names.trnlog in checkpoint:
+                    monitor_trn.load_state_dic(checkpoint[cp_names.trnlog])
+
+                if cp_names.vallog in checkpoint and monitor_val:
+                    monitor_val.load_state_dic(checkpoint[cp_names.vallog])
+
+                if cp_names.info in checkpoint:
+                    train_log = checkpoint[cp_names.info]
+                    
+                if cp_names.lr_scheduler in checkpoint and \
+                   checkpoint[cp_names.lr_scheduler] and lr_scheduler.f_valid():
+                    lr_scheduler.f_load_state_dict(
+                        checkpoint[cp_names.lr_scheduler])
+                    
+                nii_display.f_print("Load check point, resume training")
+            else:
+                nii_display.f_print("Load pretrained model and optimizer")
+        else:
+            
+            # the usual case
+            # only model status
+            pt_model.load_state_dict(
+                f_state_dict_wrapper(checkpoint, flag_multi_device))
+            nii_display.f_print("Load pretrained model")
+
+    return train_log
+
+def f_load_checkpoint_for_inference(checkpoint, pt_model):
+    """ f_load_checkpoint_for_inference(checkpoint, pt_model)
+    Load checkpoint for model inference
+    
+    No matter what is inside the checkpoint, only load the model parameters
+    """
+    cp_names = nii_nn_manage_conf.CheckPointKey()
+    if type(checkpoint) is dict and cp_names.state_dict in checkpoint:
+        pt_model.load_state_dict(checkpoint[cp_names.state_dict])
+    else:
+        pt_model.load_state_dict(checkpoint)
+    return
+
+
 def f_load_pretrained_model_partially(model, model_paths, model_name_prefix):
     """ f_load_pretrained_model_partially(model, model_paths, model_name_prefix)
     

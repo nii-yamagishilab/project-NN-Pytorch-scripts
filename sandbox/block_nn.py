@@ -1402,5 +1402,239 @@ class LinearInitialized(torch_nn.Module):
         """
         return torch.matmul(x, self.weight)
 
+
+
+class GRULayer(torch_nn.Module):
+    """GRULayer
+
+    There are two modes for forward
+    1. forward(x) -> process sequence x
+    2. forward(x[n], n) -> process n-th step of x
+    
+    Example:
+        data = torch.randn([2, 10, 3])
+        m_layer = GRULayer(3, 3)
+        out = m_layer(data)
+
+        out_2 = torch.zeros_like(out)
+        for idx in range(data.shape[1]):
+            out_2[:, idx:idx+1, :] = m_layer._forwardstep(
+               data[:, idx:idx+1, :], idx)
+    """
+    
+    def __init__(self, in_size, out_size, flag_bidirec=False):
+        """GRULayer(in_size, out_size, flag_bidirec=False)
+        
+        Args
+        ----
+          in_size: int, dimension of input feature per step
+          out_size: int, dimension of output feature per step
+          flag_bidirec: bool, whether this is bi-directional GRU
+        """
+        super(GRULayer, self).__init__()
+        
+        self.m_in_size = in_size
+        self.m_out_size = out_size
+        self.m_flag_bidirec = flag_bidirec
+        
+        self.m_gru = torch_nn.GRU(
+            in_size, out_size, batch_first=True, 
+            bidirectional=flag_bidirec)
+            
+        # for step-by-step generation
+        self.m_grucell = None
+        self.m_buffer = None
+        return 
+    
+    def _get_gru_cell(self):
+        # dump GRU layer to GRU cell for step-by-step generation
+        self.m_grucell = torch_nn.GRUCell(self.m_in_size, self.m_out_size)
+        self.m_grucell.weight_hh.data = self.m_gru.weight_hh_l0.data
+        self.m_grucell.weight_ih.data = self.m_gru.weight_ih_l0.data
+        self.m_grucell.bias_hh.data = self.m_gru.bias_hh_l0.data
+        self.m_grucell.bias_ih.data = self.m_gru.bias_ih_l0.data
+        return
+
+    def _forward(self, x):
+        """y = _forward(x)
+        input
+        -----
+          x: tensor, (batch, length, inputdim)
+          
+        output
+        ------
+          y: tensor, (batch, length, out-dim)
+        """
+        out, hn = self.m_gru(x)
+        return out
+    
+    def _forwardstep(self, x, step_idx):
+        """y = _forwardstep(x)
+        input
+        -----
+          x: tensor, (batch, 1, inputdim)
+          
+        output
+        ------
+          y: tensor, (batch, 1, out-dim)
+        """
+        if self.m_flag_bidirec:
+            print("Bi-directional GRU not supported for step-by-step mode")
+            sys.exit(1)
+        else:
+            if step_idx == 0:
+                # load weight as grucell
+                if self.m_grucell is None:
+                    self._get_gru_cell()
+                # buffer 
+                self.m_buffer = torch.zeros(
+                    [x.shape[0], self.m_out_size], 
+                    device=x.device, dtype=x.dtype)
+            self.m_buffer = self.m_grucell(x[:, 0, :], self.m_buffer)
+            # (batch, dim) -> (batch, 1, dim)
+            return self.m_buffer.unsqueeze(1)
+            
+    def forward(self, x, step_idx=None):
+        """y = forward(x, step_idx=None)
+        input
+        -----
+          x: tensor, (batch, length, inputdim)
+          
+        output
+        ------
+          y: tensor, (batch, length, out-dim)
+          
+        When step_idx >= 0, length must be 1, forward(x[:, n:n+1, :], n) 
+        will process the x at the n-th step. The hidden state will be saved
+        in the buffer and used for n+1 step
+        """
+        if step_idx is None:
+            # given full context
+            return self._forward(x)
+        else:
+            # step-by-step processing
+            return self._forwardstep(x, step_idx)
+
+class LSTMLayer(torch_nn.Module):
+    """LSTMLayer
+
+    There are two modes for forward
+    1. forward(x) -> process sequence x
+    2. forward(x[n], n) -> process n-th step of x
+    
+    Example:
+        data = torch.randn([2, 10, 3])
+        m_layer = LSTMLayer(3, 3)
+        out = m_layer(data)
+
+        out_2 = torch.zeros_like(out)
+        for idx in range(data.shape[1]):
+            out_2[:, idx:idx+1, :] = m_layer._forwardstep(
+               data[:, idx:idx+1, :], idx)
+    """
+    
+    def __init__(self, in_size, out_size, flag_bidirec=False):
+        """LSTMLayer(in_size, out_size, flag_bidirec=False)
+        
+        Args
+        ----
+          in_size: int, dimension of input feature per step
+          out_size: int, dimension of output feature per step
+          flag_bidirec: bool, whether this is bi-directional GRU
+        """
+        super(LSTMLayer, self).__init__()
+        
+        self.m_in_size = in_size
+        self.m_out_size = out_size
+        self.m_flag_bidirec = flag_bidirec
+        
+        self.m_lstm = torch_nn.LSTM(
+            input_size=in_size, hidden_size=out_size, 
+            batch_first=True, 
+            bidirectional=flag_bidirec)
+            
+        # for step-by-step generation
+        self.m_lstmcell = None
+        self.m_c_buf = None
+        self.m_h_buf = None
+        return 
+    
+    def _get_lstm_cell(self):
+        # dump LSTM layer to LSTM cell for step-by-step generation
+        self.m_lstmcell = torch_nn.LSTMCell(self.m_in_size, self.m_out_size)
+        self.m_lstmcell.weight_hh.data = self.m_lstm.weight_hh_l0.data
+        self.m_lstmcell.weight_ih.data = self.m_lstm.weight_ih_l0.data
+        self.m_lstmcell.bias_hh.data = self.m_lstm.bias_hh_l0.data
+        self.m_lstmcell.bias_ih.data = self.m_lstm.bias_ih_l0.data
+        return
+
+    def _forward(self, x):
+        """y = _forward(x)
+        input
+        -----
+          x: tensor, (batch, length, inputdim)
+          
+        output
+        ------
+          y: tensor, (batch, length, out-dim)
+        """
+        out, hn = self.m_lstm(x)
+        return out
+    
+    def _forwardstep(self, x, step_idx):
+        """y = _forwardstep(x)
+        input
+        -----
+          x: tensor, (batch, 1, inputdim)
+          
+        output
+        ------
+          y: tensor, (batch, 1, out-dim)
+        """
+        if self.m_flag_bidirec:
+            print("Bi-directional GRU not supported for step-by-step mode")
+            sys.exit(1)
+        else:
+            
+            if step_idx == 0:
+                # For the 1st time step, prepare the LSTM Cell and buffer
+                # load weight as LSTMCell
+                if self.m_lstmcell is None:
+                    self._get_lstm_cell()
+                    
+                # buffer 
+                self.m_c_buf = torch.zeros([x.shape[0], self.m_out_size], 
+                                           device=x.device, dtype=x.dtype)
+                self.m_h_buf = torch.zeros_like(self.m_c_buf)
+                
+            # do generation
+            self.m_h_buf, self.m_c_buf = self.m_lstmcell(
+                x[:, 0, :], (self.m_h_buf, self.m_c_buf))
+            
+            # (batch, dim) -> (batch, 1, dim)
+            return self.m_h_buf.unsqueeze(1)
+            
+    def forward(self, x, step_idx=None):
+        """y = forward(x, step_idx=None)
+        input
+        -----
+          x: tensor, (batch, length, inputdim)
+          
+        output
+        ------
+          y: tensor, (batch, length, out-dim)
+          
+        When step_idx >= 0, length must be 1, forward(x[:, n:n+1, :], n) 
+        will process the x at the n-th step. The hidden state will be saved
+        in the buffer and used for n+1 step
+        """
+        if step_idx is None:
+            # given full context
+            return self._forward(x)
+        else:
+            # step-by-step processing
+            return self._forwardstep(x, step_idx)
+
+
 if __name__ == "__main__":
     print("Definition of block NN")

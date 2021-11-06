@@ -18,7 +18,10 @@ import os
 import sys
 import numpy as np
 import scipy.io.wavfile
-import soundfile
+try:
+    import soundfile
+except ModuleNotFoundError:
+    pass
 import core_scripts.data_io.io_tools as nii_io_tk
 
 __author__ = "Xin Wang"
@@ -191,7 +194,15 @@ def flacReadAsFloat(wavFileIn):
         sr: sampling_rate
         wavData: waveform in np.float32 (-1, 1)
     """
-    x, sr = soundfile.read(wavFileIn)
+    if 'soundfile' in sys.modules:
+        x, sr = soundfile.read(wavFileIn)
+    else:
+        print("soundfile is not installed.")
+        print("Due to practical reason, soundfile is not included in env.yml")
+        print("To install soundfile with support to flac, try:")
+        print(" conda install libsndfile=1.0.31 -c conda-forge")
+        print(" conda install pysoundfile -c conda-forge")
+        exit(1)
     return sr, x
 
 
@@ -357,12 +368,20 @@ def silence_handler(wav, sr, fl=320, fs=80,
 
     # if only consder silence in the front and end
     if flag_only_startend_sil:
+        tmp_nonzero = np.flatnonzero(frame_tag)
+        
         # start of the first nonsil segment
-        start_nonsil = np.asarray(frame_tag == 1).nonzero()[0]
-        # end of the last nonsil segment
-        end_nonsil = np.asarray(frame_tag == 1).nonzero()[-1]
-        # all segments between are switched to nonsil
-        frame_tag[start_nosil:end_nonsil] = 1
+        #start_nonsil = np.asarray(frame_tag == 1).nonzero()[0]
+        if np.any(tmp_nonzero):
+            start_nonsil = np.flatnonzero(frame_tag)[0]
+            # end of the last nonsil segment
+            end_nonsil = np.flatnonzero(frame_tag)[-1]
+            # all segments between are switched to nonsil
+            frame_tag[start_nonsil:end_nonsil] = 1
+        else:
+            # no non-silence data, just let it pass
+            pass
+            
         
 
     # separate non-speech and speech segments

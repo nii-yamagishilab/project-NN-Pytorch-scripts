@@ -4,6 +4,9 @@ This project is a toy example to train and run evaluation on a LFCC-LCNN LSTM sy
 The toy data set contains only a few utterances. It will help to show how
 the project works and how it can be used for other database.
 
+Another implementation is in the github of ASVspoof https://github.com/asvspoof-challenge/2021.
+The LFCC-LCNN there is similar, but some APIs are changed.
+
 
 Usage
 ----------
