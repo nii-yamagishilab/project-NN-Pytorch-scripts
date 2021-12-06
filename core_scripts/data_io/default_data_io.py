@@ -320,6 +320,15 @@ class NIIDataSet(torch.utils.data.Dataset):
         if flag_cal_len or flag_cal_mean_std:
             self.f_calculate_stats(flag_cal_len, flag_cal_mean_std) 
             
+
+        # if some additional flags are turned on
+        if hasattr(global_arg, "flag_reverse_data_loading_order") and \
+           global_arg.flag_reverse_data_loading_order:
+            self.m_flag_reverse_load_order = True
+        else:
+            self.m_flag_reverse_load_order = False
+        
+
         # check
         if self.__len__() < 1:
             nii_warn.f_print("Fail to load any data", "error")
@@ -345,12 +354,17 @@ class NIIDataSet(torch.utils.data.Dataset):
         """
         return len(self.m_seq_info)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx_input):
         """ __getitem__(self, idx):
         Return input, output
         
         For test set data, output can be None
         """
+        if self.m_flag_reverse_load_order:
+            idx = len(self.m_seq_info) - idx_input - 1
+        else:
+            idx = idx_input
+        
         try:
             tmp_seq_info = self.m_seq_info[idx]
         except IndexError:
@@ -975,6 +989,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                 for tmp_name in tmp[:10]:
                     nii_warn.f_print(tmp_name)
                 nii_warn.f_print("...\nYou may carefully check these data.")
+                nii_warn.f_print("\nThey may not be in the provided data list.")
 
                 nii_warn.f_print("Re-read data statistics")
                 self.m_seq_info = []
@@ -1075,7 +1090,10 @@ class NIIDataSet(torch.utils.data.Dataset):
                 mes += "\n     please use inoutput_augment_func"        
         if self.m_inouaug_func:
             mes += "\n    Use a unified function to alter input and output data"
-            
+
+
+        if self.m_flag_reverse_load_order:
+            mes += "\n    Reverse the data loading order from dataset "
         nii_warn.f_print_message(mes)
 
         return

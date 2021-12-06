@@ -348,7 +348,7 @@ def plot_API2(data_list, plot_funcs, grid_configs,
                     max(ylim_bag[1], axis.get_ylim()[1])]
 
         if "sharey" in config_dic and config_dic["sharey"]:
-            if grid_config[1][1] > 0:
+            if grid_config[1][0] > 0:
                 axis.set_yticks([])
                 axis.set_ylabel("")
         if "sharex" in config_dic and config_dic["sharex"]:

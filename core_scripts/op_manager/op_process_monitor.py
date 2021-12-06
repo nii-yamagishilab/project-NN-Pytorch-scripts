@@ -134,7 +134,10 @@ class Monitor():
             nii_display.f_die("Op_process_monitor: error")
         loss_this = np.sum(self.loss_mat[epoch_idx, :, :], axis=0)
         # compute only part of the loss for early stopping when necessary
-        loss_this = np.sum(loss_this * self.loss_flag)
+        if self.loss_flag is not None:
+            loss_this = np.sum(loss_this * self.loss_flag)
+        else:
+            loss_this = np.sum(loss_this)
         return loss_this
 
     def print_error_for_epoch(self, epoch):
