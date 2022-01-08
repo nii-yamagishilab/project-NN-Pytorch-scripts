@@ -16,7 +16,8 @@ Folder structure
 | - hn-sinc-nsf-9: harmonic-plus-noise NSF with trainable sinc filter
 |
 | - hn-sinc-nsf-10: hn-sinc-nsf-9 with the BLSTM in condition module replaced by CNNs
-
+|
+| - hn-sinc-nsf-hifigan: hn-sinc-nsf 9 + hifi-gan discriminator 
 
 Usuage
 ------
@@ -33,6 +34,8 @@ bash 00_demo.sh
 This script will download the CMU database and pre-extracted features.
 It then generates samples using a pre-trained model and the pre-extracted features.
 It finally trains a new model on the data.
+
+Pre-trained models are either included in __pre-trained or downloaded through 00_demo.sh.
 
 This may take a few days or more. You may consider run 00_demo.sh in the background.
 

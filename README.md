@@ -42,6 +42,11 @@ The repository is relatively large. You may use `--depth 1` option to skip unnec
 git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts.git
 ```
 
+**Updates**
+
+2022-01-08: upload hn-sinc-nsf + hifi-gan 
+
+2022-01-08: upload RawNet2 for anti-spoofing
 
 <a name="overview"></a>
 ## 2. Overview
@@ -52,13 +57,15 @@ This repository hosts Pytorch codes for the following projects:
 
 1. [Cyclic-noise neural source-filter waveform model (NSF)](https://nii-yamagishilab.github.io/samples-nsf/nsf-v4.html)
 
-2. [Harmonic-plus-noise NSF with trainable sinc filter](https://nii-yamagishilab.github.io/samples-nsf/nsf-v3.html) 
+2. [Harmonic-plus-noise NSF with trainable sinc filter (Hn-sinc-NSF)](https://nii-yamagishilab.github.io/samples-nsf/nsf-v3.html) 
 
-3. [Harmonic-plus-noise NSF with fixed FIR filter](https://nii-yamagishilab.github.io/samples-nsf/nsf-v2.html) 
+3. [Harmonic-plus-noise NSF with fixed FIR filter (Hn-NSF)](https://nii-yamagishilab.github.io/samples-nsf/nsf-v2.html) 
+
+4. Hn-sinc-NSF + [HiFiGAN discriminator](https://github.com/jik876/hifi-gan)
 
 All the projects include a pre-trained model on CMU-arctic database (4 speakers) and a demo script to run, train, do inference. Please check [./project/01-nsf/README](./project/01-nsf/README).
 
-Generated samples from pre-trained models are in `./project/01-nsf/*/__pre_trained/output`.
+Generated samples from pre-trained models are in `./project/01-nsf/*/__pre_trained/output`. If not, please run the demo script to produce waveforms using pre-trained models.
 
 Tutorial on NSF models is also available in [./tutorials](./tutorials)
 
@@ -127,7 +134,7 @@ Pre-trained models, scores, training recipes are all available. Please check [./
 This is a pilot test on ASVspoof2019 LA task. I trained each system for 6 times on various GPU devices (single V100 or P100 card), each time with a different random initial seed. Figure below shows the DET curves for these systems:
 ![det_curve](./misc/fig_det_baselines.png)
 
-The results vary a lot when simply changing the initial random seends, even with the same random seed, Pytorch environment, and [deterministic algorithm selected](https://pytorch.org/docs/stable/notes/randomness.html). This preliminary test motivated the study in `./project-03-asvspoof-mega`.
+The results vary a lot when simply changing the initial random seeds, even with the same random seed, Pytorch environment, and [deterministic algorithm selected](https://pytorch.org/docs/stable/notes/randomness.html). This preliminary test motivated the study in `./project-03-asvspoof-mega`.
 
 For LCNN, please check [this paper](https://www.isca-speech.org/archive/Interspeech_2019/abstracts/1768.html); for LFCC, please check [this paper](https://www.isca-speech.org/archive/interspeech_2015/i15_2087.html); for one-class softmax in ASVspoof, please check [this paper](https://arxiv.org/pdf/2010.13995).
 
@@ -177,7 +184,7 @@ The above steps will download the CMU-arctic data, run waveform generation using
 
 * Waveform: 16/32-bit PCM or 32-bit float WAV that can be read by [scipy.io.wavfile.read](https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.wavfile.read.html) 
 
-* Other data: binary, float-32bit, litten endian ([numpy dtype <f4](https://numpy.org/doc/1.18/reference/generated/numpy.dtype.html)). The data can be read in python by:
+* Other data: binary, float-32bit, little endian ([numpy dtype <f4](https://numpy.org/doc/1.18/reference/generated/numpy.dtype.html)). The data can be read in python by:
 
 ```python
 # for a data of shape [N, M]
