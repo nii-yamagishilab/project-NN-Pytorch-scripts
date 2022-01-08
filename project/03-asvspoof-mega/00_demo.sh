@@ -4,6 +4,7 @@
 #__email__ = "wangxin@nii.ac.jp"
 #
 # Demonstration script
+# Please read README first
 #
 # Usage:
 #   $: bash 00_demo.sh MODEL/RUN
@@ -17,7 +18,7 @@
 #   $: bash 00_demo.sh lfcc-lcnn-lstmsum-p2s/01 > log_batch 2>$1 &
 #   Then you can quit the terminal ($: exit) and let the job run
 #   You will find the results in file log_batch
-
+#
 # This script will
 #  0. download pre-trained models and pre-generated scores
 #     by Xin (if they are not available)
@@ -46,9 +47,10 @@ EVALSCRIPT=$PWD/02_evaluate.py
 
 # script of main.py (used by all the models)
 MAINSCRIPT=$PWD/01_main.py
-
+MAINSCRIPT_RAWNET=$PWD/01_main_rawnet.py
 # configuration to run the model (shared by all the models)
 CONFIGSCRIPT=$PWD/01_config.py
+CONFIGSCRIPT_RAWNET=$PWD/01_config_rawnet.py
 
 # for convenience, trial length are logged into these binary files
 #  They will be automatically generated if not available. 
@@ -56,32 +58,32 @@ CONFIGSCRIPT=$PWD/01_config.py
 CONVDIR=$PWD/conv
 
 # download link for pre-trained models
-#  don't change these two
-MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AAA8WFhdk33PpgeY0rSQt0iTa/project-03-asvspoof-mega-pretrained.tar
-MODELNAME=project-03-asvspoof-mega-pretrained
-MD5SUMVAL=e580a9a563543acafb360205e34c6b34
+#  don't change these
+MODELNAME=project-03-asvspoof-mega-pretrained.tar.gz
+MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AAAn2s2VjWamk8qsdIpnrNV4a/${MODELNAME}
+MD5SUMVAL=ff1ce800fb14b3ed0f5af170925dfbbc
 ########
 
 #############
 # step 0. download files if necessary
-if [[ -e "./${MODELNAME}.tar" ]];then
-    TMP=`md5sum ${MODELNAME}.tar | awk '{print $1}'`
+if [[ -e "./${MODELNAME}" ]];then
+    TMP=`md5sum ${MODELNAME} | awk '{print $1}'`
     if [ ${TMP} != ${MD5SUMVAL} ]; then
-	rm ${MODELNAME}.tar
-	echo -e "Re-download ${MODELNAME}.tar"
+	rm ${MODELNAME}
+	echo -e "Re-download ${MODELNAME}"
     else
-	echo -e "Found ${MODELNAME}.tar"
+	echo -e "Found ${MODELNAME}"
     fi
 fi
 
-if [[ ! -e "./${MODELNAME}.tar" ]];then
-    echo -e "${RED}Downloading pre-trained model${NC}"
+if [[ ! -e "./${MODELNAME}" ]];then
+    echo -e "${RED}Downloading pre-trained model from dropbox (~1G)${NC}"
     wget -q --show-progress ${MODELLINK}
 fi
 
-if [ -e "./${MODELNAME}.tar" ];then	
+if [ -e "./${MODELNAME}" ];then	
     echo -e "${RED}Untar pre-trained models${NC}"
-    tar -xzf ${MODELNAME}.tar
+    tar -xzf ${MODELNAME}
 else
     echo "Cannot download ${MODELLINK}. Please contact the author"
     exit
@@ -91,7 +93,7 @@ fi
 if [ ! -e "${CONVDIR}/project-03-asvspoof-mega-conv.tar" ];
 then
     cd ${CONVDIR}
-    echo "Downloading some cached files"
+    echo "${RED}Downloading some cached files${NC}"
     echo "They are not necessary. But having them will reduce the time to load data for the 1st time"
     wget -q --show-progress https://www.dropbox.com/sh/bua2vks8clnl2ha/AAAiKsg1KYpNxsyaZi6cmHF7a/project-03-asvspoof-mega-conv.tar
     tar -xvf project-03-asvspoof-mega-conv.tar
@@ -116,8 +118,26 @@ then
     echo -e "$: bash 00_demo.sh lfcc-lcnn-lstmsum-p2s/01 \n"
     exit
 else
-    echo -e "\n${RED}Use model ${MODEL}${NC}"
-    cd ${MODEL}
+    if [ ! -d ${MODEL} ]; 
+    then
+	echo -e "\n${RED}Cannot find ${MODEL} ${NC}"
+	exit
+    else
+	echo -e "\n${RED}Use model ${MODEL}${NC}"
+	cd ${MODEL}
+	if [[ ${MODEL} == "rawnet2"* ]]; then
+	    # rawnet requires a different config
+	    cp ${MAINSCRIPT_RAWNET} ./main.py
+	    cp ${CONFIGSCRIPT_RAWNET} ./config.py
+	    # not copy cached durations files. they are not available in dropbox
+	else
+	    cp ${MAINSCRIPT} ./main.py
+	    cp ${CONFIGSCRIPT} ./config.py
+	    # Copy cached files that logs utterance duration. This saves time
+	    # It is also OK to skip this step, and the code will generate them
+	    cp ${CONVDIR}/* ./
+	fi
+    fi
 fi
 
 #############
@@ -135,12 +155,8 @@ echo -e "${RED}Step2. run pre-trained ${MODEL} on eval set using your GPU server
 echo -e "The job will run in background for ~20 minutes. Please wait."
 echo -e "(Model ${MODEL} was trained on NII's server.)"
 
-
-cp ${MAINSCRIPT} ./main.py
-cp ${CONFIGSCRIPT} ./config.py
-
 LOGFILE=log_output_testset_pretrained
-python main.py --inference --model-forward-with-file-name --trained-model __pretrained/trained_network.pt > ${LOGFILE} 2>&1
+python main.py --inference --model-forward-with-file-name --trained-model __pretrained/trained_network.pt > ${LOGFILE} 2>${LOGFILE}_err
 
 echo -e "\n${RED}This is the result using pre-trained model on your GPU ${NC}"
 python ${EVALSCRIPT} ${LOGFILE}
@@ -154,10 +170,6 @@ echo -e "If it is too much for your GPU, please reduce --batch-size in */*/00_tr
 echo -e "The job will run in backgroun for a few hours. Please wait."
 echo -e "You can also run this script in background. See README of this script"
 
-# Copy cached files that logs utterance duration. This saves time
-# It is also OK to skip this step, and the code will generate them
-cp ${CONVDIR}/* ./
-
 # train using prepared script 
 # (notice that random seed is different from different RUN)
 bash 00_train.sh
@@ -165,7 +177,7 @@ bash 00_train.sh
 echo -e "\n${RED}Evaluating the trained model ${NC}"
 echo -e "The job will run in backgroun for ~20 minutes. Please wait."
 LOGFILE=log_output_testset
-python main.py --inference --model-forward-with-file-name > ${LOGFILE} 2>&1
+python main.py --inference --model-forward-with-file-name > ${LOGFILE} 2>${LOGFILE}_err
 
 echo -e "\n${RED}This is the result produced by your trained model  ${NC}"
 python ${EVALSCRIPT} ${LOGFILE}

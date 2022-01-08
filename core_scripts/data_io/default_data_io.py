@@ -423,15 +423,29 @@ class NIIDataSet(torch.utils.data.Dataset):
                 else:
                     nii_warn.f_die("Dimension wrong %s" % (file_path))
             else:
-                # normal case
-                if tmp_d.ndim > 1:
-                    # write multi-dimension data
-                    in_data[:,s_dim:e_dim] = tmp_d[s_idx:e_idx,:]
-                elif t_dim == 1:
-                    # write one-dimension data
-                    in_data[:,s_dim] = tmp_d[s_idx:e_idx]
-                else:
-                    nii_warn.f_die("Dimension wrong %s" % (file_path))
+                # check
+                try:
+                    # normal case
+                    if tmp_d.ndim > 1:
+                        # write multi-dimension data
+                        in_data[:,s_dim:e_dim] = tmp_d[s_idx:e_idx,:]
+                    elif t_dim == 1:
+                        # write one-dimension data
+                        in_data[:,s_dim] = tmp_d[s_idx:e_idx]
+                    else:
+                        nii_warn.f_die("Dimension wrong %s" % (file_path))
+                except ValueError:
+                    if in_data.shape[0] != tmp_d[s_idx:e_idx].shape[0]:
+                        mes = 'Expected length is {:d}.\n'.format(e_idx-s_idx)
+                        mes += "Loaded length "+str(tmp_d[s_idx:e_idx].shape[0])
+                        mes += 'This may be due to an incompatible cache *.dic.'
+                        mes += '\nPlease check the length in *.dic\n'
+                        mes += 'Please delete it if the cached length is wrong.'
+                        nii_warn.f_print(mes)
+                        nii_warn.f_die("fail to load {:s}".format(file_name))
+                    else:
+                        nii_warn.f_print("unknown data io error")
+                        nii_warn.f_die("fail to load {:s}".format(file_name))
             s_dim = e_dim
 
         # load output data
@@ -465,12 +479,27 @@ class NIIDataSet(torch.utils.data.Dataset):
                     else:
                         nii_warn.f_die("Dimension wrong %s" % (file_path))
                 else:
-                    if tmp_d.ndim > 1:
-                        out_data[:,s_dim:e_dim] = tmp_d[s_idx:e_idx,:]
-                    elif t_dim == 1:
-                        out_data[:,s_dim]=tmp_d[s_idx:e_idx]
-                    else:
-                        nii_warn.f_die("Dimension wrong %s" % (file_path))
+                    try:
+
+                        if tmp_d.ndim > 1:
+                            out_data[:,s_dim:e_dim] = tmp_d[s_idx:e_idx,:]
+                        elif t_dim == 1:
+                            out_data[:,s_dim]=tmp_d[s_idx:e_idx]
+                        else:
+                            nii_warn.f_die("Dimension wrong %s" % (file_path))
+                    except ValueError:
+                        if out_data.shape[0] != tmp_d[s_idx:e_idx].shape[0]:
+                            mes = 'Expected length is ' + str(e_idx-s_idx)
+                            mes += ". Loaded "+str(tmp_d[s_idx:e_idx].shape[0])
+                            mes += 'This may be due to an old cache *.dic.'
+                            mes += '\nPlease check the length in *.dic\n'
+                            mes += 'Please delete it if cached length is wrong.'
+                            nii_warn.f_print(mes)
+                            nii_warn.f_die("fail to load " +file_name)
+                        else:
+                            nii_warn.f_print("unknown data io error")
+                            nii_warn.f_die("fail to load " +file_name)
+
                 s_dim = s_dim + t_dim
         else:
             out_data = []

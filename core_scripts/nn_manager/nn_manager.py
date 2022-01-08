@@ -506,8 +506,8 @@ def f_inference_wrapper(args, pt_model, device, \
     nii_display.f_print("Start inference (generation):", 'highlight')
 
     # output buffer, filename buffer
-    output_buf = []
-    filename_buf = []
+    #output_buf = []
+    #filename_buf = []
     
     pt_model.eval() 
     with torch.no_grad():
@@ -564,17 +564,6 @@ def f_inference_wrapper(args, pt_model, device, \
                 nii_display.f_print("No output saved: %s" % (str(data_info)),\
                                     'warning')
             else:
-                output_buf.append(data_gen)
-                filename_buf.append(data_info)
-
-            # print information
-            for idx, seq_info in enumerate(data_info):
-                _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
-                
-        # Writing generatd data to disk
-        nii_display.f_print("Writing output to %s" % (args.output_dir))
-        for data_gen, data_info in zip(output_buf, filename_buf):            
-            if data_gen is not None:
                 try:
                     data_gen = pt_model.denormalize_output(data_gen)
                     data_gen_np = data_gen.to("cpu").numpy()
@@ -589,7 +578,15 @@ def f_inference_wrapper(args, pt_model, device, \
                     test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
                                                  args.output_dir, \
                                                  seq_info)
-        
+            # print information
+            for idx, seq_info in enumerate(data_info):
+                _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
+                
+        # Writing generatd data to disk
+        #nii_display.f_print("Writing output to %s" % (args.output_dir))
+        #for data_gen, data_info in zip(output_buf, filename_buf):            
+        #    if data_gen is not None:
+                
         # done for
     # done with
     nii_display.f_print("Output data has been saved to %s" % (args.output_dir))
