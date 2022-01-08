@@ -95,8 +95,9 @@ Usage
    
    
    Since this commit, it is also OK to directly load *.flac.
-   1. put flac in DATA/asvspoof2019_LA/eval and DATA/asvspoof2019_LA/train_dev
-   2. change in 01_config.py: input_exts = ['.wav'] to input_exts = ['.flac']
+   1. make sure you have installed soundfile (see ../../env.yml)
+   2. put flac in DATA/asvspoof2019_LA/eval and DATA/asvspoof2019_LA/train_dev
+   3. change in 01_config.py: input_exts = ['.wav'] to input_exts = ['.flac']
    That's all
 
 4. Run this script 00_demo.sh
@@ -105,6 +106,14 @@ Usage
 
    This script will evaluate pre-trained models and train a new model
    It will take more than 10 hours to finish.
+
+5. Try score fusing
+   $: bash 00_demo_fuse_score.sh
+
+   This script will fuse scores from pre-trained models, which 
+   reproduce the result in a book chapter to be published.
+
+   You can also try other scripts after modifying this simple script.
 
 Note
 ----------

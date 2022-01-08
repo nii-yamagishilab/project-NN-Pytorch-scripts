@@ -203,6 +203,12 @@ def f_args_parsed(argument_input = None):
     mes += 'User should define args.temp_flag only for temporary usage.'
     parser.add_argument('--temp-flag', type=str, default='', help=mes)
 
+
+    mes = 'reverse the order when loading data from the dataset.'
+    mes += 'This should not not used if --sampler block_shuffle_by_length '
+    parser.add_argument('--flag-reverse-data-loading-order', 
+                        action='store_true', default=False, help=mes)
+
     #######
     # backend options
     parser.add_argument('--cudnn-deterministic-toggle', action='store_false', \
@@ -213,6 +219,19 @@ def f_args_parsed(argument_input = None):
                         default=False, 
                         help='use cudnn-benchmark? (default false)')    
 
+    
+    #######
+    # profile options
+    mes = "options to setup Pytorch profile. It must be a string like A-B-C-D"
+    mes += ' where A, B, C, D are integers. Meanining of these options are in'
+    mes += ' torch.profiler.schedule. Default 1-1-3-2.'
+    parser.add_argument('--wait-warmup-active-repeat', type=str, 
+                        default='1-1-3-2', 
+                        help=mes)
+    mes = "directory to save profiling output. Default ./log_profile"
+    parser.add_argument('--profile-output-dir', type=str, 
+                        default='./log_profile')
+    
 
     #######
     # data options

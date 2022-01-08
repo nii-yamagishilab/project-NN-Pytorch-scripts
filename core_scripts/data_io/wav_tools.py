@@ -312,7 +312,8 @@ def silence_handler(wav, sr, fl=320, fs=80,
     ------
       wav_no_sil: np.array, (length_1, ), waveform after removing silence
       sil_wav: np.array, (length_2, ), waveform in silence regions
-      time_tag: [[start, end], []], where 
+      frame_tag: np.array, [0, 0, 0, 1, 1, ..., 1, 0, ], where 0 indicates
+              silence frame, and 1 indicates a non-silence frame
       
       Note: output depends on flag_output
     """

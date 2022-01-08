@@ -1,5 +1,5 @@
 # project-NII-pytorch-scripts
-By Xin Wang, National Institute of Informatics, 2021
+By Xin Wang, National Institute of Informatics, since 2021
 
 I am a new pytorch user. If you have any suggestions or questions, pleas email wangxin at nii dot ac dot jp
 
@@ -22,14 +22,14 @@ I am a new pytorch user. If you have any suggestions or questions, pleas email w
 <a name="note"></a>
 ## 1. Note 
 
-**For tutorials**
+**For tutorials on neural vocoders**
 
 Tutorials are available in `./tutorials`. Please follow the `./tutorials/README` and work in this folder first
 
 ```sh
 cd ./tutorials
 head -n 2 README.md
-# Hands-on materials for Neural vocoders
+# Hands-on materials for neural vocoders
 ```
 
 **For other projects**
@@ -47,7 +47,8 @@ git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scrip
 ## 2. Overview
 This repository hosts Pytorch codes for the following projects:
 
-### Neural source-filter waveform model [./project/01-nsf](./project/01-nsf)
+### 2.1 Neural source-filter waveform model 
+[./project/01-nsf](./project/01-nsf)
 
 1. [Cyclic-noise neural source-filter waveform model (NSF)](https://nii-yamagishilab.github.io/samples-nsf/nsf-v4.html)
 
@@ -66,7 +67,8 @@ Note that this is the re-implementation of the projects based on [CURRENNT](http
 Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/).
 
 
-### Other neural waveform models [./project/05-nn-vocoders](./project/05-nn-vocoders)
+### 2.2 Other neural waveform models 
+[./project/05-nn-vocoders](./project/05-nn-vocoders)
 
 1. [WaveNet vocoder](https://deepmind.com/blog/wavenet-generative-model-raw-audio/)
 
@@ -83,28 +85,36 @@ Generated samples from pre-trained models are in `./project/05-nn-vocoders/*/__p
 Tutorial is also available in [./tutorials](./tutorials)
 
 
-### ASVspoof project with toy example [./project/04-asvspoof2021-toy](./project/04-asvspoof2021-toy)
+### 2.3 ASVspoof project with toy example 
+[./project/04-asvspoof2021-toy](./project/04-asvspoof2021-toy)
 
-It takes time to download ASVspoof2019. Therefore, this project demonstrates how to train and evaluate the ASVspoof model using a toy dataset.
+It takes time to download ASVspoof2019 database. Therefore, this project demonstrates how to train and evaluate the anti-spoofing model using a toy dataset.
 
-Please try this project before checking other ASVspoof projects.
+Please try this project before checking other ASVspoof projects below.
 
 A similar project is adopted for [ASVspoof2021 LFCC-LCNN baseline](https://github.com/asvspoof-challenge/2021), although the LFCC front-end is slightly different.
 
 Please check [./project/04-asvspoof2021-toy/README](./project/04-asvspoof2021-toy/README).
 
-### Speech anti-spoofing for ASVspoof 2019 LA [./project/03-asvspoof-mega](./project/03-asvspoof-mega)
+### 2.4 Speech anti-spoofing for ASVspoof 2019 LA 
+[./project/03-asvspoof-mega](./project/03-asvspoof-mega)
 
-Projects for [this anti-spoofing project (A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection, paper on arxiv)](https://arxiv.org/abs/2103.11326).
+This is for [this anti-spoofing project (A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection, paper on arxiv)](https://arxiv.org/abs/2103.11326).
+
 
 There were 36 systems investigated, each of which was trained and evaluated for 6 rounds with different random seeds.
 
 ![EER-mintDCF](./misc/fig_eer_table.png)
 
+This project is later extended to a book chapter called **A Practical Guide to Logical Access Voice Presentation Attack Detection**. Single system using RawNet2 is added, and score fusion is added.
+
+![EER-mintDCF](./misc/bookchapter_det_3.png)
+
 Pre-trained models, scores, training recipes are all available. Please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/READNE).
 
 
-### (Preliminary) speech anti-spoofing [./project/02-asvspoof](./project/02-asvspoof)
+### 2.5 (Preliminary) speech anti-spoofing 
+[./project/02-asvspoof](./project/02-asvspoof)
 
 1. Baseline LFCC + LCNN-binary-classifier (lfcc-lcnn-sigmoid)
 
@@ -114,7 +124,7 @@ Pre-trained models, scores, training recipes are all available. Please check [./
 
 4. LFCC + ResNet18 + one-class softmax (lfcc-restnet-ocsoftmax)
 
-This is a preliminart experiment on ASVspoof2019 LA task. I trained each system for 6 times on various GPU devices (single V100 or P100 card), each time with a different random initial seed. Figure below shows the DET curves for these systems:
+This is a pilot test on ASVspoof2019 LA task. I trained each system for 6 times on various GPU devices (single V100 or P100 card), each time with a different random initial seed. Figure below shows the DET curves for these systems:
 ![det_curve](./misc/fig_det_baselines.png)
 
 The results vary a lot when simply changing the initial random seends, even with the same random seed, Pytorch environment, and [deterministic algorithm selected](https://pytorch.org/docs/stable/notes/randomness.html). This preliminary test motivated the study in `./project-03-asvspoof-mega`.

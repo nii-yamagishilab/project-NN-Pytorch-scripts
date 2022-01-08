@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 """
-nn_manager
+A trimmed version of nn_manager.py for profiling
 
-A simple wrapper to run the training / testing process
+This requires Pytorch-1.8 
+https://pytorch.org/tutorials/intermediate/tensorboard_profiler_tutorial.html
+
+It requires a specific ../../sandbox/different_main/main_profile.py to run. 
 
 """
 from __future__ import print_function
@@ -14,6 +17,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.profiler
 
 import core_scripts.data_io.conf as nii_dconf
 import core_scripts.other_tools.display as nii_display
@@ -29,7 +33,7 @@ __copyright__ = "Copyright 2021, Xin Wang"
 
 #############################################################
 
-def f_run_one_epoch(args,
+def f_run_one_epoch_profile(args,
                     pt_model, loss_wrapper, \
                     device, monitor,  \
                     data_loader, epoch_idx, optimizer = None, \
@@ -55,184 +59,197 @@ def f_run_one_epoch(args,
     """
     # timer
     start_time = time.time()
+
+
+    #######################
+    # options for profile
+    #######################
+    try:
+        prof_opt = [int(x) for x in args.wait_warmup_active_repeat.split('-')]
+    except ValueError:
+        nii_display.f_die("Fail to parse --wait-warmup-active-repeat")
+    if len(prof_opt) != 4:
+        nii_display.f_die("Fail to parse --wait-warmup-active-repeat")
+    # number of steps for profiling
+    num_steps = (prof_opt[0] + prof_opt[1] + prof_opt[2]) * prof_opt[3]    
+    # output dir
+    prof_outdir = args.profile_output_dir
+    
+
+    with torch.profiler.profile(
+        schedule=torch.profiler.schedule(wait=prof_opt[0], 
+                                         warmup=prof_opt[1], 
+                                         active=prof_opt[2], 
+                                         repeat=prof_opt[3]),
+        on_trace_ready=torch.profiler.tensorboard_trace_handler(prof_outdir),
+        record_shapes=True,
+        profile_memory=False,
+        with_stack=True
+    ) as prof:
+        # loop over samples
+        for data_idx, (data_in, data_tar, data_info, idx_orig) in \
+            enumerate(data_loader):
+
+            # If debug mode is used, only run a specified number of mini-batches
+            if data_idx >= num_steps:
+                nii_display.f_print("Profiling mode is on. Epoch is finished")
+                break
+
+            #############
+            # prepare
+            #############
+            # idx_orig is the original idx in the dataset
+            # which can be different from data_idx when shuffle = True
+            #idx_orig = idx_orig.numpy()[0]
+            #data_seq_info = data_info[0]    
         
-    # loop over samples
-    for data_idx, (data_in, data_tar, data_info, idx_orig) in \
-        enumerate(data_loader):
+            # send data to device
+            if optimizer is not None:
+                optimizer.zero_grad()
 
-        #############
-        # prepare
-        #############
-        # idx_orig is the original idx in the dataset
-        # which can be different from data_idx when shuffle = True
-        #idx_orig = idx_orig.numpy()[0]
-        #data_seq_info = data_info[0]    
-        
-        # send data to device
-        if optimizer is not None:
-            optimizer.zero_grad()
-
-        ############
-        # compute output
-        ############
-        if isinstance(data_in, torch.Tensor):
-            data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
-        elif isinstance(data_in, list) and data_in:
-            data_in = [x.to(device, dtype=nii_dconf.d_dtype) for x in data_in]
-        else:
-            nii_display.f_die("data_in is not a tensor or list of tensors")
-
-        if args.model_forward_with_target:
-            # if model.forward requires (input, target) as arguments
-            # for example, for auto-encoder & autoregressive model
-            if isinstance(data_tar, torch.Tensor):
-                data_tar_tm = data_tar.to(device, dtype=nii_dconf.d_dtype)
-            elif isinstance(data_tar, list) and data_tar:
-                # if the data_tar is a list of tensors
-                data_tar_tm = [x.to(device, dtype=nii_dconf.d_dtype) \
-                               for x in data_tar]
+            ############
+            # compute output
+            ############
+            if isinstance(data_in, torch.Tensor):
+                data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
+            elif isinstance(data_in, list) and data_in:
+                data_in=[x.to(device, dtype=nii_dconf.d_dtype) for x in data_in]
             else:
-                nii_display.f_print("--model-forward-with-target is set")
-                nii_display.f_die("but data_tar is not loaded, or a tensor")
+                nii_display.f_die("data_in is not a tensor or list of tensors")
 
-            if args.model_forward_with_file_name:
-                data_gen = pt_model(data_in, data_tar_tm, data_info)
-            else:
-                data_gen = pt_model(data_in, data_tar_tm)
+            if args.model_forward_with_target:
+                # if model.forward requires (input, target) as arguments
+                # for example, for auto-encoder & autoregressive model
+                if isinstance(data_tar, torch.Tensor):
+                    data_tar_tm = data_tar.to(device, dtype=nii_dconf.d_dtype)
+                elif isinstance(data_tar, list) and data_tar:
+                    # if the data_tar is a list of tensors
+                    data_tar_tm = [x.to(device, dtype=nii_dconf.d_dtype) \
+                                   for x in data_tar]
+                else:
+                    nii_display.f_print("--model-forward-with-target is set")
+                    nii_display.f_die("but data_tar is not loaded, or a tensor")
 
-        else:
-            if args.model_forward_with_file_name:
-                # specifcal case when model.forward requires data_info
-                data_gen = pt_model(data_in, data_info)
+                if args.model_forward_with_file_name:
+                    data_gen = pt_model(data_in, data_tar_tm, data_info)
+                else:
+                    data_gen = pt_model(data_in, data_tar_tm)
+
             else:
-                # normal case for model.forward(input)
-                data_gen = pt_model(data_in)
+                if args.model_forward_with_file_name:
+                    # specifcal case when model.forward requires data_info
+                    data_gen = pt_model(data_in, data_info)
+                else:
+                    # normal case for model.forward(input)
+                    data_gen = pt_model(data_in)
         
 
-        #####################
-        # compute loss and do back propagate
-        #####################
+            #####################
+            # compute loss and do back propagate
+            #####################
         
-        # Two cases
-        # 1. if loss is defined as pt_model.loss, then let the users do
-        #    normalization inside the pt_mode.loss
-        # 2. if loss_wrapper is defined as a class independent from model
-        #    there is no way to normalize the data inside the loss_wrapper
-        #    because the normalization weight is saved in pt_model
+            # Two cases
+            # 1. if loss is defined as pt_model.loss, then let the users do
+            #    normalization inside the pt_mode.loss
+            # 2. if loss_wrapper is defined as a class independent from model
+            #    there is no way to normalize the data inside the loss_wrapper
+            #    because the normalization weight is saved in pt_model
 
-        if hasattr(pt_model, 'loss'):
-            # case 1, pt_model.loss is available
-            if isinstance(data_tar, torch.Tensor):
-                data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
-            elif isinstance(data_tar, list) and data_tar:
-                data_tar = [x.to(device, dtype=nii_dconf.d_dtype)  \
-                            for x in data_tar]
-            else:
-                data_tar = []
+            if hasattr(pt_model, 'loss'):
+                # case 1, pt_model.loss is available
+                if isinstance(data_tar, torch.Tensor):
+                    data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
+                elif isinstance(data_tar, list) and data_tar:
+                    data_tar = [x.to(device, dtype=nii_dconf.d_dtype)  \
+                                for x in data_tar]
+                else:
+                    data_tar = []
             
-            loss_computed = pt_model.loss(data_gen, data_tar)
-        else:
-            # case 2, loss is defined independent of pt_model
-            if isinstance(data_tar, torch.Tensor):
-                data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
-                # there is no way to normalize the data inside loss
-                # thus, do normalization here
-                if target_norm_method is None:
-                    normed_target = pt_model.normalize_target(data_tar)
-                else:
-                    normed_target = target_norm_method(data_tar)
-            elif isinstance(data_tar, list) and data_tar:
-                data_tar = [x.to(device, dtype=nii_dconf.d_dtype) \
-                            for x in data_tar]
-                if target_norm_method is None:
-                    normed_target = pt_model.normalize_target(data_tar)
-                else:
-                    normed_target = target_norm_method(data_tar)
+                loss_computed = pt_model.loss(data_gen, data_tar)
             else:
-                normed_target = []
+                # case 2, loss is defined independent of pt_model
+                if isinstance(data_tar, torch.Tensor):
+                    data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
+                    # there is no way to normalize the data inside loss
+                    # thus, do normalization here
+                    if target_norm_method is None:
+                        normed_target = pt_model.normalize_target(data_tar)
+                    else:
+                        normed_target = target_norm_method(data_tar)
+                elif isinstance(data_tar, list) and data_tar:
+                    data_tar = [x.to(device, dtype=nii_dconf.d_dtype) \
+                                for x in data_tar]
+                    if target_norm_method is None:
+                        normed_target = pt_model.normalize_target(data_tar)
+                    else:
+                        normed_target = target_norm_method(data_tar)
+                else:
+                    normed_target = []
 
-            # return the loss from loss_wrapper
-            # loss_computed may be [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
-            #   which contain multiple loss and flags indicating whether
-            #   the corresponding loss should be taken into consideration
-            #   for early stopping
-            # or 
-            # loss_computed may be simply a tensor loss 
-            loss_computed = loss_wrapper.compute(data_gen, normed_target)
+                # return the loss from loss_wrapper
+                # loss_computed may be [[loss_1, loss_2, ...],[flag_1,flag_2,.]]
+                #   which contain multiple loss and flags indicating whether
+                #   the corresponding loss should be taken into consideration
+                #   for early stopping
+                # or 
+                # loss_computed may be simply a tensor loss 
+                loss_computed = loss_wrapper.compute(data_gen, normed_target)
 
-        loss_values = [0]
-        # To handle cases where there are multiple loss functions
-        # when loss_comptued is [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
-        #   loss: sum of [loss_1, loss_2, ...], for backward()
-        #   loss_values: [loss_1.item(), loss_2.item() ..], for logging
-        #   loss_flags: [True/False, ...], for logging, 
-        #               whether loss_n is used for early stopping
-        # when loss_computed is loss
-        #   loss: loss
-        #   los_vals: [loss.item()]
-        #   loss_flags: [True]
-        loss, loss_values, loss_flags = nii_nn_tools.f_process_loss(
-            loss_computed)
+            loss_values = [0]
+            # To handle cases where there are multiple loss functions
+            # when loss_comptued is [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
+            #   loss: sum of [loss_1, loss_2, ...], for backward()
+            #   loss_values: [loss_1.item(), loss_2.item() ..], for logging
+            #   loss_flags: [True/False, ...], for logging, 
+            #               whether loss_n is used for early stopping
+            # when loss_computed is loss
+            #   loss: loss
+            #   los_vals: [loss.item()]
+            #   loss_flags: [True]
+            loss, loss_values, loss_flags = nii_nn_tools.f_process_loss(
+                loss_computed)
 
-        # Back-propgation using the summed loss
-        if optimizer is not None and loss.requires_grad:
-            # backward propagation
-            loss.backward()
+            # Back-propgation using the summed loss
+            if optimizer is not None and loss.requires_grad:
+                # backward propagation
+                loss.backward()
 
-            # apply gradient clip 
-            if args.grad_clip_norm > 0:
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    pt_model.parameters(), args.grad_clip_norm)
+                # apply gradient clip 
+                if args.grad_clip_norm > 0:
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        pt_model.parameters(), args.grad_clip_norm)
                 
-            # update parameters
-            optimizer.step()
+                # update parameters
+                optimizer.step()
             
-        # save the training process information to the monitor
-        end_time = time.time()
-        batchsize = len(data_info)
-        for idx, data_seq_info in enumerate(data_info):
-            # loss_value is supposed to be the average loss value
-            # over samples in the the batch, thus, just loss_value
-            # rather loss_value / batchsize
-            monitor.log_loss(loss_values, loss_flags, \
-                             (end_time-start_time) / batchsize, \
-                             data_seq_info, idx_orig.numpy()[idx], \
-                             epoch_idx)
-            # print infor for one sentence
-            if args.verbose == 1:
-                # here we use args.batch_size because len(data_info)
-                # may be < args.batch_size. 
-                monitor.print_error_for_batch(
-                    data_idx * args.batch_size + idx,\
-                    idx_orig.numpy()[idx], \
-                    epoch_idx)
+            # save the training process information to the monitor
+            end_time = time.time()
+            batchsize = len(data_info)
+            for idx, data_seq_info in enumerate(data_info):
+                # loss_value is supposed to be the average loss value
+                # over samples in the the batch, thus, just loss_value
+                # rather loss_value / batchsize
+                monitor.log_loss(loss_values, loss_flags, \
+                                 (end_time-start_time) / batchsize, \
+                                 data_seq_info, idx_orig.numpy()[idx], \
+                                 epoch_idx)
+                # print infor for one sentence
+                if args.verbose == 1:
+                    # here we use args.batch_size because len(data_info)
+                    # may be < args.batch_size. 
+                    monitor.print_error_for_batch(
+                        data_idx * args.batch_size + idx,\
+                        idx_orig.numpy()[idx], \
+                        epoch_idx)
+                # 
+            # start the timer for a new batch
+            start_time = time.time()
+        
             # 
-        # start the timer for a new batch
-        start_time = time.time()
-        
-        
-        # Save intermediate model for every n mini-batches (optional).
-        # Note that if we re-start trainining with this intermediate model,
-        #  the data will start from the 1st sample, not the one where we stopped
-        if args.save_model_every_n_minibatches > 0 \
-           and (data_idx+1) % args.save_model_every_n_minibatches == 0 \
-           and optimizer is not None and data_idx > 0:
-            cp_names = nii_nn_manage_conf.CheckPointKey()
-            tmp_model_name = nii_nn_tools.f_save_epoch_name(
-                args, epoch_idx, '_{:05d}'.format(data_idx+1))
-            # save
-            tmp_dic = {
-                cp_names.state_dict : pt_model.state_dict(),
-                cp_names.optimizer : optimizer.state_dict()
-            }
-            torch.save(tmp_dic, tmp_model_name)
-        
-        # If debug mode is used, only run a specified number of mini-batches
-        if args.debug_batch_num > 0 and data_idx >= (args.debug_batch_num - 1):
-            nii_display.f_print("Debug mode is on. This epoch is finished")
-            break
-        
-    # loop done
+            prof.step()
+            
+        # loop done
+    # done with
     return
     
 
@@ -353,12 +370,14 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     # other variables
     flag_early_stopped = False
     start_epoch = monitor_trn.get_epoch()
-    epoch_num = monitor_trn.get_max_epoch()
+    
+    #epoch_num = monitor_trn.get_max_epoch()
+    epoch_num = 1        
+
 
     # print
     _ = nii_op_display_tk.print_log_head()
     nii_display.f_print_message(train_log, flush=True, end='')
-        
         
     # loop over multiple epochs
     for epoch_idx in range(start_epoch, epoch_num):
@@ -374,14 +393,15 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         if hasattr(pt_model, 'flag_validation'):
             pt_model.flag_validation = False
 
-        f_run_one_epoch(args, pt_model, loss_wrapper, device, \
-                        monitor_trn, train_data_loader, \
-                        epoch_idx, optimizer, normtarget_f)
+        f_run_one_epoch_profile(
+            args, pt_model, loss_wrapper, device, \
+            monitor_trn, train_data_loader, \
+            epoch_idx, optimizer, normtarget_f)
         time_trn = monitor_trn.get_time(epoch_idx)
         loss_trn = monitor_trn.get_loss(epoch_idx)
         
-        # if necessary, do validataion 
-        if val_dataset_wrapper is not None:
+        # No validation for profiling
+        if False and val_dataset_wrapper is not None:
             # set eval() if necessary 
             if args.eval_mode_for_validation:
                 pt_model.eval()
@@ -410,7 +430,6 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         else:
             time_val = monitor_val.get_time(epoch_idx)
             loss_val = monitor_val.get_loss(epoch_idx)
-            #time_val, loss_val = 0, 0
                 
         
         if val_dataset_wrapper is not None:
@@ -423,13 +442,13 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             epoch_idx, time_trn, loss_trn, time_val, loss_val, 
             flag_new_best, optimizer_wrapper.get_lr_info())
 
-        # save the best model
-        if flag_new_best:
+        # not save the best model for profiling
+        if False and flag_new_best:
             tmp_best_name = nii_nn_tools.f_save_trained_name(args)
             torch.save(pt_model.state_dict(), tmp_best_name)
             
-        # save intermediate model if necessary
-        if not args.not_save_each_epoch:
+        # not save intermediate model if necessary
+        if False and not args.not_save_each_epoch:
             tmp_model_name = nii_nn_tools.f_save_epoch_name(args, epoch_idx)
             
             if monitor_val is not None:
@@ -470,11 +489,13 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     # loop done        
     nii_op_display_tk.print_log_tail()
     if flag_early_stopped:
-        nii_display.f_print("Training finished by early stopping")
+        nii_display.f_print("Profiling finished")
     else:
-        nii_display.f_print("Training finished")
-    nii_display.f_print("Model is saved to", end = '')
-    nii_display.f_print("{}".format(nii_nn_tools.f_save_trained_name(args)))
+        nii_display.f_print("Profiling finished")
+    #nii_display.f_print("Model is saved to", end = '')
+    #nii_display.f_print("{}".format(nii_nn_tools.f_save_trained_name(args)))
+    nii_display.f_print("Profiling log is saved to {:s}".format(
+        args.profile_output_dir))
     return
 
 
@@ -506,8 +527,8 @@ def f_inference_wrapper(args, pt_model, device, \
     nii_display.f_print("Start inference (generation):", 'highlight')
 
     # output buffer, filename buffer
-    #output_buf = []
-    #filename_buf = []
+    output_buf = []
+    filename_buf = []
     
     pt_model.eval() 
     with torch.no_grad():
@@ -564,6 +585,17 @@ def f_inference_wrapper(args, pt_model, device, \
                 nii_display.f_print("No output saved: %s" % (str(data_info)),\
                                     'warning')
             else:
+                output_buf.append(data_gen)
+                filename_buf.append(data_info)
+
+            # print information
+            for idx, seq_info in enumerate(data_info):
+                _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
+                
+        # Writing generatd data to disk
+        nii_display.f_print("Writing output to %s" % (args.output_dir))
+        for data_gen, data_info in zip(output_buf, filename_buf):            
+            if data_gen is not None:
                 try:
                     data_gen = pt_model.denormalize_output(data_gen)
                     data_gen_np = data_gen.to("cpu").numpy()
@@ -578,15 +610,7 @@ def f_inference_wrapper(args, pt_model, device, \
                     test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
                                                  args.output_dir, \
                                                  seq_info)
-            # print information
-            for idx, seq_info in enumerate(data_info):
-                _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
-                
-        # Writing generatd data to disk
-        #nii_display.f_print("Writing output to %s" % (args.output_dir))
-        #for data_gen, data_info in zip(output_buf, filename_buf):            
-        #    if data_gen is not None:
-                
+        
         # done for
     # done with
     nii_display.f_print("Output data has been saved to %s" % (args.output_dir))
@@ -599,4 +623,4 @@ def f_inference_wrapper(args, pt_model, device, \
     return
             
 if __name__ == "__main__":
-    print("nn_manager")
+    print("nn_manager used for profiling")

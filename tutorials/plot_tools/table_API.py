@@ -40,10 +40,10 @@ def wrap_value(data, wrap_factor=0):
 
 def return_latex_color_cell(value, val_min, val_max, scale, wrap, color_func):
     if scale < 0:
-        value = wrap_value((value - val_min) / (val_max - val_min), wrap) * -scale
+        value = wrap_value((value - val_min) / (val_max - val_min), wrap)*-scale
         value = -scale - value
     else:
-        value = wrap_value((value - val_min) / (val_max - val_min), wrap) * scale
+        value = wrap_value((value - val_min) / (val_max - val_min), wrap)*scale
     # only use RGB, not RGBA
     color_code = color_func(value)[:-1]
     
@@ -76,7 +76,9 @@ def print_table(data_array, column_tag, row_tag,
                 print_latex_table=True, 
                 print_text_table=True,
                 print_format_along_row=True,
-                color_minmax_in = 'global'):
+                color_minmax_in = 'global',
+                pad_data_column = 0,
+                pad_dummy_col = 0):
     """
     print a latex table given the data (np.array) and tags    
     
@@ -105,15 +107,26 @@ def print_table(data_array, column_tag, row_tag,
                   You may use '\t' or ',' for CSV
       print_latex_table: bool, print the table as latex command (default True)
       print_text_table: bool, print the table as text format (default True)
-      color_minmax_in: str, how to decide the max and min to compute cell color?
+      color_minmax_in: how to decide the max and min to compute cell color?
                  'global': get the max and min values from the input matrix 
                  'row': get the max and min values from the current row
                  'col': get the max and min values from the current column
+                  (min, max): given the min and max values
                  default is global
-                
+      pad_data_column: int, pad columns on the left or right of data matrix
+                  (the tag column will still be on the left)
+                  0: no padding (default)
+                  -N: pad N dummy data columns to the left
+                   N: pad N dummy data columns to the right
+
+      pad_dummy_col: int, pad columns to the left or right of the table
+                  (the column will be padded to the left of head column)
+                  0: no padding (default)
+                  N: pad N columns to the left
+
     output
     ------
-      None
+      latext_table, text_table
       
     Tables will be printed to the screen.
     The latex table will be surrounded by begin{tabular}...end{tabular}
@@ -124,6 +137,17 @@ def print_table(data_array, column_tag, row_tag,
         column_tag = ["" for data in data_array[0, :]]
     if row_tag is None:
         row_tag = ["" for data in data_array]
+
+    if pad_data_column < 0:
+        column_tag = ["" for x in range(-pad_data_column)] + column_tag
+        dummy_col = np.zeros([data_array.shape[0], -pad_data_column]) + np.nan
+        data_array = np.concatenate([dummy_col, data_array], axis=1)
+    elif pad_data_column > 0:
+        column_tag = ["" for x in range(pad_data_column)] + column_tag
+        dummy_col = np.zeros([data_array.shape[0], pad_data_column]) + np.nan
+        data_array = np.concatenate([data_array, dummy_col], axis=1)
+    else:
+        pass
 
     # check print_format
     if type(print_format) is not list:
@@ -159,6 +183,11 @@ def print_table(data_array, column_tag, row_tag,
             value_max = np.max(data_array[:, col_idx][data_idx])    
             if type(colorscale) is list:
                 colorscale_tmp = colorscale[col_idx]
+        elif type(color_minmax_in) is tuple or type(color_minmax_in) is list:
+            value_min = color_minmax_in[0]
+            value_max = color_minmax_in[1]
+            if type(colorscale) is list:
+                colorscale_tmp = colorscale[row_idx, col_idx]
         else:
             data_idx = return_valid_number_idx(data_array)
             value_min = np.min(data_array[data_idx])
@@ -195,21 +224,34 @@ def print_table(data_array, column_tag, row_tag,
     # prepare buffer
     text_buffer = ""
     latex_buffer = ""
-    
+    text_cell_buffer = []
+    latex_cell_buffer = []
+
     # latex head
-    latex_buffer += r"\begin{tabular}{" \
-                    + ''.join(['c' for x in column_tag + ['']]) + r"}" + "\n"
+    if pad_dummy_col > 0:
+        latex_buffer += r"\begin{tabular}{" \
+                        + ''.join(['c' for x in column_tag + ['']])
+        latex_buffer += ''.join(['c' for x in range(pad_dummy_col)]) + r"}"+"\n"
+    else:
+        latex_buffer += r"\begin{tabular}{" \
+                        + ''.join(['c' for x in column_tag + ['']]) + r"}"+"\n"
     
     # head row
     #  for latex
     hrow = [fill_cell("", row_tag_max_len)] \
-                + [fill_cell(x, col_tag_max_len) for x in column_tag]
+           + [fill_cell(x, col_tag_max_len) for x in column_tag]
+    if pad_dummy_col > 0:
+        hrow = [fill_cell("", 1) for x in range(pad_dummy_col)] + hrow
+
     latex_buffer += return_one_row_latex(hrow)
+    latex_cell_buffer.append(hrow)
+
     #  for plain text (add additional separator for each column)
     hrow = [fill_cell("", row_tag_max_len, col_sep)] \
            + [fill_cell(x, col_tag_max_len, col_sep) for x in column_tag]
     text_buffer += return_one_row_text(hrow)
-    
+    text_cell_buffer.append(hrow)
+
     # contents
     row = data_array.shape[0]
     col = data_array.shape[1]
@@ -218,6 +260,10 @@ def print_table(data_array, column_tag, row_tag,
         row_content_latex = [fill_cell(row_tag[row_idx], row_tag_max_len)]
         row_content_text = [fill_cell(row_tag[row_idx],row_tag_max_len,col_sep)]
         
+        if pad_dummy_col > 0:
+            row_content_latex = [fill_cell("", 1) for x in range(pad_dummy_col)] \
+                                + row_content_latex
+
         # each column in the raw
         for col_idx in np.arange(col):
 
@@ -250,17 +296,49 @@ def print_table(data_array, column_tag, row_tag,
             
         # latex table content
         latex_buffer += return_one_row_latex(row_content_latex)
+        latex_cell_buffer.append(row_content_latex)
         # text content
         text_buffer += return_one_row_text(row_content_text)
-        
+        text_cell_buffer.append(row_content_text)
+
     latex_buffer += r"\end{tabular}" + "\n"
 
     if print_latex_table:
         print(latex_buffer)
     if print_text_table:
         print(text_buffer)
-    return
+    return latex_buffer, text_buffer, latex_cell_buffer, text_cell_buffer
 
+
+
+def concatenate_table(table_list, ignore_initial=True, add_separator=1, latex=True):
+    rows = [len(x) for x in table_list]
+    if len(list(set(rows))) > 1:
+        print("Input tables have different row numbers")
+        return None
+    
+    output_text = ""
+    output_table = []
+    for row in range(len(table_list[0])):
+        temp = []
+        for idx, subtable in enumerate(table_list):
+            if ignore_initial:
+                temp += subtable[row][1:]
+            else:
+                temp += subtable[row]
+            if add_separator and idx < len(table_list)-1:
+                temp += ['' for x in range(add_separator)]
+        output_table.append(temp)
+        output_text += return_one_row_latex(temp)
+        
+        
+    # latex head 
+    latex_buffer = r"\begin{tabular}{" \
+                 + ''.join(['c' for x in temp + ['']]) + r"}" + "\n"
+    latex_buffer += output_text
+    latex_buffer += r"\end{tabular}" + "\n"
+    
+    return latex_buffer, output_table
 
 if __name__ == "__main__":
     print("Tools for printing table for latex")

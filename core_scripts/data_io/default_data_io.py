@@ -320,6 +320,15 @@ class NIIDataSet(torch.utils.data.Dataset):
         if flag_cal_len or flag_cal_mean_std:
             self.f_calculate_stats(flag_cal_len, flag_cal_mean_std) 
             
+
+        # if some additional flags are turned on
+        if hasattr(global_arg, "flag_reverse_data_loading_order") and \
+           global_arg.flag_reverse_data_loading_order:
+            self.m_flag_reverse_load_order = True
+        else:
+            self.m_flag_reverse_load_order = False
+        
+
         # check
         if self.__len__() < 1:
             nii_warn.f_print("Fail to load any data", "error")
@@ -345,12 +354,17 @@ class NIIDataSet(torch.utils.data.Dataset):
         """
         return len(self.m_seq_info)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx_input):
         """ __getitem__(self, idx):
         Return input, output
         
         For test set data, output can be None
         """
+        if self.m_flag_reverse_load_order:
+            idx = len(self.m_seq_info) - idx_input - 1
+        else:
+            idx = idx_input
+        
         try:
             tmp_seq_info = self.m_seq_info[idx]
         except IndexError:
@@ -409,15 +423,29 @@ class NIIDataSet(torch.utils.data.Dataset):
                 else:
                     nii_warn.f_die("Dimension wrong %s" % (file_path))
             else:
-                # normal case
-                if tmp_d.ndim > 1:
-                    # write multi-dimension data
-                    in_data[:,s_dim:e_dim] = tmp_d[s_idx:e_idx,:]
-                elif t_dim == 1:
-                    # write one-dimension data
-                    in_data[:,s_dim] = tmp_d[s_idx:e_idx]
-                else:
-                    nii_warn.f_die("Dimension wrong %s" % (file_path))
+                # check
+                try:
+                    # normal case
+                    if tmp_d.ndim > 1:
+                        # write multi-dimension data
+                        in_data[:,s_dim:e_dim] = tmp_d[s_idx:e_idx,:]
+                    elif t_dim == 1:
+                        # write one-dimension data
+                        in_data[:,s_dim] = tmp_d[s_idx:e_idx]
+                    else:
+                        nii_warn.f_die("Dimension wrong %s" % (file_path))
+                except ValueError:
+                    if in_data.shape[0] != tmp_d[s_idx:e_idx].shape[0]:
+                        mes = 'Expected length is {:d}.\n'.format(e_idx-s_idx)
+                        mes += "Loaded length "+str(tmp_d[s_idx:e_idx].shape[0])
+                        mes += 'This may be due to an incompatible cache *.dic.'
+                        mes += '\nPlease check the length in *.dic\n'
+                        mes += 'Please delete it if the cached length is wrong.'
+                        nii_warn.f_print(mes)
+                        nii_warn.f_die("fail to load {:s}".format(file_name))
+                    else:
+                        nii_warn.f_print("unknown data io error")
+                        nii_warn.f_die("fail to load {:s}".format(file_name))
             s_dim = e_dim
 
         # load output data
@@ -451,12 +479,27 @@ class NIIDataSet(torch.utils.data.Dataset):
                     else:
                         nii_warn.f_die("Dimension wrong %s" % (file_path))
                 else:
-                    if tmp_d.ndim > 1:
-                        out_data[:,s_dim:e_dim] = tmp_d[s_idx:e_idx,:]
-                    elif t_dim == 1:
-                        out_data[:,s_dim]=tmp_d[s_idx:e_idx]
-                    else:
-                        nii_warn.f_die("Dimension wrong %s" % (file_path))
+                    try:
+
+                        if tmp_d.ndim > 1:
+                            out_data[:,s_dim:e_dim] = tmp_d[s_idx:e_idx,:]
+                        elif t_dim == 1:
+                            out_data[:,s_dim]=tmp_d[s_idx:e_idx]
+                        else:
+                            nii_warn.f_die("Dimension wrong %s" % (file_path))
+                    except ValueError:
+                        if out_data.shape[0] != tmp_d[s_idx:e_idx].shape[0]:
+                            mes = 'Expected length is ' + str(e_idx-s_idx)
+                            mes += ". Loaded "+str(tmp_d[s_idx:e_idx].shape[0])
+                            mes += 'This may be due to an old cache *.dic.'
+                            mes += '\nPlease check the length in *.dic\n'
+                            mes += 'Please delete it if cached length is wrong.'
+                            nii_warn.f_print(mes)
+                            nii_warn.f_die("fail to load " +file_name)
+                        else:
+                            nii_warn.f_print("unknown data io error")
+                            nii_warn.f_die("fail to load " +file_name)
+
                 s_dim = s_dim + t_dim
         else:
             out_data = []
@@ -975,6 +1018,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                 for tmp_name in tmp[:10]:
                     nii_warn.f_print(tmp_name)
                 nii_warn.f_print("...\nYou may carefully check these data.")
+                nii_warn.f_print("\nThey may not be in the provided data list.")
 
                 nii_warn.f_print("Re-read data statistics")
                 self.m_seq_info = []
@@ -1075,7 +1119,10 @@ class NIIDataSet(torch.utils.data.Dataset):
                 mes += "\n     please use inoutput_augment_func"        
         if self.m_inouaug_func:
             mes += "\n    Use a unified function to alter input and output data"
-            
+
+
+        if self.m_flag_reverse_load_order:
+            mes += "\n    Reverse the data loading order from dataset "
         nii_warn.f_print_message(mes)
 
         return
