@@ -1,0 +1,842 @@
+[94m-------------------------------------------------[0m
+[94m---  Start program 2022-01-08 11:05:24.619533 ---[0m
+[94m-------------------------------------------------[0m
+[94mLoad module: config[0m
+[94mLoad module: model[0m
+cudnn_deterministic set to False
+cudnn_benchmark set to True
+[94m---------------------------------------------------------------[0m
+[94m---  Loading dataset cmu_all_trn 2022-01-08 11:05:24.707432 ---[0m
+[94m---------------------------------------------------------------[0m
+[94mRead sequence info: ./cmu_all_trn_utt_length.dic[0m
+[94mLoad mean/std from ./cmu_all_trn_mean_std_input.bin and ./cmu_all_trn_mean_std_output.bin[0m
+[94m---------------------------------------------------------------[0m
+[94m---  Loading dataset cmu_all_val 2022-01-08 11:05:24.818729 ---[0m
+[94m---------------------------------------------------------------[0m
+[94mRead sequence info: ./cmu_all_val_utt_length.dic[0m
+[94m--------------------------------------------------------[0m
+[94m---  Start model training 2022-01-08 11:05:25.637735 ---[0m
+[94m--------------------------------------------------------[0m
+Optimizer:
+  Type: Adam 
+  Learing rate: 0.000100
+  Epochs: 300
+  No-best-epochs: 300
+Optimizer:
+  Type: Adam 
+  Learing rate: 0.000100
+  Epochs: 300
+  No-best-epochs: 300
+Merge datasets by: concatenate
+Dataset cmu_all_trn:
+  Time steps: 199364800 
+  Data sequence num: 4000
+  Maximum sequence length: 107360
+  Minimum sequence length: 15440
+  Inputs
+    Dirs:
+        ../DATA/cmu-arctic-data-set/5ms/melspec
+        ../DATA/cmu-arctic-data-set/5ms/f0
+    Exts:['.mfbsp', '.f0']
+    Dims:[80, 1]
+    Reso:[80, 80]
+    Norm:[True, True]
+  Outputs
+    Dirs:
+        ../DATA/cmu-arctic-data-set/wav_16k_norm
+    Exts:['.wav']
+    Dims:[1]
+    Reso:[1]
+    Norm:[False]
+    Use a unified function to alter input and output data
+{'batch_size': 32, 'shuffle': True, 'num_workers': 8, 'sampler': 'None', 'pin_memory': True}
+Merge datasets by: concatenate
+Dataset cmu_all_val:
+  Time steps: 13622240 
+  Data sequence num: 264
+  Maximum sequence length: 90560
+  Minimum sequence length: 18800
+  Inputs
+    Dirs:
+        ../DATA/cmu-arctic-data-set/5ms/melspec
+        ../DATA/cmu-arctic-data-set/5ms/f0
+    Exts:['.mfbsp', '.f0']
+    Dims:[80, 1]
+    Reso:[80, 80]
+    Norm:[True, True]
+  Outputs
+    Dirs:
+        ../DATA/cmu-arctic-data-set/wav_16k_norm
+    Exts:['.wav']
+    Dims:[1]
+    Reso:[1]
+    Norm:[False]
+    Use a unified function to alter input and output data
+{'batch_size': 32, 'shuffle': True, 'num_workers': 8, 'sampler': 'None', 'pin_memory': True}
+[94m
+Use single GPU: Tesla V100-DGXS-32GB
+[0m
+[94mSetup generator[0m
+[94mModel check:[0m
+[OK]: prepare_mean_std found
+[OK]: normalize_input found
+[OK]: normalize_target found
+[OK]: denormalize_output found
+[OK]: forward found
+[OK]: inference is ignored, alternative method for inference
+[OK]: loss is ignored, loss defined within model module
+[OK]: other_setups is ignored, other setup functions before training
+[OK]: flag_validation is ignored, flag to indicate train or validation set
+[OK]: validation is ignored, deprecated. Please use model.flag_validation
+[OK]: finish_up_inference is ignored, method to finish up work after inference
+[94mModel check done
+[0m
+[94mModel infor:[0m
+ModelGenerator(
+  (m_cond): CondModuleHnSincNSF(
+    (l_blstm): BLSTMLayer(
+      (l_blstm): LSTM(81, 32, batch_first=True, bidirectional=True)
+    )
+    (l_conv1d): Conv1dKeepLength(
+      64, 64, kernel_size=(3,), stride=(1,)
+      (l_ac): Tanh()
+    )
+    (l_upsamp): UpSampleLayer(
+      (l_upsamp): Upsample(scale_factor=80.0, mode=nearest)
+      (l_ave1): MovingAverage(
+        64, 64, kernel_size=(80,), stride=(1,), groups=64, bias=False
+        (l_ac): Identity()
+      )
+      (l_ave2): MovingAverage(
+        64, 64, kernel_size=(80,), stride=(1,), groups=64, bias=False
+        (l_ac): Identity()
+      )
+    )
+    (l_upsamp_f0_hi): UpSampleLayer(
+      (l_upsamp): Upsample(scale_factor=80.0, mode=nearest)
+      (l_ave1): MovingAverage(
+        1, 1, kernel_size=(80,), stride=(1,), bias=False
+        (l_ac): Identity()
+      )
+      (l_ave2): MovingAverage(
+        1, 1, kernel_size=(80,), stride=(1,), bias=False
+        (l_ac): Identity()
+      )
+    )
+    (l_upsamp_F0): UpSampleLayer(
+      (l_upsamp): Upsample(scale_factor=80.0, mode=nearest)
+      (l_ave1): Identity()
+      (l_ave2): Identity()
+    )
+    (l_cut_f_smooth): MovingAverage(
+      1, 1, kernel_size=(320,), stride=(1,), bias=False
+      (l_ac): Identity()
+    )
+  )
+  (m_source): SourceModuleHnNSF(
+    (l_sin_gen): SineGen()
+    (l_linear): Linear(in_features=8, out_features=1, bias=True)
+    (l_tanh): Tanh()
+  )
+  (m_filter): FilterModuleHnSincNSF(
+    (l_har_blocks): ModuleList(
+      (0): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+      (1): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+      (2): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+      (3): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+      (4): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+          (5): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(32,), bias=False
+            (l_ac): Tanh()
+          )
+          (6): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(64,), bias=False
+            (l_ac): Tanh()
+          )
+          (7): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(128,), bias=False
+            (l_ac): Tanh()
+          )
+          (8): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(256,), bias=False
+            (l_ac): Tanh()
+          )
+          (9): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(512,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+    )
+    (l_noi_blocks): ModuleList(
+      (0): NeuralFilterBlock(
+        (l_ff_1): Linear(in_features=1, out_features=64, bias=False)
+        (l_ff_1_tanh): Tanh()
+        (l_convs): ModuleList(
+          (0): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), bias=False
+            (l_ac): Tanh()
+          )
+          (1): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(2,), bias=False
+            (l_ac): Tanh()
+          )
+          (2): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(4,), bias=False
+            (l_ac): Tanh()
+          )
+          (3): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(8,), bias=False
+            (l_ac): Tanh()
+          )
+          (4): Conv1dKeepLength(
+            64, 64, kernel_size=(3,), stride=(1,), dilation=(16,), bias=False
+            (l_ac): Tanh()
+          )
+        )
+        (l_ff_2): Linear(in_features=64, out_features=16, bias=False)
+        (l_ff_2_tanh): Tanh()
+        (l_ff_3): Linear(in_features=16, out_features=1, bias=False)
+        (l_ff_3_tanh): Tanh()
+      )
+    )
+    (l_sinc_coef): SincFilter()
+    (l_tv_filtering): TimeVarFIRFilter()
+  )
+)
+Parameter number: 724265
+
+[94mSetup discriminator[0m
+[94mModel infor:[0m
+ModelDiscriminator(
+  (m_mpd): MultiPeriodDiscriminator(
+    (discriminators): ModuleList(
+      (0): DiscriminatorP(
+        (convs): ModuleList(
+          (0): Conv2d(1, 32, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (1): Conv2d(32, 128, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (2): Conv2d(128, 512, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (3): Conv2d(512, 1024, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (4): Conv2d(1024, 1024, kernel_size=(5, 1), stride=(1, 1), padding=(2, 0))
+        )
+        (conv_post): Conv2d(1024, 1, kernel_size=(3, 1), stride=(1, 1), padding=(1, 0))
+      )
+      (1): DiscriminatorP(
+        (convs): ModuleList(
+          (0): Conv2d(1, 32, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (1): Conv2d(32, 128, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (2): Conv2d(128, 512, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (3): Conv2d(512, 1024, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (4): Conv2d(1024, 1024, kernel_size=(5, 1), stride=(1, 1), padding=(2, 0))
+        )
+        (conv_post): Conv2d(1024, 1, kernel_size=(3, 1), stride=(1, 1), padding=(1, 0))
+      )
+      (2): DiscriminatorP(
+        (convs): ModuleList(
+          (0): Conv2d(1, 32, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (1): Conv2d(32, 128, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (2): Conv2d(128, 512, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (3): Conv2d(512, 1024, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (4): Conv2d(1024, 1024, kernel_size=(5, 1), stride=(1, 1), padding=(2, 0))
+        )
+        (conv_post): Conv2d(1024, 1, kernel_size=(3, 1), stride=(1, 1), padding=(1, 0))
+      )
+      (3): DiscriminatorP(
+        (convs): ModuleList(
+          (0): Conv2d(1, 32, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (1): Conv2d(32, 128, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (2): Conv2d(128, 512, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (3): Conv2d(512, 1024, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (4): Conv2d(1024, 1024, kernel_size=(5, 1), stride=(1, 1), padding=(2, 0))
+        )
+        (conv_post): Conv2d(1024, 1, kernel_size=(3, 1), stride=(1, 1), padding=(1, 0))
+      )
+      (4): DiscriminatorP(
+        (convs): ModuleList(
+          (0): Conv2d(1, 32, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (1): Conv2d(32, 128, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (2): Conv2d(128, 512, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (3): Conv2d(512, 1024, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+          (4): Conv2d(1024, 1024, kernel_size=(5, 1), stride=(1, 1), padding=(2, 0))
+        )
+        (conv_post): Conv2d(1024, 1, kernel_size=(3, 1), stride=(1, 1), padding=(1, 0))
+      )
+    )
+  )
+  (m_msd): MultiScaleDiscriminator(
+    (discriminators): ModuleList(
+      (0): DiscriminatorS(
+        (convs): ModuleList(
+          (0): Conv1d(1, 128, kernel_size=(15,), stride=(1,), padding=(7,))
+          (1): Conv1d(128, 128, kernel_size=(41,), stride=(2,), padding=(20,), groups=4)
+          (2): Conv1d(128, 256, kernel_size=(41,), stride=(2,), padding=(20,), groups=16)
+          (3): Conv1d(256, 512, kernel_size=(41,), stride=(4,), padding=(20,), groups=16)
+          (4): Conv1d(512, 1024, kernel_size=(41,), stride=(4,), padding=(20,), groups=16)
+          (5): Conv1d(1024, 1024, kernel_size=(41,), stride=(1,), padding=(20,), groups=16)
+          (6): Conv1d(1024, 1024, kernel_size=(5,), stride=(1,), padding=(2,))
+        )
+        (conv_post): Conv1d(1024, 1, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (1): DiscriminatorS(
+        (convs): ModuleList(
+          (0): Conv1d(1, 128, kernel_size=(15,), stride=(1,), padding=(7,))
+          (1): Conv1d(128, 128, kernel_size=(41,), stride=(2,), padding=(20,), groups=4)
+          (2): Conv1d(128, 256, kernel_size=(41,), stride=(2,), padding=(20,), groups=16)
+          (3): Conv1d(256, 512, kernel_size=(41,), stride=(4,), padding=(20,), groups=16)
+          (4): Conv1d(512, 1024, kernel_size=(41,), stride=(4,), padding=(20,), groups=16)
+          (5): Conv1d(1024, 1024, kernel_size=(41,), stride=(1,), padding=(20,), groups=16)
+          (6): Conv1d(1024, 1024, kernel_size=(5,), stride=(1,), padding=(2,))
+        )
+        (conv_post): Conv1d(1024, 1, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (2): DiscriminatorS(
+        (convs): ModuleList(
+          (0): Conv1d(1, 128, kernel_size=(15,), stride=(1,), padding=(7,))
+          (1): Conv1d(128, 128, kernel_size=(41,), stride=(2,), padding=(20,), groups=4)
+          (2): Conv1d(128, 256, kernel_size=(41,), stride=(2,), padding=(20,), groups=16)
+          (3): Conv1d(256, 512, kernel_size=(41,), stride=(4,), padding=(20,), groups=16)
+          (4): Conv1d(512, 1024, kernel_size=(41,), stride=(4,), padding=(20,), groups=16)
+          (5): Conv1d(1024, 1024, kernel_size=(41,), stride=(1,), padding=(20,), groups=16)
+          (6): Conv1d(1024, 1024, kernel_size=(5,), stride=(1,), padding=(2,))
+        )
+        (conv_post): Conv1d(1024, 1, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+    )
+    (meanpools): ModuleList(
+      (0): AvgPool1d(kernel_size=(4,), stride=(2,), padding=(2,))
+      (1): AvgPool1d(kernel_size=(4,), stride=(2,), padding=(2,))
+    )
+  )
+)
+Parameter number: 70724591
+
+--------------------------------------------------------------
+  Epoch |  Duration(s) |   Train loss |     Dev loss |  Best
+--------------------------------------------------------------
+      0 |         70.5 | 403.31   3.49| 268.28   2.32|   yes
+      1 |         67.9 | 249.71   2.28| 232.71   2.49|   yes
+      2 |         67.7 | 228.00   2.33| 222.63   2.22|   yes
+      3 |         67.7 | 217.01   2.26| 214.41   3.20|   yes
+      4 |         67.8 | 209.65   2.27| 209.33   2.30|   yes
+      5 |         68.1 | 203.76   2.31| 202.11   2.80|   yes
+      6 |         67.7 | 197.42   2.74| 196.06   2.71|   yes
+      7 |         67.8 | 196.18   2.68| 193.88   2.57|   yes
+      8 |         67.8 | 193.96   2.51| 193.75   2.57|   yes
+      9 |         67.8 | 191.89   2.47| 194.54   2.08|    no
+     10 |         67.8 | 190.03   2.30| 188.24   2.36|   yes
+     11 |         67.7 | 188.93   2.21| 184.89   2.42|   yes
+     12 |         67.7 | 189.56   2.11| 183.25   2.51|   yes
+     13 |         67.7 | 185.75   2.14| 192.11   1.68|    no
+     14 |         67.7 | 185.14   2.05| 182.46   2.08|   yes
+     15 |         67.8 | 184.02   2.00| 189.26   1.53|    no
+     16 |         67.7 | 185.99   1.77| 183.66   1.76|    no
+     17 |         67.7 | 181.42   2.15| 181.55   1.91|   yes
+     18 |         67.7 | 182.75   1.87| 180.64   1.95|   yes
+     19 |         67.7 | 181.28   1.90| 180.50   1.90|   yes
+     20 |         67.8 | 182.67   1.85| 178.84   1.72|   yes
+     21 |         67.8 | 179.55   1.89| 183.49   1.56|    no
+     22 |         67.8 | 180.16   1.71| 177.11   1.75|   yes
+     23 |         68.0 | 179.78   1.75| 182.88   1.57|    no
+     24 |         67.8 | 179.51   1.90| 180.13   2.09|    no
+     25 |         67.7 | 178.04   1.81| 176.34   1.90|   yes
+     26 |         67.9 | 176.61   1.77| 179.83   1.78|    no
+     27 |         67.8 | 177.40   1.80| 177.78   1.75|    no
+     28 |         67.7 | 176.93   1.73| 176.36   1.43|   yes
+     29 |         67.8 | 176.64   1.75| 181.55   1.50|    no
+     30 |         67.7 | 177.07   1.71| 184.00   1.22|    no
+     31 |         67.7 | 174.65   1.74| 176.04   1.41|   yes
+     32 |         67.6 | 175.23   1.80| 174.28   1.78|   yes
+     33 |         67.8 | 174.18   1.87| 174.32   1.96|    no
+     34 |         67.8 | 175.95   1.66| 184.76   1.21|    no
+     35 |         68.0 | 175.70   1.67| 175.58   1.75|    no
+     36 |         67.8 | 174.45   1.63| 176.24   1.57|    no
+     37 |         67.7 | 174.96   1.63| 172.60   2.08|   yes
+     38 |         67.9 | 172.88   1.81| 176.61   1.65|    no
+     39 |         67.8 | 174.73   1.71| 173.40   1.68|    no
+     40 |         67.8 | 172.03   1.80| 171.53   1.73|   yes
+     41 |         67.7 | 173.77   1.65| 171.12   1.62|   yes
+     42 |         68.0 | 172.54   1.70| 175.65   1.64|    no
+     43 |         67.8 | 172.59   1.75| 171.97   1.76|    no
+     44 |         67.7 | 171.54   1.74| 169.04   1.76|   yes
+     45 |         68.1 | 172.09   1.63| 174.85   1.85|    no
+     46 |         67.9 | 172.94   1.60| 173.90   1.18|    no
+     47 |         67.8 | 170.60   1.76| 169.23   1.81|    no
+     48 |         67.7 | 171.07   1.66| 169.89   1.81|    no
+     49 |         68.5 | 171.05   1.61| 171.96   1.91|    no
+     50 |         68.6 | 171.08   1.72| 172.22   1.82|    no
+     51 |         67.8 | 170.72   1.66| 166.37   2.08|   yes
+     52 |         67.8 | 170.10   1.63| 169.20   1.75|    no
+     53 |         67.8 | 169.55   1.69| 171.41   1.45|    no
+     54 |         68.6 | 169.92   1.62| 170.38   1.51|    no
+     55 |         67.7 | 169.66   1.60| 169.24   1.52|    no
+     56 |         67.8 | 170.57   1.63| 166.89   1.56|   yes
+     57 |         67.7 | 169.47   1.59| 170.84   1.59|    no
+     58 |         67.7 | 169.76   1.54| 166.56   1.81|   yes
+     59 |         67.8 | 168.89   1.61| 168.70   1.52|    no
+     60 |         67.8 | 169.68   1.53| 166.51   1.60|   yes
+     61 |         67.6 | 169.01   1.56| 167.98   1.74|    no
+     62 |         67.7 | 167.92   1.64| 167.60   1.68|    no
+     63 |         67.9 | 168.58   1.62| 169.62   1.61|    no
+     64 |         67.7 | 168.91   1.55| 169.69   1.41|    no
+     65 |         67.8 | 168.49   1.52| 165.05   1.66|   yes
+     66 |         67.7 | 168.22   1.52| 167.31   1.52|    no
+     67 |         67.6 | 168.22   1.48| 166.96   1.75|    no
+     68 |         67.6 | 169.38   1.43| 171.63   1.36|    no
+     69 |         67.8 | 168.15   1.51| 167.58   1.82|    no
+     70 |         67.7 | 168.76   1.58| 169.17   1.50|    no
+     71 |         67.8 | 168.52   1.42| 172.16   1.37|    no
+     72 |         67.8 | 167.92   1.50| 163.79   1.71|   yes
+     73 |         67.8 | 166.53   1.53| 166.64   1.35|    no
+     74 |         67.8 | 167.68   1.50| 168.30   1.53|    no
+     75 |         67.8 | 167.06   1.46| 170.78   1.59|    no
+     76 |         67.9 | 166.71   1.52| 166.51   1.55|    no
+     77 |         67.7 | 168.37   1.42| 165.80   1.62|    no
+     78 |         67.8 | 167.33   1.40| 168.24   1.73|    no
+     79 |         67.9 | 166.65   1.52| 169.81   1.58|    no
+     80 |         67.8 | 167.36   1.52| 168.50   1.33|    no
+     81 |         67.8 | 167.77   1.40| 168.19   1.44|    no
+     82 |         67.8 | 166.49   1.45| 167.50   1.38|    no
+     83 |         67.7 | 166.62   1.35| 169.23 0.9790|    no
+     84 |         67.8 | 167.87   1.44| 163.21   1.55|   yes
+     85 |         67.9 | 165.42   1.50| 163.91   1.51|    no
+     86 |         67.8 | 167.17   1.37| 167.79   1.30|    no
+     87 |         67.7 | 167.31   1.39| 164.71   1.37|    no
+     88 |         67.8 | 166.93   1.32| 167.17   1.57|    no
+     89 |         67.8 | 165.41   1.44| 167.13   1.26|    no
+     90 |         67.7 | 166.85   1.42| 168.55   1.48|    no
+     91 |         67.9 | 166.26   1.45| 168.31   1.36|    no
+     92 |         68.0 | 166.57   1.37| 165.00   1.40|    no
+     93 |         67.7 | 165.44   1.41| 164.68   1.49|    no
+     94 |         67.6 | 165.54   1.47| 165.44   1.39|    no
+     95 |         67.9 | 165.82   1.43| 167.40   1.20|    no
+     96 |         67.8 | 165.45   1.38| 165.93   1.16|    no
+     97 |         67.8 | 165.69   1.32| 164.64   1.41|    no
+     98 |         68.2 | 165.77   1.34| 163.07   1.44|   yes
+     99 |         67.7 | 165.71   1.30| 167.27   1.11|    no
+    100 |         67.9 | 164.91   1.43| 165.79   1.23|    no
+    101 |         67.8 | 165.46   1.35| 167.51   1.29|    no
+    102 |         67.7 | 165.86   1.31| 165.73   1.13|    no
+    103 |         67.7 | 164.81   1.32| 166.23   1.22|    no
+    104 |         67.8 | 165.64   1.35| 163.78   1.33|    no
+    105 |         67.7 | 165.70   1.29| 167.26 0.9726|    no
+    106 |         67.7 | 164.91   1.34| 164.50   1.44|    no
+    107 |         67.7 | 164.20   1.38| 164.47   1.29|    no
+    108 |         67.8 | 165.92   1.24| 168.72 0.8338|    no
+    109 |         67.8 | 163.62   1.37| 163.64   1.38|    no
+    110 |         67.8 | 163.91   1.36| 166.21   1.19|    no
+    111 |         68.4 | 164.85   1.29| 164.26   1.42|    no
+    112 |         68.3 | 165.13   1.28| 164.68   1.67|    no
+    113 |         67.8 | 165.09   1.32| 165.24   1.33|    no
+    114 |         67.9 | 165.96   1.33| 165.85   1.14|    no
+    115 |         67.8 | 165.78   1.26| 163.42   1.10|    no
+    116 |         67.7 | 164.73   1.32| 161.91   1.38|   yes
+    117 |         68.1 | 163.14   1.38| 165.71   1.21|    no
+    118 |         67.7 | 165.41   1.25| 165.91   1.15|    no
+    119 |         67.7 | 163.53   1.31| 161.57   1.55|   yes
+    120 |         67.8 | 163.04   1.33| 164.86   1.38|    no
+    121 |         67.8 | 164.06   1.31| 163.63   1.38|    no
+    122 |         68.3 | 164.55   1.30| 166.19   1.38|    no
+    123 |         68.3 | 163.82   1.31| 167.45   1.20|    no
+    124 |         68.2 | 164.28   1.28| 163.83   1.39|    no
+    125 |         68.2 | 163.79   1.29| 167.33   1.17|    no
+    126 |         67.8 | 163.93   1.29| 160.67   1.30|   yes
+    127 |         67.8 | 162.83   1.35| 165.29   1.41|    no
+    128 |         67.8 | 163.22   1.27| 164.03   1.32|    no
+    129 |         67.8 | 163.73   1.23| 163.64   1.14|    no
+    130 |         68.0 | 163.76   1.28| 162.74   1.44|    no
+    131 |         68.2 | 164.74   1.28| 168.72   1.08|    no
+    132 |         67.8 | 163.49   1.25| 165.55   1.28|    no
+    133 |         67.7 | 163.95   1.26| 164.38   1.35|    no
+    134 |         68.0 | 162.18   1.32| 161.00   1.33|    no
+    135 |         67.8 | 163.15   1.28| 163.27   1.29|    no
+    136 |         67.8 | 163.52   1.20| 165.71   1.14|    no
+    137 |         68.3 | 163.31   1.25| 162.78   1.11|    no
+    138 |         67.7 | 163.18   1.28| 162.41   1.26|    no
+    139 |         67.9 | 162.90   1.25| 162.25   1.31|    no
+    140 |         67.9 | 162.59   1.24| 164.20   1.07|    no
+    141 |         67.7 | 163.07   1.22| 164.22   1.22|    no
+    142 |         67.8 | 162.89   1.23| 165.24   1.27|    no
+    143 |         67.6 | 162.58   1.22| 164.59   1.15|    no
+    144 |         67.7 | 162.76   1.26| 165.46   1.08|    no
+    145 |         68.4 | 162.90   1.20| 163.66   1.08|    no
+    146 |         67.9 | 163.31   1.25| 166.04   1.03|    no
+    147 |         67.8 | 162.20   1.26| 165.87   1.20|    no
+    148 |         67.8 | 161.50   1.25| 164.94   1.29|    no
+    149 |         67.7 | 161.90   1.26| 161.79   1.20|    no
+    150 |         67.8 | 162.36   1.23| 159.06   1.25|   yes
+    151 |         67.7 | 161.55   1.27| 162.54   1.18|    no
+    152 |         67.8 | 161.70   1.26| 162.86   1.19|    no
+    153 |         67.9 | 162.46   1.25| 163.18   1.01|    no
+    154 |         67.9 | 162.03   1.25| 165.90   1.28|    no
+    155 |         67.8 | 162.91   1.23| 162.76   1.27|    no
+    156 |         68.4 | 162.32   1.21| 157.94   1.22|   yes
+    157 |         67.7 | 162.93   1.20| 164.09   1.27|    no
+    158 |         67.7 | 162.07   1.27| 162.28   1.20|    no
+    159 |         67.8 | 162.06   1.26| 162.90   1.19|    no
+    160 |         68.2 | 162.00   1.29| 160.61   1.26|    no
+    161 |         68.1 | 161.84   1.24| 161.22   1.35|    no
+    162 |         67.8 | 162.29   1.22| 159.34   1.37|    no
+    163 |         68.3 | 161.60   1.23| 161.48   1.25|    no
+    164 |         68.6 | 163.46   1.24| 161.75   1.23|    no
+    165 |         67.8 | 161.37   1.24| 159.62   1.32|    no
+    166 |         67.9 | 161.18   1.24| 162.57   1.17|    no
+    167 |         68.4 | 162.36   1.12| 166.24   1.33|    no
+    168 |         67.7 | 161.52   1.28| 164.71   1.15|    no
+    169 |         67.8 | 160.94   1.25| 157.13   1.25|   yes
+    170 |         68.2 | 161.28   1.21| 162.13   1.10|    no
+    171 |         67.8 | 161.43   1.24| 162.21   1.22|    no
+    172 |         67.6 | 161.80   1.20| 161.96   1.34|    no
+    173 |         67.7 | 161.89   1.21| 164.40   1.11|    no
+    174 |         67.7 | 160.76   1.23| 163.20   1.15|    no
+    175 |         67.9 | 161.91   1.12| 160.70 0.9906|    no
+    176 |         70.5 | 161.43   1.16| 158.93   1.23|    no
+    177 |         68.0 | 161.97   1.12| 165.98   1.07|    no
+    178 |         68.5 | 162.32   1.16| 162.76   1.23|    no
+    179 |         71.4 | 161.99   1.19| 162.45   1.25|    no
+    180 |         67.9 | 162.11   1.16| 162.16   1.13|    no
+    181 |         67.9 | 161.22   1.24| 160.42   1.29|    no
+    182 |         68.5 | 160.07   1.21| 162.67   1.24|    no
+    183 |         68.3 | 161.57   1.17| 163.11   1.14|    no
+    184 |         67.7 | 160.66   1.20| 160.64   1.19|    no
+    185 |         68.2 | 161.84   1.19| 160.27   1.23|    no
+    186 |         69.6 | 160.78   1.26| 160.88   1.18|    no
+    187 |         67.9 | 160.16   1.20| 161.30   1.09|    no
+    188 |         68.2 | 161.81   1.11| 160.26   1.09|    no
+    189 |         68.1 | 160.59   1.19| 159.14   1.12|    no
+    190 |         67.8 | 162.19   1.21| 164.82   1.04|    no
+    191 |         68.3 | 160.58   1.20| 157.02   1.25|   yes
+    192 |         69.8 | 159.72   1.25| 163.51   1.14|    no
+    193 |         70.4 | 161.20   1.19| 160.75   1.21|    no
+    194 |         68.5 | 159.65   1.23| 158.92   1.20|    no
+    195 |         67.8 | 160.10   1.22| 160.45   1.12|    no
+    196 |         67.8 | 159.57   1.23| 158.90   1.11|    no
+    197 |         67.7 | 160.00   1.17| 160.33   1.09|    no
+    198 |         67.9 | 160.42   1.16| 158.54   1.26|    no
+    199 |         67.9 | 159.55   1.17| 162.02   1.03|    no
+    200 |         68.3 | 160.67   1.20| 157.57   1.27|    no
+    201 |         67.8 | 159.81   1.20| 158.66   1.22|    no
+    202 |         69.2 | 160.70   1.18| 167.21   1.12|    no
+    203 |         68.0 | 160.49   1.20| 159.30   1.26|    no
+    204 |         68.2 | 160.42   1.20| 159.04   1.07|    no
+    205 |         67.7 | 160.16   1.18| 159.59   1.17|    no
+    206 |         67.6 | 159.89   1.18| 159.03   1.17|    no
+    207 |         68.1 | 160.30   1.16| 158.46   1.20|    no
+    208 |         67.8 | 160.14   1.14| 159.82   1.09|    no
+    209 |         67.8 | 160.77   1.13| 158.75   1.10|    no
+    210 |         67.6 | 160.58   1.14| 158.93   1.21|    no
+    211 |         67.8 | 159.48   1.17| 159.20   1.13|    no
+    212 |         67.8 | 159.53   1.22| 158.84   1.23|    no
+    213 |         68.1 | 158.77   1.21| 160.02   1.18|    no
+    214 |         67.8 | 160.21   1.14| 160.28   1.19|    no
+    215 |         67.9 | 159.62   1.18| 160.24   1.12|    no
+    216 |         67.7 | 159.22   1.14| 161.08   1.15|    no
+    217 |         67.7 | 160.60   1.10| 158.25   1.07|    no
+    218 |         69.0 | 159.78   1.14| 157.27   1.20|    no
+    219 |         69.2 | 160.09   1.13| 160.09 0.9390|    no
+    220 |         68.8 | 159.44   1.12| 157.85   1.09|    no
+    221 |         67.9 | 160.13   1.11| 159.81   1.21|    no
+    222 |         67.9 | 159.04   1.17| 157.15   1.22|    no
+    223 |         68.9 | 159.21   1.16| 158.82   1.14|    no
+    224 |         68.7 | 159.04   1.19| 159.34   1.15|    no
+    225 |         67.9 | 159.20   1.20| 157.63   1.21|    no
+    226 |         67.8 | 159.89   1.16| 159.11   1.18|    no
+    227 |         68.3 | 159.58   1.19| 159.33   1.14|    no
+    228 |         68.0 | 158.97   1.20| 157.87   1.10|    no
+    229 |         67.8 | 159.52   1.14| 159.29   1.16|    no
+    230 |         67.8 | 159.68   1.19| 159.48   1.15|    no
+    231 |         68.8 | 158.76   1.13| 160.07   1.05|    no
+    232 |         67.9 | 158.66   1.19| 161.13   1.16|    no
+    233 |         68.0 | 159.62   1.13| 161.03   1.07|    no
+    234 |         68.5 | 158.83   1.14| 157.58   1.17|    no
+    235 |         67.8 | 158.77   1.19| 160.80   1.14|    no
+    236 |         67.7 | 158.21   1.19| 155.39   1.22|   yes
+    237 |         67.8 | 158.43   1.15| 156.87   1.27|    no
+    238 |         67.8 | 159.34   1.13| 159.40   1.02|    no
+    239 |         69.5 | 159.36   1.12| 157.67   1.23|    no
+    240 |         69.5 | 158.66   1.15| 156.53   1.06|    no
+    241 |         67.7 | 158.39   1.17| 157.95   1.12|    no
+    242 |         68.0 | 158.66   1.15| 157.63   1.01|    no
+    243 |         68.0 | 158.62   1.11| 157.11   1.18|    no
+    244 |         67.8 | 158.60   1.13| 158.27   1.28|    no
+    245 |         67.8 | 158.21   1.16| 160.27   1.04|    no
+    246 |         67.7 | 159.11   1.14| 158.17   1.16|    no
+    247 |         67.8 | 158.54   1.17| 155.90   1.21|    no
+    248 |         67.7 | 157.71   1.17| 159.78   1.12|    no
+    249 |         67.7 | 156.47   1.16| 156.86   1.16|    no
+    250 |         67.8 | 157.28   1.15| 154.08   1.16|   yes
+    251 |         67.8 | 157.13   1.16| 156.47   1.12|    no
+    252 |         67.7 | 158.41   1.12| 158.72   1.13|    no
+    253 |         67.9 | 158.12   1.14| 156.89   1.16|    no
+    254 |         67.8 | 158.38   1.09| 157.45   1.18|    no
+    255 |         67.8 | 158.23   1.13| 158.58   1.25|    no
+    256 |         67.8 | 157.53   1.21| 157.11   1.12|    no
+    257 |         67.8 | 157.23   1.14| 156.27   1.14|    no
+    258 |         67.9 | 158.00   1.12| 158.40   1.12|    no
+    259 |         67.8 | 157.50   1.15| 158.35   1.09|    no
+    260 |         67.8 | 157.74   1.14| 159.30   1.01|    no
+    261 |         67.8 | 157.81   1.13| 156.56   1.09|    no
+    262 |         67.8 | 157.43   1.19| 156.73   1.03|    no
+    263 |         67.7 | 157.66   1.12| 158.86   1.10|    no
+    264 |         67.6 | 157.92   1.14| 164.48   1.05|    no
+    265 |         67.7 | 158.75   1.15| 157.01   1.02|    no
+    266 |         67.7 | 158.02   1.14| 156.04   1.09|    no
+    267 |         67.9 | 157.90   1.10| 158.17   1.15|    no
+    268 |         67.8 | 158.08   1.14| 155.32   1.28|    no
+    269 |         68.0 | 157.33   1.13| 161.85 0.9699|    no
+    270 |         67.8 | 158.65   1.11| 157.91   1.12|    no
+    271 |         67.9 | 157.96   1.10| 158.18   1.05|    no
+    272 |         67.8 | 157.18   1.12| 153.99   1.09|   yes
+    273 |         67.8 | 158.31   1.09| 160.83   1.20|    no
+    274 |         67.8 | 158.12   1.11| 164.27 0.9902|    no
+    275 |         67.7 | 159.49   1.11| 153.91   1.18|    no
+    276 |         67.7 | 158.31   1.12| 159.52 0.9615|    no
+    277 |         67.9 | 157.68   1.08| 156.27   1.06|    no
+    278 |         67.7 | 157.58   1.11| 157.94   1.01|    no
+    279 |         67.4 | 157.60   1.08| 160.13 0.9470|    no
+    280 |         67.4 | 156.47   1.11| 153.63   1.26|   yes
+    281 |         67.4 | 156.27   1.11| 156.52   1.15|    no
+    282 |         67.4 | 157.40   1.08| 156.24   1.04|    no
+    283 |         67.4 | 156.50   1.11| 155.48   1.09|    no
+    284 |         67.4 | 156.71   1.13| 159.31 0.9672|    no
+    285 |         67.1 | 157.50   1.10| 156.76   1.07|    no
+    286 |         67.3 | 157.29   1.06| 154.76 0.9981|    no
+    287 |         67.3 | 157.03   1.09| 160.18 0.9767|    no
+    288 |         67.4 | 156.86   1.11| 156.99   1.10|    no
+    289 |         67.3 | 157.55   1.11| 157.09   1.21|    no
+    290 |         67.2 | 157.04   1.13| 157.45   1.06|    no
+    291 |         67.3 | 157.39   1.16| 157.10 0.9506|    no
+    292 |         67.2 | 156.93   1.07| 157.14   1.21|    no
+    293 |         67.1 | 156.25   1.06| 159.51   1.01|    no
+    294 |         67.3 | 157.13   1.06| 157.70 0.9041|    no
+    295 |         67.4 | 157.42   1.10| 155.39   1.03|    no
+    296 |         67.4 | 156.51   1.10| 155.20   1.13|    no
+    297 |         67.3 | 156.87   1.06| 157.78 0.9504|    no
+    298 |         67.8 | 156.66   1.15| 153.26   1.17|   yes
+    299 |         67.4 | 156.26   1.15| 156.02   1.08|    no
+--------------------------------------------------------------
+[94mTraining finished[0m
+[94mModel is saved to[0m[94m./trained_network_G.pt[0m
+[94m./trained_network_D.pt[0m
