@@ -17,10 +17,14 @@ __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
 
-def print_gen_info(seq_name, time):
+def print_gen_info(seq_name, time, sample_idx=None):
     """ Print the information during inference
     """
-    mes = "Generating {}, time: {:.3f}s".format(seq_name, time)
+    if sample_idx is None:
+        mes = "Generating {}, time cost: {:.3f}s".format(seq_name, time)
+    else:
+        mes = "Generating {:d}, {}, time cost: {:.3f}s".format(
+            sample_idx, seq_name, time)
     nii_display.f_print_message(mes)
     return mes + '\n'
 

@@ -309,7 +309,8 @@ class NII_MergeDataSetLoader():
             if 'sampler' in tmp_params:
                 tmp_sampler = None
                 if tmp_params['sampler'] == nii_sampler_fn.g_str_sampler_bsbl:
-                    if 'batch_size' in tmp_params:
+                    if 'batch_size' in tmp_params \
+                       and tmp_params['batch_size'] > 1:
                         # initialize the sampler
                         tmp_sampler = nii_sampler_fn.SamplerBlockShuffleByLen(
                             py_datasets.f_get_seq_len_list(), 
@@ -317,7 +318,9 @@ class NII_MergeDataSetLoader():
                         # turn off automatic shuffle
                         tmp_params['shuffle'] = False
                     else:
-                        nii_warn.f_die("Sampler requires batch size > 1")
+                        nii_warn.f_print("{:s} off as batch-size is 1".format(
+                            nii_sampler_fn.g_str_sampler_bsbl))
+                        #nii_warn.f_die("Sampler requires batch size > 1")
                 tmp_params['sampler'] = tmp_sampler
 
             # collate function

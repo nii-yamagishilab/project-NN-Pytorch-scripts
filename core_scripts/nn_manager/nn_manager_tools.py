@@ -444,5 +444,99 @@ def f_loss_show(loss_module, do_loss_def_check=True, model_type=None):
     #print(loss_module)
     return
 
+def f_split_data(data_in, data_tar, max_length, overlap):
+    """ in_list, tar_list = f_split_data(data_in, data_tar, length, overlap)
+    
+    Args:
+      data_in: tensor, (batch, length, dim)
+      data_tar: tensor, (batch, length, dim)
+      length: int, max lengnth of each trunk
+      overlap: int, trunc will have this number of overlap
+
+    Return:  
+      data_in_list: list of tensors
+      data_tar_list: list of tensors 
+    """
+    if not isinstance(data_in, torch.Tensor):
+        print("Not implemented for a list of data")
+        sys.exit(1)
+
+    if max_length <= 0:
+        print("Not implemented for a negative trunc length")
+        sys.exit(1)
+
+    if overlap > (max_length - 1):
+        overlap = max_length - 1
+    
+    tmp_trunc_len = max_length - overlap
+
+    trunc_num = data_in.shape[1] // tmp_trunc_len
+    if trunc_num > 0:
+        # ignore the short segment at the end
+        if data_in.shape[1] % tmp_trunc_len > overlap:
+            trunc_num += 1
+    else:
+        # however, if input is too short, just don not segment
+        if data_in.shape[1] % tmp_trunc_len > 0:
+            trunc_num += 1
+        
+    
+    data_in_list = []
+    data_tar_list = []
+    for trunc_idx in range(trunc_num):
+        start_idx = trunc_idx * tmp_trunc_len
+        end_idx = start_idx + max_length
+        data_in_list.append(data_in[:, start_idx:end_idx])
+        if isinstance(data_tar, torch.Tensor):
+            data_tar_list.append(data_tar[:, start_idx:end_idx])
+        else:
+            data_tar_list.append([])
+    return data_in_list, data_tar_list, overlap
+
+def f_overlap_data(data_list, overlap_length):
+    """ data_gen = f_overlap_data(data_list, overlap_length)
+    Input:
+      data_list: list of tensors, in (batch, length, dim) or (batch, length)
+      overlap_length: int, overlap_length    
+
+    Output:
+      data_gen: tensor, (batch, length, dim)
+    """
+    batch = data_list[0].shape[0]
+    data_device = data_list[0].device
+    data_dtype = data_list[0].dtype
+    if len(data_list[0].shape) == 2:
+        dim = 1
+    else:
+        dim = data_list[0].shape[2]
+
+    total_length = sum([x.shape[1] for x in data_list])
+    data_gen = torch.zeros([batch, total_length, dim], dtype=data_dtype,
+                           device = data_device)
+    
+    prev_end = 0
+    for idx, data_trunc in enumerate(data_list):
+        tmp_len = data_trunc.shape[1]
+        if len(data_trunc.shape) == 2:
+            data_tmp = torch.unsqueeze(data_trunc, -1)
+        else:
+            data_tmp = data_trunc
+
+        if idx == 0:
+            data_gen[:, 0:tmp_len] = data_tmp
+            prev_end = tmp_len
+        else:
+            win_len = min([prev_end, overlap_length, tmp_len])
+            win_cof = torch.arange(0, win_len, 
+                                   dtype=data_dtype, device=data_device)/win_len
+            win_cof = win_cof.unsqueeze(0).unsqueeze(-1)
+            data_gen[:, prev_end-win_len:prev_end] *= 1.0 - win_cof
+            data_tmp[:, :win_len] *= win_cof
+            data_gen[:, prev_end-win_len:prev_end-win_len+tmp_len] += data_tmp
+            prev_end = prev_end-win_len+tmp_len
+    return data_gen[:, 0:prev_end]
+    
+    
+
 if __name__ == "__main__":
     print("nn_manager_tools")

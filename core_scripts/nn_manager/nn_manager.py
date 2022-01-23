@@ -424,7 +424,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             flag_new_best, optimizer_wrapper.get_lr_info())
 
         # save the best model
-        if flag_new_best:
+        if flag_new_best or args.force_save_lite_trained_network_per_epoch:
             tmp_best_name = nii_nn_tools.f_save_trained_name(args)
             torch.save(pt_model.state_dict(), tmp_best_name)
             
@@ -504,14 +504,25 @@ def f_inference_wrapper(args, pt_model, device, \
     
     # start generation
     nii_display.f_print("Start inference (generation):", 'highlight')
+    
+    if hasattr(args, 'trunc_input_length_for_inference') and \
+       args.trunc_input_length_for_inference > 0:
+        mes = "Generation in segment-by-segment mode (truncation length "
+        mes += "{:d})".format(args.trunc_input_length_for_inference)
+        nii_display.f_print(mes)
+
 
     # output buffer, filename buffer
     #output_buf = []
     #filename_buf = []
     
     pt_model.eval() 
+    total_start_time = time.time()
+    total_accumulate = 0
+    sample_account = 0
     with torch.no_grad():
         
+        start_time_load = time.time()
         # run generation
         for _, (data_in, data_tar, data_info, idx_orig) in \
             enumerate(test_data_loader):
@@ -533,8 +544,9 @@ def f_inference_wrapper(args, pt_model, device, \
             else:
                 pass
             
-            
-            start_time = time.time()
+            # load down time for debugging
+            start_time_inf = time.time()
+            time_cost_load = (start_time_inf - start_time_load)/len(data_info)
             
             # in case the model defines inference function explicitly
             if hasattr(pt_model, "inference"):
@@ -542,28 +554,66 @@ def f_inference_wrapper(args, pt_model, device, \
             else:
                 infer_func = pt_model.forward
 
-            # compute output
-            if args.model_forward_with_target:
-                # if model.forward requires (input, target) as arguments
-                # for example, for auto-encoder
-                if args.model_forward_with_file_name:
-                    data_gen = infer_func(data_in, data_tar, data_info)
-                else:
-                    data_gen = infer_func(data_in, data_tar)
-            else:    
-                if args.model_forward_with_file_name:
-                    data_gen = infer_func(data_in, data_info)
-                else:
-                    data_gen = infer_func(data_in)
             
-            time_cost = time.time() - start_time
-            # average time for each sequence when batchsize > 1
-            time_cost = time_cost / len(data_info)
+            if hasattr(args, 'trunc_input_length_for_inference') and \
+               args.trunc_input_length_for_inference > 0:
+                # generate the data segment by segment, then do overlap and add
+                in_list, tar_list, overlap = nii_nn_tools.f_split_data(
+                    data_in, data_tar, args.trunc_input_length_for_inference,
+                    args.trunc_input_overlap)
                 
+                gen_list = []
+                for in_tmp, tar_tmp in zip(in_list, tar_list):
+                    # compute output
+                    if args.model_forward_with_target:
+                        if args.model_forward_with_file_name:
+                            data_gen = infer_func(in_tmp, tar_tmp, data_info)
+                        else:
+                            data_gen = infer_func(in_tmp, tar_tmp)
+                    else:    
+                        if args.model_forward_with_file_name:
+                            data_gen = infer_func(in_tmp, data_info)
+                        else:
+                            data_gen = infer_func(in_tmp)
+                    gen_list.append(data_gen)
+                
+                # generation model may "up-sample" the input, we need to know
+                # output_segment_length // input_segment_length
+                if len(gen_list) > 0 and len(in_list) > 0:
+                    upsamp_fac = gen_list[0].shape[1] // in_list[0].shape[1]
+                    data_gen = nii_nn_tools.f_overlap_data(
+                        gen_list, upsamp_fac * overlap)
+                else:
+                    print("Gneration failed on {:s}".format(data_info))
+                    sys.exit(1)
+            
+            else:
+                # compute output
+                if args.model_forward_with_target:
+                    # if model.forward requires (input, target) as arguments
+                    # for example, for auto-encoder
+                    if args.model_forward_with_file_name:
+                        data_gen = infer_func(data_in, data_tar, data_info)
+                    else:
+                        data_gen = infer_func(data_in, data_tar)
+                else:    
+                    if args.model_forward_with_file_name:
+                        data_gen = infer_func(data_in, data_info)
+                    else:
+                        data_gen = infer_func(data_in)
+            
+            # log time for debugging
+            start_time_save = time.time()
+            time_cost_inf = start_time_save - start_time_inf
+            # average time for each sequence when batchsize > 1
+            time_cost_inf = time_cost_inf / len(data_info)
+            
             if data_gen is None:
                 nii_display.f_print("No output saved: %s" % (str(data_info)),\
                                     'warning')
             else:
+                #output_buf.append(data_gen)
+                #filename_buf.append(data_info)
                 try:
                     data_gen = pt_model.denormalize_output(data_gen)
                     data_gen_np = data_gen.to("cpu").numpy()
@@ -574,19 +624,31 @@ def f_inference_wrapper(args, pt_model, device, \
                 
                 # save output (in case batchsize > 1, )
                 for idx, seq_info in enumerate(data_info):
-                    nii_display.f_print(seq_info)
+                    #nii_display.f_print(seq_info)
                     test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
                                                  args.output_dir, \
                                                  seq_info)
+
+            start_time_load = time.time()
+            time_cost_save = (start_time_load - start_time_save)/len(data_info)
+            
             # print information
+            time_cost = time_cost_load + time_cost_inf + time_cost_save
             for idx, seq_info in enumerate(data_info):
-                _ = nii_op_display_tk.print_gen_info(seq_info, time_cost)
+                #print("{:s} {:f} {:f} {:f}".format(
+                #    seq_info, time_cost_load, time_cost_inf, time_cost_save))
+                sample_account += 1
+                _ = nii_op_display_tk.print_gen_info(
+                    seq_info, time_cost, sample_account)
                 
-        # Writing generatd data to disk
-        #nii_display.f_print("Writing output to %s" % (args.output_dir))
-        #for data_gen, data_info in zip(output_buf, filename_buf):            
-        #    if data_gen is not None:
-                
+            # log time for debugging
+            total_accumulate += time_cost * len(data_info)
+            #
+
+        total_time = time.time() - total_start_time
+        nii_display.f_print("Inference time cost: {:f}s".format(total_time))
+        #nii_display.f_print("{:f}".format(total_accumulate))
+        
         # done for
     # done with
     nii_display.f_print("Output data has been saved to %s" % (args.output_dir))
@@ -594,6 +656,35 @@ def f_inference_wrapper(args, pt_model, device, \
     # finish up if necessary
     if hasattr(pt_model, "finish_up_inference"):
         pt_model.finish_up_inference()
+
+    # done
+    return
+
+
+def f_convert_epoch_to_trained(args, pt_model, device, checkpoint):
+    """ Convert a checkpoint to trained_network.pt 
+    (remove gradients and other statistics for training)
+    """
+    # cuda device
+    if torch.cuda.device_count() > 1 and args.multi_gpu_data_parallel:
+        nii_display.f_print(
+            "DataParallel is not implemented here", 'warning')
+    nii_display.f_print("\nUse single GPU: %s\n" % \
+                        (torch.cuda.get_device_name(device)))
+
+    # print the network
+    pt_model.to(device, dtype=nii_dconf.d_dtype)
+    nii_nn_tools.f_model_show(pt_model)
+    
+    # load trained model parameters from checkpoint
+    nii_nn_tools.f_load_checkpoint_for_inference(checkpoint, pt_model)
+    
+    # start generation
+    nii_display.f_print("Start conversion:", 'highlight')
+    tmp_best_name = nii_nn_tools.f_save_trained_name(args)
+    torch.save(pt_model.state_dict(), tmp_best_name)
+    nii_display.f_print("Model is saved to", end = '')
+    nii_display.f_print("{}".format(tmp_best_name))
 
     # done
     return
