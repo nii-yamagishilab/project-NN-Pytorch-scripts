@@ -420,7 +420,7 @@ def f_loss_check(loss_module, model_type=None):
             else:
                 print("[OK]: use %s, %s" % (tmpkey, mes))
         # done
-    nii_display.f_print("Loss check done\n")
+    nii_display.f_print("Loss check done")
     return
 
 def f_loss_show(loss_module, do_loss_def_check=True, model_type=None):

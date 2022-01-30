@@ -58,7 +58,7 @@ def print_train_info(epoch, time_tr, loss_tr, time_val,
     else:
         mes = mes + "{:>5s}".format("no")
     if lr_info:
-        mes = mes + lr_info
+        mes = mes + ' ' + lr_info
     nii_display.f_print_message(mes, flush=True)
     return mes + '\n'
 

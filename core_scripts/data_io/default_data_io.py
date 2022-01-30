@@ -362,11 +362,13 @@ class NIIDataSet(torch.utils.data.Dataset):
         
         For test set data, output can be None
         """
+        # option to select the (N - i + 1)-th sample
         if self.m_flag_reverse_load_order:
             idx = len(self.m_seq_info) - idx_input - 1
         else:
             idx = idx_input
         
+        # get the sample information 
         try:
             tmp_seq_info = self.m_seq_info[idx]
         except IndexError:
@@ -1341,6 +1343,31 @@ class NIIDataSet(torch.utils.data.Dataset):
         for idx in np.arange(len(data_tuple[-1])):
             data_tuple[-1][idx] += idx_shift
         return data_tuple
+
+
+    def f_manage_data(self, idx, opt):
+        """
+        f_mange_seq(self, idx)
+        
+        Args:
+          idx: list of data indices, 
+          opt: 'keep', keep only data in idx
+               'delete', delete data in idx
+        """
+        if type(idx) is not list:
+            nii_warn.f_die("f_delete_seq(idx) expects idx to be list")
+
+        if opt == 'delete':
+            tmp_idx = [x for x in range(self.__len__()) if x not in idx]
+        else:
+            tmp_idx = idx
+        self.m_seq_info = [self.m_seq_info[x] for x in tmp_idx \
+                           if x < self.__len__() and x >= 0]
+        self.m_data_total_length = self.f_sum_data_length()
+        return
+
+    def f_get_seq_list(self):
+        return [x.seq_tag() for x in self.m_seq_info]
     
 class NIIDataSetLoader:
     """ NIIDataSetLoader:
@@ -1469,9 +1496,19 @@ class NIIDataSetLoader:
             tmp_params = params.copy()
             
         # save parameters
-        self.m_params = tmp_params.copy()
-        
+        self.m_params = tmp_params
+
+        # create data loader
+        self.m_loader = self.build_loader()
+
+        # done
+        return
+
+    def build_loader(self):
+        """
+        """
         # initialize sampler if necessary
+        tmp_params = self.m_params.copy()
         if 'sampler' in tmp_params:
             tmp_sampler = None
             if tmp_params['sampler'] == nii_sampler_fn.g_str_sampler_bsbl:
@@ -1487,7 +1524,6 @@ class NIIDataSetLoader:
                         nii_sampler_fn.g_str_sampler_bsbl))
                     #nii_warn.f_die("Sampler requires batch size > 1")
             tmp_params['sampler'] = tmp_sampler
-            
 
         # collate function
         if 'batch_size' in tmp_params and tmp_params['batch_size'] > 1:
@@ -1496,12 +1532,10 @@ class NIIDataSetLoader:
             collate_fn = nii_collate_fn.customize_collate
         else:
             collate_fn = None
-            
-        self.m_loader = torch.utils.data.DataLoader(
+        
+        # return the loader
+        return torch.utils.data.DataLoader(
             self.m_dataset, collate_fn=collate_fn, **tmp_params)
-            
-        # done
-        return
         
     def get_loader_params(self):
         return self.m_params
@@ -1530,6 +1564,10 @@ class NIIDataSetLoader:
         print(str(self.m_params))
         return
 
+    def get_seq_list(self):
+        return self.m_dataset.f_get_seq_list()
+
+
     def putitem(self, output_data, save_dir, data_infor_str):
         """ Decompose the output_data from network into
         separate files
@@ -1557,6 +1595,22 @@ class NIIDataSetLoader:
         This is used by customize_dataset.
         """
         return self.m_dataset.f_adjust_idx(data_tuple, utt_idx_shift)
+
+    def manage_data(self, data_idx, opt):
+        """
+        f_delete_seq(self, data_idx)
+        
+        Args:
+          data_idx: list of indices, samples with these indices will be deleted
+          opt: 'keep', keep only data in idx
+               'delete', delete data in idx
+        """
+        # delete the data from dataset
+        self.m_dataset.f_delete_seq(data_idx, opt)
+        # rebuild dataloader
+        self.m_loader = self.build_loader()        
+        return
+
     
 if __name__ == "__main__":
     pass

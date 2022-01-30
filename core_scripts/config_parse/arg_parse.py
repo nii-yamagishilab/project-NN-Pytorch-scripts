@@ -158,7 +158,34 @@ def f_args_parsed(argument_input = None):
     mes = 'save model after every N mini-batches (default: 0, not use)'
     parser.add_argument('--save-model-every-n-minibatches', type=int, 
                         default=0, help=mes)
+
     
+    #######
+    # options for active learning
+    mes = 'Number of active leaning cycles'
+    parser.add_argument('--active-learning-cycle-num', type=int, default=0, 
+                        help = mes)
+    
+    mes = 'Whetehr use base traing set with new samples? (default True)'
+    parser.add_argument('--active-learning-use-new-data-only', 
+                        action='store_true', default=False, help = mes)
+
+    mes = 'Number of samples selected per cycle? (default =batch size)'
+    parser.add_argument('--active-learning-new-sample-per-cycle', type=int, 
+                        default=0, help = mes)
+
+    mes = 'Use model.train() during data retrieval (defaul False)'
+    parser.add_argument('--active-learning-train-model-for-retrieval', 
+                        action='store_true', default=False, help = mes)
+
+    mes = 'Retrieve data with replacement (defaul True)'
+    parser.add_argument('--active-learning-with-replacement', 
+                        action='store_true', default=False, help = mes)
+
+    mes = 'Number of pre-trainining epochs before active learniing (defaul 0)'
+    parser.add_argument('--active-learning-pre-train-epoch-num', type=int, 
+                        default=0, help=mes)
+
     #######
     # options to load model
     mes = 'a trained model for inference or resume training '

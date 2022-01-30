@@ -2,9 +2,8 @@
 """
 main.py for project-NN-pytorch/projects
 
-The training/inference process wrapper.
-Dataset API is replaced with NII_MergeDataSetLoader. 
-It is more convenient to train model on corpora stored in different directories.
+The training/inference process wrapper for active learning.
+The base is on main_mergedataset.py
 
 Requires model.py and config.py (config_merge_datasets.py)
 
@@ -13,6 +12,7 @@ Usage: $: python main.py [options]
 from __future__ import absolute_import
 import os
 import sys
+import copy
 import torch
 import importlib
 
@@ -24,12 +24,13 @@ import core_scripts.other_tools.list_tools as nii_list_tool
 import core_scripts.config_parse.config_parse as nii_config_parse
 import core_scripts.config_parse.arg_parse as nii_arg_parse
 import core_scripts.op_manager.op_manager as nii_op_wrapper
-import core_scripts.nn_manager.nn_manager as nii_nn_wrapper
+import core_scripts.nn_manager.nn_manager_AL as nii_nn_wrapper
+import core_scripts.nn_manager.nn_manager as nii_nn_wrapper_base
 import core_scripts.startup_config as nii_startup
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
-__copyright__ = "Copyright 2020, Xin Wang"
+__copyright__ = "Copyright 2022, Xin Wang"
 
 
 def main():
@@ -63,7 +64,6 @@ def main():
         out_trans_fns = prj_conf.output_trans_fns \
                         if hasattr(prj_conf, 'output_trans_fns') else None
         
-
         # Load file list and create data loader
         trn_lst = prj_conf.trn_list
         trn_set = nii_dset.NII_MergeDataSetLoader(
@@ -75,6 +75,34 @@ def main():
             prj_conf.input_reso, \
             prj_conf.input_norm, \
             prj_conf.output_dirs, \
+            prj_conf.output_exts, \
+            prj_conf.output_dims, \
+            prj_conf.output_reso, \
+            prj_conf.output_norm, \
+            './', 
+            params = params,
+            truncate_seq = prj_conf.truncate_seq, 
+            min_seq_len = prj_conf.minimum_len,
+            save_mean_std = True,
+            wav_samp_rate = prj_conf.wav_samp_rate,
+            way_to_merge = args.way_to_merge_datasets,
+            global_arg = args,
+            dset_config = prj_conf,
+            input_augment_funcs = in_trans_fns,
+            output_augment_funcs = out_trans_fns)
+
+
+        # Load data pool and create data loader
+        pool_lst = prj_conf.al_pool_list
+        pool_set = nii_dset.NII_MergeDataSetLoader(
+            prj_conf.al_pool_set_name, \
+            pool_lst,
+            prj_conf.al_pool_in_dirs, \
+            prj_conf.input_exts, \
+            prj_conf.input_dims, \
+            prj_conf.input_reso, \
+            prj_conf.input_norm, \
+            prj_conf.al_pool_out_dirs, \
             prj_conf.output_exts, \
             prj_conf.output_dims, \
             prj_conf.output_reso, \
@@ -135,11 +163,36 @@ def main():
         else:
             checkpoint = torch.load(args.trained_model)
             
+        # pre-training using standard procedure
+        # change args
+        args_tmp = copy.deepcopy(args)
+        args_tmp.epochs = args.active_learning_pre_train_epoch_num
+        args_tmp.not_save_each_epoch = True
+        args_tmp.save_trained_name += '_pretrained'
+        args_tmp.active_learning_cycle_num = 0
+        pretraind_name = args_tmp.save_trained_name + args_tmp.save_model_ext
+        if args.active_learning_pre_train_epoch_num:
+            nii_warn.f_print_w_date("Normal training (warm-up) phase",level='h')
+            nii_warn.f_print("Normal training for {:d} epochs".format(
+                args.active_learning_pre_train_epoch_num))
+            op_wrapper_tmp = nii_op_wrapper.OptimizerWrapper(model, args_tmp)
+            loss_wrapper_tmp = prj_model.Loss(args_tmp)
+            nii_nn_wrapper_base.f_train_wrapper(
+                args_tmp, model, loss_wrapper, device, op_wrapper_tmp,
+                trn_set, val_set, checkpoint)
+            checkpoint = torch.load(pretraind_name)
+        else:
+            if os.path.isfile(pretraind_name):
+                checkpoint = torch.load(pretraind_name)
+                nii_warn.f_print("Use pretrained model before active learning")
+
+        nii_warn.f_print_w_date("Active learning phase",level='h')
         # start training
-        nii_nn_wrapper.f_train_wrapper(args, model, 
-                                       loss_wrapper, device,
-                                       optimizer_wrapper,
-                                       trn_set, val_set, checkpoint)
+        nii_nn_wrapper.f_train_wrapper(
+            args, model, 
+            loss_wrapper, device,
+            optimizer_wrapper,
+            trn_set, pool_set, val_set, checkpoint)
         # done for traing
 
     else:
@@ -149,7 +202,7 @@ def main():
         # default, no truncating, no shuffling
         params = {'batch_size':  args.batch_size,
                   'shuffle': False,
-                  'num_workers': args.num_workers, 
+                  'num_workers': args.num_workers,
                   'sampler': args.sampler}
 
         in_trans_fns = prj_conf.test_input_trans_fns \
@@ -202,8 +255,8 @@ def main():
             checkpoint = torch.load(args.trained_model)
             
         # do inference and output data
-        nii_nn_wrapper.f_inference_wrapper(args, model, device, \
-                                           test_set, checkpoint)
+        nii_nn_wrapper_base.f_inference_wrapper(
+            args, model, device, test_set, checkpoint)
     # done
     return
 
