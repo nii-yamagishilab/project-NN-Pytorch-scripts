@@ -111,6 +111,9 @@ def parse_length(input_str):
 def parse_filename(input_str):
     return input_str.split(',')[1]
 
+def parse_idx(input_str):
+    return int(input_str.split(',')[0])
+
     
 if __name__ == "__main__":
     print("Definition of seq_info class")

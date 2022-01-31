@@ -196,8 +196,10 @@ class NIIDataSet(torch.utils.data.Dataset):
         
         if global_arg is not None:
             self.m_ignore_length_invalid = global_arg.ignore_length_invalid_data
+            self.m_ignore_cached_finfo = global_arg.ignore_cached_file_infor
         else:
             self.m_ignore_length_invalid = False
+            self.m_ignore_cached_finfo = False
 
         # check augmentation funcctions
         if input_augment_funcs:
@@ -360,11 +362,13 @@ class NIIDataSet(torch.utils.data.Dataset):
         
         For test set data, output can be None
         """
+        # option to select the (N - i + 1)-th sample
         if self.m_flag_reverse_load_order:
             idx = len(self.m_seq_info) - idx_input - 1
         else:
             idx = idx_input
         
+        # get the sample information 
         try:
             tmp_seq_info = self.m_seq_info[idx]
         except IndexError:
@@ -692,6 +696,12 @@ class NIIDataSet(torch.utils.data.Dataset):
             self.m_file_list = nii_list_tools.listdir_with_ext(
                 self.m_input_dirs[0], self.m_input_exts[0])
 
+        if len(self.m_file_list) < 1:
+            mes = "either input data list is wrong"
+            mes += ", or {:s} is empty".format(self.m_input_dirs[0])
+            mes += "\nPlease check the folder and data list"
+            nii_warn.f_die(mes)
+
         # check the list of files exist in all input/output directories
         for tmp_d, tmp_e in zip(self.m_input_dirs, self.m_input_exts):
             tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e)
@@ -976,7 +986,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         self.m_data_total_length = 0
         
         flag = True
-        if os.path.isfile(data_path):
+        if os.path.isfile(data_path) and not self.m_ignore_cached_finfo:
             # load data length from pre-stored *.dic
             dic_seq_infos = nii_io_tk.read_dic(self.m_data_len_path)
             for dic_seq_info in dic_seq_infos:
@@ -1039,8 +1049,10 @@ class NIIDataSet(torch.utils.data.Dataset):
     def f_save_data_len(self, data_len_path):
         """
         """
-        nii_io_tk.write_dic([x.print_to_dic() for x in self.m_seq_info], \
-                            data_len_path)
+        if not self.m_ignore_cached_finfo:
+            nii_io_tk.write_dic([x.print_to_dic() for x in self.m_seq_info], \
+                                data_len_path)
+        return
         
     def f_save_mean_std(self, ms_input_path, ms_output_path):
         """
@@ -1287,12 +1299,19 @@ class NIIDataSet(torch.utils.data.Dataset):
 
         # write the data
         file_name = tmp_seq_info.seq_tag()
+        seq_length = tmp_seq_info.seq_length()
         s_dim = 0
         e_dim = 0
-        for t_ext, t_dim in zip(self.m_output_exts, self.m_output_dims):
+        for t_ext, t_dim, t_reso in \
+            zip(self.m_output_exts, self.m_output_dims, self.m_output_reso):
             e_dim = s_dim + t_dim
             file_path = nii_str_tk.f_realpath(save_dir, file_name, t_ext)
-            self.f_write_data(output_data[:, s_dim:e_dim], file_path)
+            expect_len = seq_length // t_reso
+            if output_data.shape[0] < expect_len:
+                nii_warn.f_print("Warning {:s}".format(file_path), "error")
+                nii_warn.f_print("The generated data is shorter than expected")
+                nii_warn.f_print("Please check the generated file")
+            self.f_write_data(output_data[:expect_len, s_dim:e_dim], file_path)
         
         return
 
@@ -1324,6 +1343,31 @@ class NIIDataSet(torch.utils.data.Dataset):
         for idx in np.arange(len(data_tuple[-1])):
             data_tuple[-1][idx] += idx_shift
         return data_tuple
+
+
+    def f_manage_data(self, idx, opt):
+        """
+        f_mange_seq(self, idx)
+        
+        Args:
+          idx: list of data indices, 
+          opt: 'keep', keep only data in idx
+               'delete', delete data in idx
+        """
+        if type(idx) is not list:
+            nii_warn.f_die("f_delete_seq(idx) expects idx to be list")
+
+        if opt == 'delete':
+            tmp_idx = [x for x in range(self.__len__()) if x not in idx]
+        else:
+            tmp_idx = idx
+        self.m_seq_info = [self.m_seq_info[x] for x in tmp_idx \
+                           if x < self.__len__() and x >= 0]
+        self.m_data_total_length = self.f_sum_data_length()
+        return
+
+    def f_get_seq_list(self):
+        return [x.seq_tag() for x in self.m_seq_info]
     
 class NIIDataSetLoader:
     """ NIIDataSetLoader:
@@ -1452,23 +1496,34 @@ class NIIDataSetLoader:
             tmp_params = params.copy()
             
         # save parameters
-        self.m_params = tmp_params.copy()
-        
+        self.m_params = tmp_params
+
+        # create data loader
+        self.m_loader = self.build_loader()
+
+        # done
+        return
+
+    def build_loader(self):
+        """
+        """
         # initialize sampler if necessary
+        tmp_params = self.m_params.copy()
         if 'sampler' in tmp_params:
             tmp_sampler = None
             if tmp_params['sampler'] == nii_sampler_fn.g_str_sampler_bsbl:
-                if 'batch_size' in tmp_params:
+                if 'batch_size' in tmp_params and tmp_params['batch_size']>1:
                     # initialize the sampler
                     tmp_sampler = nii_sampler_fn.SamplerBlockShuffleByLen(
                         self.m_dataset.f_get_seq_len_list(), 
                         tmp_params['batch_size'])
                     # turn off automatic shuffle
-                    tmp_params['shuffle'] = False                    
+                    tmp_params['shuffle'] = False
                 else:
-                    nii_warn.f_die("Sampler requires batch size > 1")
+                    nii_warn.f_print("{:s} off as batch-size is 1".format(
+                        nii_sampler_fn.g_str_sampler_bsbl))
+                    #nii_warn.f_die("Sampler requires batch size > 1")
             tmp_params['sampler'] = tmp_sampler
-            
 
         # collate function
         if 'batch_size' in tmp_params and tmp_params['batch_size'] > 1:
@@ -1477,12 +1532,10 @@ class NIIDataSetLoader:
             collate_fn = nii_collate_fn.customize_collate
         else:
             collate_fn = None
-            
-        self.m_loader = torch.utils.data.DataLoader(
+        
+        # return the loader
+        return torch.utils.data.DataLoader(
             self.m_dataset, collate_fn=collate_fn, **tmp_params)
-            
-        # done
-        return
         
     def get_loader_params(self):
         return self.m_params
@@ -1511,6 +1564,10 @@ class NIIDataSetLoader:
         print(str(self.m_params))
         return
 
+    def get_seq_list(self):
+        return self.m_dataset.f_get_seq_list()
+
+
     def putitem(self, output_data, save_dir, data_infor_str):
         """ Decompose the output_data from network into
         separate files
@@ -1538,6 +1595,22 @@ class NIIDataSetLoader:
         This is used by customize_dataset.
         """
         return self.m_dataset.f_adjust_idx(data_tuple, utt_idx_shift)
+
+    def manage_data(self, data_idx, opt):
+        """
+        f_delete_seq(self, data_idx)
+        
+        Args:
+          data_idx: list of indices, samples with these indices will be deleted
+          opt: 'keep', keep only data in idx
+               'delete', delete data in idx
+        """
+        # delete the data from dataset
+        self.m_dataset.f_delete_seq(data_idx, opt)
+        # rebuild dataloader
+        self.m_loader = self.build_loader()        
+        return
+
     
 if __name__ == "__main__":
     pass

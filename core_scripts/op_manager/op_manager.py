@@ -69,7 +69,12 @@ class OptimizerWrapper():
             nii_warn.f_die("Please add optimizer to op_manager")
 
         # number of epochs
-        self.epochs = args.epochs
+        if args.active_learning_cycle_num:
+            # for active learning, epochs * number_of_cycle
+            self.epochs = args.epochs * np.abs(args.active_learning_cycle_num)
+        else:
+            self.epochs = args.epochs
+        
         self.no_best_epochs = args.no_best_epochs
         
         # lr scheduler

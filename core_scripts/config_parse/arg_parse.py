@@ -50,6 +50,11 @@ def f_args_parsed(argument_input = None):
     mes = 'number of no-best epochs for early stopping (default: 5)'
     parser.add_argument('--no-best-epochs', type=int, default=5, help=mes)
 
+    mes = 'force to save trained-network.pt per epoch, '
+    mes += 'no matter whether the epoch is currently the best.'
+    parser.add_argument('--force-save-lite-trained-network-per-epoch', 
+                        action='store_true', default=False, help=mes)
+
     mes = 'sampler (default: None). Default sampler is random shuffler. '
     mes += 'Option 1: block_shuffle_by_length, shuffle data by length'
     parser.add_argument('--sampler', type=str, default='None', help=mes)
@@ -124,6 +129,11 @@ def f_args_parsed(argument_input = None):
     mes = "Ignore invalid data? the length of features does not match"
     parser.add_argument('--ignore-length-invalid-data', 
                         action='store_true', default=False, help=mes)
+
+
+    mes = "Ignore existing cache file dic"
+    parser.add_argument('--ignore-cached-file-infor', 
+                        action='store_true', default=False, help=mes)
     ######
     # options to save model / checkpoint
     parser.add_argument('--save-model-dir', type=str, \
@@ -148,7 +158,34 @@ def f_args_parsed(argument_input = None):
     mes = 'save model after every N mini-batches (default: 0, not use)'
     parser.add_argument('--save-model-every-n-minibatches', type=int, 
                         default=0, help=mes)
+
     
+    #######
+    # options for active learning
+    mes = 'Number of active leaning cycles'
+    parser.add_argument('--active-learning-cycle-num', type=int, default=0, 
+                        help = mes)
+    
+    mes = 'Whetehr use base traing set with new samples? (default True)'
+    parser.add_argument('--active-learning-use-new-data-only', 
+                        action='store_true', default=False, help = mes)
+
+    mes = 'Number of samples selected per cycle? (default =batch size)'
+    parser.add_argument('--active-learning-new-sample-per-cycle', type=int, 
+                        default=0, help = mes)
+
+    mes = 'Use model.train() during data retrieval (defaul False)'
+    parser.add_argument('--active-learning-train-model-for-retrieval', 
+                        action='store_true', default=False, help = mes)
+
+    mes = 'Retrieve data with replacement (defaul True)'
+    parser.add_argument('--active-learning-with-replacement', 
+                        action='store_true', default=False, help = mes)
+
+    mes = 'Number of pre-trainining epochs before active learniing (defaul 0)'
+    parser.add_argument('--active-learning-pre-train-epoch-num', type=int, 
+                        default=0, help=mes)
+
     #######
     # options to load model
     mes = 'a trained model for inference or resume training '
@@ -182,6 +219,17 @@ def f_args_parsed(argument_input = None):
     mes = 'path to save generated data (default: ./output)'
     parser.add_argument('--output-dir', type=str, default="./output", \
                         help=mes)
+    
+    mes = 'truncate input data sequences so that the max length < N.'
+    mes += ' (default: -1, not do truncating at all)'
+    parser.add_argument('--trunc-input-length-for-inference', type=int,
+                        default=-1, help=mes)
+
+
+    mes = 'truncate input data overlap length (default: 5)'
+    parser.add_argument('--trunc-input-overlap', type=int, default=5, help=mes)
+
+
     mes = 'which optimizer to use (Adam | SGD, default: Adam)'
     parser.add_argument('--optimizer', type=str, default='Adam', help=mes)
     

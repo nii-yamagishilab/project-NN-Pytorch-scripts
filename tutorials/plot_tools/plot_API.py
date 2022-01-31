@@ -386,7 +386,10 @@ def util_options(fig, axis, config_dic):
     if "legend" in config_dic:
         axis.legend(**config_dic["legend"])
     if "xticks" in config_dic:
-        axis.set_xticks(config_dic["xticks"])
+        if type(config_dic["xticks"]) is dict:
+            axis.set_xticks(**config_dic["xticks"])
+        else:
+            axis.set_xticks(config_dic["xticks"])
         if "xticklabels" in config_dic:
             if type(config_dic["xticklabels"]) is dict:
                 axis.set_xticklabels(**config_dic["xticklabels"])
