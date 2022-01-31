@@ -13,3 +13,5 @@ dependencies:
  - pytorch::cpuonly
  - numba=0.48.0
  - librosa=0.8.0
+ - pandas
+ - scikit-learn

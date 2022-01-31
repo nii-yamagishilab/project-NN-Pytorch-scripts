@@ -120,7 +120,7 @@ This project is later extended to a book chapter called **A Practical Guide to L
 
 ![EER-mintDCF](./misc/bookchapter_det_3.png)
 
-Pre-trained models, scores, training recipes are all available. Please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/READNE).
+Pre-trained models, scores, training recipes are all available. Please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/README).
 
 
 For LCNN, please check [this paper](https://www.isca-speech.org/archive/Interspeech_2019/abstracts/1768.html); for LFCC, please check [this paper](https://www.isca-speech.org/archive/interspeech_2015/i15_2087.html); for one-class softmax in ASVspoof, please check [this paper](https://arxiv.org/pdf/2010.13995).
@@ -132,9 +132,9 @@ For LCNN, please check [this paper](https://www.isca-speech.org/archive/Interspe
 
 Project for paper https://arxiv.org/abs/2110.04775 (to appear in ICASSP 2022)
 
-Pre-trained models, recipes are all available. Please check [./project/06-asvspoof-ood/README](./project/06-asvspoof-ood/READNE).
+Pre-trained models, recipes are all available. Please check [./project/06-asvspoof-ood/README](./project/06-asvspoof-ood/README).
 
-<img src="./misc/Conf-estimator_test2.png" alt="drawing" width="400"/>
+<img src="./misc/Conf-estimator_test2.png" alt="drawing" width="300"/>
 
 
 

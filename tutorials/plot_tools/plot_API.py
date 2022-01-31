@@ -316,14 +316,24 @@ def plot_API2(data_list, plot_funcs, grid_configs,
     xlim_bag = [np.inf, -np.inf]
     ylim_bag = [np.inf, -np.inf]
     axis_bags = []
+    axis_dic = {}
+
+    def sublabel(pos_a, pos_b, pos_c, pos_d):
+        return "{:d}{:d}{:d}{:d}".format(pos_a, pos_b, pos_c, pos_d)
 
     # plot    
     for idx, (data_entry, plot_func, grid_config) in \
         enumerate(zip(data_list, plot_funcs, grid_configs)):
 
         
-        axis = fig.add_subplot(gs[grid_config[0][0]:grid_config[0][1], 
-                                  grid_config[1][0]:grid_config[1][1]])
+        axis_label = sublabel(grid_config[0][0], grid_config[0][1], 
+                              grid_config[1][0], grid_config[1][1])
+        if axis_label in axis_dic:
+            axis = axis_dic[axis_label]
+        else:
+            axis = fig.add_subplot(gs[grid_config[0][0]:grid_config[0][1], 
+                                      grid_config[1][0]:grid_config[1][1]])
+            axis_dic[axis_label] = axis
         
         tmp_config = process_config_dic(config_dic, idx)
         
