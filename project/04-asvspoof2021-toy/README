@@ -93,7 +93,7 @@ Note
    If label of the trial is not given in the protocol file, the label will be:
     -1, which means unknown (not provided)
 
-3. Accordingly, the code assumes 0 and 1 as the tables for spoof and bona fide
+3. Accordingly, the code assumes 0 and 1 as the labels for spoof and bona fide
    trials, respectively. 
 
 4. Although you can use arbiary string to name the data set in config.py and

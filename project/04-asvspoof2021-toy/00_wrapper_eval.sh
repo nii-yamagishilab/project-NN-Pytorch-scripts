@@ -20,8 +20,11 @@
 # (See Doc of 02_eval_alternative.sh for more details)
 #
 # Note that this script doesn't require protocol.txt
-# Thus, the output score file will show the label for the trial
-# (0 for spoof, 1 for bona fide)
+# Thus, the output score file will not show the label for the trial.
+# The output score.txt will show something like:
+#    
+#    Output, LA_E_8293918, -1, -19.965618
+# The last column is the score, -1 is a dummy value
 # 
 ########################
 RED='\033[0;32m'
