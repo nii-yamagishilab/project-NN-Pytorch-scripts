@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SRC=/home/smg/wang/WORK/WORK/WORK/pytorch-project-2020/proj-asvspoof/proj-experiment-01
+SRC=~/WORK/WORK/WORK/pytorch-project-2020/proj-asvspoof/proj-experiment-01
 
 for feattype in lfcc spec2 lfb
 do
@@ -47,7 +47,7 @@ rm -r */*/__pretrained
 exit
 
 
-SRC=/home/smg/wang/WORK/WORK/WORK/pytorch-project-2020/proj-asvspoof/proj-experiment-01/99_export_github/03-asvspoof-mega
+SRC=~/WORK/WORK/WORK/pytorch-project-2020/proj-asvspoof/proj-experiment-01/99_export_github/03-asvspoof-mega
 for dir in `ls -d *-lcnn-*`
 do
     for run in 01 02 03 04 05 06
