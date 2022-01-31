@@ -6,9 +6,9 @@
 # No dependency required
 
 # Directory of input waveform
-INPUT_WAV_DIR=$1 #/home/smg/wang/WORK/WORK/WORK/voice-privacy-challenge-2019/TESTDATA/LibriSpeech/wav/wav16k_norm
+INPUT_WAV_DIR=$1 
 # Directory to store output F0
-OUTPUT_F0_DIR=$2 #/home/smg/wang/WORK/WORK/WORK/voice-privacy-challenge-2019/TESTDATA/LibriSpeech/f0/f0_yaapt
+OUTPUT_F0_DIR=$2 
 
 # SAMPLE list
 #LIST=/home/smg/wang/WORK/WORK/WORK/voice-privacy-challenge-2019/TESTDATA/LibriSpeech/scripts/get_sample/sample.lst
