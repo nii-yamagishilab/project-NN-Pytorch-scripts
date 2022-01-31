@@ -18,6 +18,15 @@ I am a new pytorch user. If you have any suggestions or questions, pleas email w
 * [Misc](#miscs)
 
 
+**Updates**
+
+2022-01-31: upload project for anti-spoofing confidence estimation
+
+2022-01-08: upload hn-sinc-nsf + hifi-gan 
+
+2022-01-08: upload RawNet2 for anti-spoofing
+
+
 ------
 <a name="note"></a>
 ## 1. Note 
@@ -42,11 +51,6 @@ The repository is relatively large. You may use `--depth 1` option to skip unnec
 git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts.git
 ```
 
-**Updates**
-
-2022-01-08: upload hn-sinc-nsf + hifi-gan 
-
-2022-01-08: upload RawNet2 for anti-spoofing
 
 <a name="overview"></a>
 ## 2. Overview
@@ -106,8 +110,7 @@ Please check [./project/04-asvspoof2021-toy/README](./project/04-asvspoof2021-to
 ### 2.4 Speech anti-spoofing for ASVspoof 2019 LA 
 [./project/03-asvspoof-mega](./project/03-asvspoof-mega)
 
-This is for [this anti-spoofing project (A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection, paper on arxiv)](https://arxiv.org/abs/2103.11326).
-
+This is for [A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection](https://arxiv.org/abs/2103.11326).
 
 There were 36 systems investigated, each of which was trained and evaluated for 6 rounds with different random seeds.
 
@@ -120,23 +123,20 @@ This project is later extended to a book chapter called **A Practical Guide to L
 Pre-trained models, scores, training recipes are all available. Please check [./project/03-asvspoof-mega/README](./project/03-asvspoof-mega/READNE).
 
 
-### 2.5 (Preliminary) speech anti-spoofing 
-[./project/02-asvspoof](./project/02-asvspoof)
-
-1. Baseline LFCC + LCNN-binary-classifier (lfcc-lcnn-sigmoid)
-
-2. LFCC + LCNN + angular softmax (lfcc-lcnn-a-softmax)
-
-3. LFCC + LCNN + one-class softmax (lfcc-lcnn-ocsoftmax)
-
-4. LFCC + ResNet18 + one-class softmax (lfcc-restnet-ocsoftmax)
-
-This is a pilot test on ASVspoof2019 LA task. I trained each system for 6 times on various GPU devices (single V100 or P100 card), each time with a different random initial seed. Figure below shows the DET curves for these systems:
-![det_curve](./misc/fig_det_baselines.png)
-
-The results vary a lot when simply changing the initial random seeds, even with the same random seed, Pytorch environment, and [deterministic algorithm selected](https://pytorch.org/docs/stable/notes/randomness.html). This preliminary test motivated the study in `./project-03-asvspoof-mega`.
-
 For LCNN, please check [this paper](https://www.isca-speech.org/archive/Interspeech_2019/abstracts/1768.html); for LFCC, please check [this paper](https://www.isca-speech.org/archive/interspeech_2015/i15_2087.html); for one-class softmax in ASVspoof, please check [this paper](https://arxiv.org/pdf/2010.13995).
+
+
+
+### 2.5 Confidence estimation for speech anti-spoofing 
+[./project/06-asvspoof-ood](./project/06-asvspoof-ood)
+
+Project for paper https://arxiv.org/abs/2110.04775 (to appear in ICASSP 2022)
+
+Pre-trained models, recipes are all available. Please check [./project/06-asvspoof-ood/README](./project/06-asvspoof-ood/READNE).
+
+<img src="./misc/Conf-estimator_test2.png" alt="drawing" width="400"/>
+
+
 
 <a name="env"></a>
 ## 3. Python environment
