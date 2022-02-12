@@ -24,6 +24,27 @@ import sys
 import numpy as np
 import core_scripts.data_io.io_tools as nii_io
 
+class CustomDict:
+    def __init__(self, missing_value=-1):
+        self.databuf = {}
+        self.misval = missing_value
+        return
+    
+    def __setitem__(self, key, value):
+        self.databuf[key] = value
+        return
+    
+    def __getitem__(self, key):
+        if key in self.databuf:
+            return self.databuf[key]
+        else:
+            return self.misval
+        
+    def keys(self):
+        return self.databuf.keys()
+    
+
+
 def protocol_parse_asvspoof2019(protocol_filepath):
     """ Parse protocol of ASVspoof2019 and get bonafide/spoof for each trial
     The format is:
@@ -40,13 +61,17 @@ def protocol_parse_asvspoof2019(protocol_filepath):
     -------
       data_buffer: dic, data_bufer[filename] -> 1 (bonafide), 0 (spoof)
     """
-    data_buffer = {}
-    temp_buffer = np.loadtxt(protocol_filepath, dtype='str')
-    for row in temp_buffer:
-        if row[-1] == 'bonafide':
-            data_buffer[row[1]] = 1
-        else:
-            data_buffer[row[1]] = 0
+    data_buffer = CustomDict()
+    if len(protocol_filepath) and os.path.isfile(protocol_filepath):
+        temp_buffer = np.loadtxt(protocol_filepath, dtype='str')
+        for row in temp_buffer:
+            if row[-1] == 'bonafide':
+                data_buffer[row[1]] = 1
+            else:
+                data_buffer[row[1]] = 0
+    else:
+        print("Cannot load {:s}".format(protocol_filepath))
+        print("Use an empty dictionary")
     return data_buffer
 
 def protocol_parse_general(protocol_filepaths, sep=' '):
@@ -67,21 +92,22 @@ def protocol_parse_general(protocol_filepaths, sep=' '):
     
     
     """
-    data_buffer = {}
+    data_buffer = CustomDict()
     if type(protocol_filepaths) is str:
         tmp = [protocol_filepaths]
     else:
         tmp = protocol_filepaths
     for protocol_filepath in tmp:
-        with open(protocol_filepath, 'r') as file_ptr:
-            for line in file_ptr:
-                line = line.rstrip('\n')
-                cols = line.split(sep)
+        if len(protocol_filepath) and os.path.isfile(protocol_filepath):
+            with open(protocol_filepath, 'r') as file_ptr:
+                for line in file_ptr:
+                    line = line.rstrip('\n')
+                    cols = line.split(sep)
 
-                if cols[-1] == 'bonafide':
-                    data_buffer[cols[1]] = 1
-                else:
-                    data_buffer[cols[1]] = 0
+                    if cols[-1] == 'bonafide':
+                        data_buffer[cols[1]] = 1
+                    else:
+                        data_buffer[cols[1]] = 0
     return data_buffer
 
 

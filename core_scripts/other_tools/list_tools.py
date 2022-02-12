@@ -16,20 +16,21 @@ __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
+from pathlib import Path as pathtool
 
-def listdir_with_ext(file_dir, file_ext=None):
-    """ 
-    file_list = lstdir_with_ext(file_dir, file_ext=None)
+def listdir_with_ext_flat(file_dir, file_ext=None):
+    """
+    file_list = lstdir_with_ext_flat(file_dir, file_ext=None)
     Return a list of file names with specified extention
 
     Args:
         file_dir: a file directory
         file_ext: string, specify the extention, e.g., txt, bin
-    Return:
+    Return: 
         file_list: a list of file_names
     """
     try:
-    
+
         if file_ext is None:
             file_list = [os.path.splitext(x)[0] for x in os.listdir(file_dir) \
                         if not x.startswith('.')]
@@ -40,6 +41,51 @@ def listdir_with_ext(file_dir, file_ext=None):
     except OSError:
         nii_warn.f_print("Cannot access %s" % (file_dir), "error")
         return []
+    
+    
+
+def listdir_with_ext_recur(file_dir, file_ext=None, recursive=True):
+    """
+    file_list = lstdir_with_ext(file_dir, file_ext=None)
+    Return a list of file names with specified extention
+
+    Args:
+        file_dir: a file directory
+        file_ext: string, specify the extention, e.g., txt, bin
+    Return:
+        file_list: a list of file_names
+    """
+    file_dir_tmp = file_dir if file_dir.endswith('/') else file_dir + '/'
+    
+    file_list = []
+    for rootdir, dirs, files in os.walk(file_dir_tmp, followlinks=True):
+        tmp_path = rootdir.replace(file_dir_tmp, '')
+        # concatenate lists may be slow for large data set
+        # change it in the future
+        if file_ext:
+            file_list += [os.path.splitext(os.path.join(tmp_path, x))[0] \
+                          for x in files if x.endswith(file_ext)]    
+        else:
+            file_list += [os.path.splitext(os.path.join(tmp_path, x))[0] \
+                          for x in files]    
+    return file_list
+
+def listdir_with_ext(file_dir, file_ext=None, recursive=False):
+    """
+    file_list = lstdir_with_ext(file_dir, file_ext=None, recursive=False)
+    Return a list of file names with specified extention
+
+    Args:
+        file_dir: a file directory
+        file_ext: string, specify the extention, e.g., txt, bin
+        recursive: bool, whether search recursively (default False)
+    Return: 
+        file_list: a list of file_names
+    """
+    if not recursive:
+        return listdir_with_ext_flat(file_dir, file_ext)
+    else:
+        return listdir_with_ext_recur(file_dir, file_ext)
 
 def common_members(list_a, list_b):
     """ list_c = common_members(list_a, list_b)
