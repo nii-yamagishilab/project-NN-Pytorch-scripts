@@ -95,6 +95,8 @@ echo -e "${RED}Step3. run evaluation process (using pre-trained model)${NC}"
 # run scripts
 for EVALCONFIG in `echo ${eval_configs}`
 do
+
+    echo -e "\n${RED}Scoring ${EVALCONFIG}${NC}"
     cp ${main_script} ${PRJDIR}/${SUBDIR}
     cp ${EVALCONFIG}.py ${PRJDIR}/${SUBDIR}
     cp ${eval_script} ${PRJDIR}/${SUBDIR}
@@ -127,6 +129,7 @@ echo -e "${RED}Step5. run evaluation process (using newly trained model)${NC}"
 # run scripts
 for EVALCONFIG in `echo ${eval_configs}`
 do
+    echo -e "\n${RED}Scoring ${EVALCONFIG}${NC}"
     cp ${main_script} ${PRJDIR}/${SUBDIR}
     cp ${EVALCONFIG}.py ${PRJDIR}/${SUBDIR}
     cp ${eval_script} ${PRJDIR}/${SUBDIR}

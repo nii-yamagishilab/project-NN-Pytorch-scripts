@@ -24,3 +24,9 @@ Project folders
    A few neural vocoders: waveglow, wavenet, and blow (for voice conversion)
    This project is mainly for tutorial purposes
    
+
+6. 06-asvspoof-ood
+   Projects for ASVspoof with abstention
+
+7. 07-asvspoof-ssl
+   Projects for ASVspoof with SSL front-end

@@ -9,7 +9,7 @@ I am a new pytorch user. If you have any suggestions or questions, pleas email w
 
 * [Overview](#overview)
 
-* [Requirement](#env)
+* [Requirement & dependency](#env)
 
 * [How to use](#use)
 
@@ -20,11 +20,13 @@ I am a new pytorch user. If you have any suggestions or questions, pleas email w
 
 **Updates**
 
-2022-01-31: upload project for anti-spoofing confidence estimation
+2022-02-13: upload project for anti-spoofing with SSL-based front end (sec [2.6](#overview2-6))
 
-2022-01-08: upload hn-sinc-nsf + hifi-gan 
+2022-01-31: upload project for anti-spoofing confidence estimation (sec [2.5](#overview2-5))
 
-2022-01-08: upload RawNet2 for anti-spoofing
+2022-01-08: upload hn-sinc-nsf + hifi-gan (sec [2.1](#overview2-1))
+
+2022-01-08: upload RawNet2 for anti-spoofing (sec [2.4](#overview2-4))
 
 
 ------
@@ -43,7 +45,7 @@ head -n 2 README.md
 
 **For other projects**
 
-Just follow the rest of the README.
+Just follow the rest of README.
 
 The repository is relatively large. You may use `--depth 1` option to skip unnecessary files.
 
@@ -51,13 +53,17 @@ The repository is relatively large. You may use `--depth 1` option to skip unnec
 git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts.git
 ```
 
+Pre-trained models will be downloaded through Dropbox links. Please contact with Xin if you cannot downloaod. 
 
 <a name="overview"></a>
 ## 2. Overview
 This repository hosts Pytorch codes for the following projects:
 
+<a name="overview2-1"></a>
 ### 2.1 Neural source-filter waveform model 
 [./project/01-nsf](./project/01-nsf)
+
+Implementations available: 
 
 1. [Cyclic-noise neural source-filter waveform model (NSF)](https://nii-yamagishilab.github.io/samples-nsf/nsf-v4.html)
 
@@ -77,9 +83,11 @@ Note that this is the re-implementation of the projects based on [CURRENNT](http
 
 Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/).
 
-
+<a name="overview2-2"></a>
 ### 2.2 Other neural waveform models 
 [./project/05-nn-vocoders](./project/05-nn-vocoders)
+
+Implementations available:
 
 1. [WaveNet vocoder](https://deepmind.com/blog/wavenet-generative-model-raw-audio/)
 
@@ -95,7 +103,7 @@ Generated samples from pre-trained models are in `./project/05-nn-vocoders/*/__p
 
 Tutorial is also available in [./tutorials](./tutorials)
 
-
+<a name="overview2-3"></a>
 ### 2.3 ASVspoof project with toy example 
 [./project/04-asvspoof2021-toy](./project/04-asvspoof2021-toy)
 
@@ -107,16 +115,18 @@ A similar project is adopted for [ASVspoof2021 LFCC-LCNN baseline](https://githu
 
 Please check [./project/04-asvspoof2021-toy/README](./project/04-asvspoof2021-toy/README).
 
+
+<a name="overview2-4"></a>
 ### 2.4 Speech anti-spoofing for ASVspoof 2019 LA 
 [./project/03-asvspoof-mega](./project/03-asvspoof-mega)
 
-This is for [A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection](https://arxiv.org/abs/2103.11326).
+This is for [A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection](https://www.isca-speech.org/archive/interspeech_2021/wang21fa_interspeech.html).
 
 There were 36 systems investigated, each of which was trained and evaluated for 6 rounds with different random seeds.
 
 ![EER-mintDCF](./misc/fig_eer_table.png)
 
-This project is later extended to a book chapter called **A Practical Guide to Logical Access Voice Presentation Attack Detection**. Single system using RawNet2 is added, and score fusion is added.
+This project is later extended to a book chapter called [A Practical Guide to Logical Access Voice Presentation Attack Detection](https://arxiv.org/abs/2201.03321). Single system using RawNet2 is added, and score fusion is added.
 
 ![EER-mintDCF](./misc/bookchapter_det_3.png)
 
@@ -125,8 +135,9 @@ Pre-trained models, scores, training recipes are all available. Please check [./
 
 For LCNN, please check [this paper](https://www.isca-speech.org/archive/Interspeech_2019/abstracts/1768.html); for LFCC, please check [this paper](https://www.isca-speech.org/archive/interspeech_2015/i15_2087.html); for one-class softmax in ASVspoof, please check [this paper](https://arxiv.org/pdf/2010.13995).
 
+For statistical analysis, please check this tutorial notebook [./project/07-asvspoof-ssl/02_stats_test.ipynb](./project/07-asvspoof-ssl/02_stats_test.ipynb)
 
-
+<a name="overview2-5"></a>
 ### 2.5 Confidence estimation for speech anti-spoofing 
 [./project/06-asvspoof-ood](./project/06-asvspoof-ood)
 
@@ -138,9 +149,27 @@ Pre-trained models, recipes are all available. Please check [./project/06-asvspo
 
 
 
+<a name="overview2-6"></a>
+### 2.6 Speech anti-spoofing with SSL front end
+[./project/07-asvspoof-ssl](./project/07-asvspoof-ssl)
+
+Project for paper https://arxiv.org/abs/2111.07725
+
+Pre-trained models, recipes are all available. Please check [./project/07-asvspoof-ssl/README](./project/07-asvspoof-ssl/README).
+
+A [tutorial notebook](./project/07-asvspoof-ssl/02_stats_test.ipynb) on statistical analysis is available.
+
+This project requires a specific version of [fairseq](https://github.com/pytorch/fairseq/) and uses [env-fs-install.sh](env-fs-install.sh) to install the dependency. For convenience, the demonstration script [./project/07-asvspoof-ssl/00_demo.sh](./project/07-asvspoof-ssl/00_demo.sh) will call the shell script and install the dependency automatically. Just go to there and run 00_demo.sh.
+
+![EER-mintDCF](./misc/fig-ssl.png)
+
+
 <a name="env"></a>
 ## 3. Python environment
 
+Projects above use either one of the two environments:
+
+### For most of the projects above
 You may use [./env.yml](./env.yml) to create the environment: 
 
 ```sh
@@ -151,8 +180,25 @@ conda env create -f env.yml
 conda activate pytorch-1.6
 ```
 
+### For Speech anti-spoofing with SSL front end
+You may use [./env-fs-install.sh](./env-fs-install.sh) to install the depenency.
+
+```sh
+# make sure other conda envs are not loaded
+bash env-fs-install.sh
+
+# load
+conda activate fairseq-pip2
+```
+
+
 <a name="use"></a>
 ## 4. How to use
+
+Please check README in each project.
+
+In many cases, simply run 00_demo.sh with proper arguments is sufficient. 
+
 Take `project/01-nsf/cyc-noise-nsf` as an example:
 
 ```sh
@@ -232,6 +278,8 @@ The motivation is to separate the training and inference process, the model defi
 
 * To run on a new database, change config.py
 
+The separation is not always strictly followed. 
+
 ### How the script works
 
 The script starts with main.py and calls different function for model training and inference. 
@@ -310,8 +358,9 @@ A detailed flowchat is [./misc/APPENDIX_1.md](./misc/APPENDIX_1.md). This may be
 
 
 <a name="miscs"></a>
-## 6 On NSF projects (./project/01-nsf)
-### Differences from [CURRENNT implementation](https://github.com/nii-yamagishilab/project-CURRENNT-public)
+## 6 Misc
+### On NSF
+#### Differences of NSF Pytorch and [CURRENNT implementation](https://github.com/nii-yamagishilab/project-CURRENNT-public)
 There may be more, but here are the important ones:
 
 * "Batch-normalization": in CURRENNT, "batch-normalization" is conducted along the length sequence, i.e., assuming each frame as one sample;
@@ -330,13 +379,15 @@ The learning curves look similar to the CURRENNT version.
 ![learning_curve](./misc/fig1_curve.png)
 
 
-### 24kHz
+#### 24kHz
 Most of my experiments are done on 16 kHz waveforms. For 24 kHz waveforms, FIR or sinc digital filters in the model may be changed for better performance:
 
 1. **hn-nsf**: lp_v, lp_u, hp_v, and hp_u are calculated for 16 kHz configurations. For different sampling rate, you may use this online tool http://t-filter.engineerjs.com to get the filter coefficients. In this case, the stop-band for lp_v and lp_u is extended to 12k, while the pass-band for hp_v and hp_u is extended to 12k. The reason is that, no matter what is the sampling rate, the actual formats (in Hz) and spectral of sounds don't change with the sampling rate;
 
 2. **hn-sinc-nsf and cyc-noise-nsf**: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
 
+#### NSF with GAN
+Spectral loss of NSF is insufficient for high-quality sound generation. Please try NSF + GAN (see Overview 2.1).
 
 ## Links
 

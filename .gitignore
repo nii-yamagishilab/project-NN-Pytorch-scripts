@@ -5,3 +5,4 @@ debug
 ._.DS_Store
 .ipynb_checkpoints
 __pycache__
+fairseq
