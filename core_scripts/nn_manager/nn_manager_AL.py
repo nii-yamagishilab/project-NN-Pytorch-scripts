@@ -30,11 +30,12 @@ __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2022, Xin Wang"
 
 #############################################################
-def __print_new_sample_list(cycle_idx, dataset_wrapper):
+def __print_new_sample_list(cycle_idx, data_idx, dataset_wrapper):
     """ print information on the newly added data 
     """
     mes = 'Active learning cycle {:d}, add samples: '.format(cycle_idx)
     mes += ', '.join(dataset_wrapper.get_seq_list())
+    mes += '\nNumber of samples: {:d}'.format(len(set(data_idx)))
     nii_display.f_eprint(mes)
     return
    
@@ -237,6 +238,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             # retrieve data
             data_idx = pt_model.al_retrieve_data(
                 pool_data_loader, num_sample_al_cycle)
+            data_idx = [int(x) for x in data_idx]
 
             # set flag back
             if tmp_train_flag:
@@ -270,7 +272,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         
         
         if args.verbose == 1:
-            __print_new_sample_list(cycle_idx, tmp_data_wrapper)
+            __print_new_sample_list(cycle_idx, data_idx, tmp_data_wrapper)
 
         ########
         # training using the new training set

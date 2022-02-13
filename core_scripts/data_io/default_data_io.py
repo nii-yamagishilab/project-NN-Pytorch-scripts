@@ -670,7 +670,12 @@ class NIIDataSet(torch.utils.data.Dataset):
     def f_get_mean_std_tuple(self):
         return (self.m_input_mean, self.m_input_std,
                 self.m_output_mean, self.m_output_std)
-
+    
+    def f_filename_has_folderpath(self):
+        """ Return True if file name in self.m_file_list contains '/',
+        Which indicates that the file name is path/filename
+        """
+        return any([x.count(os.path.sep)>0 for x in self.m_file_list])
     
     def f_check_file_list(self):
         """ f_check_file_list():
@@ -693,6 +698,8 @@ class NIIDataSet(torch.utils.data.Dataset):
         
         #  get a initial file list
         if self.m_file_list is None:
+            # if file list is not provided, we only search the directory
+            #  without recursing sub directories
             self.m_file_list = nii_list_tools.listdir_with_ext(
                 self.m_input_dirs[0], self.m_input_exts[0])
 
@@ -701,10 +708,14 @@ class NIIDataSet(torch.utils.data.Dataset):
             mes += ", or {:s} is empty".format(self.m_input_dirs[0])
             mes += "\nPlease check the folder and data list"
             nii_warn.f_die(mes)
-
+            
+        # decide whether the file name in self.m_file_list contains
+        #  sub folders
+        flag_recur = self.f_filename_has_folderpath()
+        
         # check the list of files exist in all input/output directories
         for tmp_d, tmp_e in zip(self.m_input_dirs, self.m_input_exts):
-            tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e)
+            tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e, flag_recur)
             tmp_new_list = nii_list_tools.common_members(tmp_list, 
                                                          self.m_file_list)
             if len(tmp_new_list) < 1:
@@ -737,7 +748,8 @@ class NIIDataSet(torch.utils.data.Dataset):
         if self.m_output_dirs:
             for tmp_d, tmp_e in zip(self.m_output_dirs, \
                                     self.m_output_exts):
-                tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e)
+                tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e, 
+                                                           flag_recur)
                 self.m_file_list = nii_list_tools.common_members(
                     tmp_list, self.m_file_list)
 
@@ -1340,8 +1352,15 @@ class NIIDataSet(torch.utils.data.Dataset):
         Only data_io itselts knows how to identify idx from the output of
         __getitem__, we need to define the function here
         """
-        for idx in np.arange(len(data_tuple[-1])):
-            data_tuple[-1][idx] += idx_shift
+        if isinstance(data_tuple[-1], list) \
+           or isinstance(data_tuple[-1], torch.Tensor):
+            # if data_tuple has been collated
+            for idx in np.arange(len(data_tuple[-1])):
+                data_tuple[-1][idx] += idx_shift
+        else:
+            # if data_tuple is from __getitem()__
+            data_tuple = (data_tuple[0], data_tuple[1],
+                          data_tuple[2], data_tuple[-1] + idx_shift)
         return data_tuple
 
 
@@ -1350,19 +1369,26 @@ class NIIDataSet(torch.utils.data.Dataset):
         f_mange_seq(self, idx)
         
         Args:
-          idx: list of data indices, 
+          idx: list of int, list of data indices
           opt: 'keep', keep only data in idx
                'delete', delete data in idx
         """
         if type(idx) is not list:
             nii_warn.f_die("f_delete_seq(idx) expects idx to be list")
 
+        # get a new list of data for this database
         if opt == 'delete':
-            tmp_idx = [x for x in range(self.__len__()) if x not in idx]
+            # convert to set of int
+            idx_set = set([int(x) for x in idx])
+            tmp_idx = [x for x in range(self.__len__()) if x not in idx_set]
         else:
-            tmp_idx = idx
+            tmp_idx = [int(x) for x in idx]
+
+        # keep the specified data indices
         self.m_seq_info = [self.m_seq_info[x] for x in tmp_idx \
                            if x < self.__len__() and x >= 0]
+
+        # re-compute the total length of data
         self.m_data_total_length = self.f_sum_data_length()
         return
 

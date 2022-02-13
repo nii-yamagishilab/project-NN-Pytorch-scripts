@@ -33,7 +33,15 @@ __copyright__ = "Copyright 2020, Xin Wang"
 ###############################################
 
 class merge_loader():
-    """ customized data loader over multiple datasets
+    """ merge_loader
+    Data loader for customized data with m_concate_set = None
+    By defauly, draw equal number of samples from each subset
+
+    __iter__():
+    __next__(): load data and merge into minibatch
+
+    Note: pay attention to adjust the data index in the dataset.
+    See comment of adjust_utt_idx
     """
     def __init__(self, datasets):
         # list of datasets
@@ -83,9 +91,12 @@ class merge_loader():
             raise StopIteration
 
 class ConcatDataset(torch.utils.data.Dataset):
-    """ Adopted from 
+    """ ConcatDataset
+    
+    Torch.Dataset that concatenate multiple sub-datasets.
+    
+    Adopted from 
     https://discuss.pytorch.org/t/train-simultaneously-on-two-datasets/649/2
-
     But here we concatenate data corpora directly. Minibatch may contain data
     from each sub corpus
     """
@@ -94,7 +105,8 @@ class ConcatDataset(torch.utils.data.Dataset):
         
         Args
         ----
-          datasets: list of torch.utils.data.Dataset
+          datasets: list of torch.utils.data.Dataset or derived classes
+                    it must have __len__, __getitem__, and adjust_utt_idx
         """
         # all the sub sets
         self.datasets = datasets
@@ -110,7 +122,7 @@ class ConcatDataset(torch.utils.data.Dataset):
         self.len_top = np.cumsum(self.len_buffer)
         self.len_bot = np.cumsum([0] + self.len_buffer[:-1])
         # done
-        
+        return
         
     def __getitem__(self, i):
         """ getitem from the corresponding subcorpus
@@ -122,10 +134,16 @@ class ConcatDataset(torch.utils.data.Dataset):
         #  __getitem__(0) -> data1[0-0] = a
         #  __getitem__(1) -> data2[1-1] = b
         #  __getitem__(2) -> data2[2-1] = c
+        # 
+        # Notice that the index of b is 0 in data2 but 1 in concatenated set
+        # The index must be adjusted using f_adjust_idx
         for idx_u, idx_d, subset in \
             zip(self.len_top, self.len_bot, self.datasets):
             if i < idx_u:
-                return subset.__getitem__(i - idx_d)
+                # get the data from subdataset
+                orig_data_tuple = subset.__getitem__(i - idx_d)
+                # adjust the data idx 
+                return subset.f_adjust_idx(orig_data_tuple, idx_d)
             else:
                 # keep going to the next subset
                 pass

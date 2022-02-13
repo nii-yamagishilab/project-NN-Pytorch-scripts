@@ -35,6 +35,7 @@ pretrained_model=__pretrained/trained_network.pt
 trained_model=./trained_network.pt
 eval_configs="config_test_asvspoof2019 config_test_vcc"
 main_script=main.py
+envfile=$PWD/../../env.sh
 
 # random seeds
 seeds=(1 10 100)
@@ -62,7 +63,11 @@ echo -e "\n${RED}=======================================================${NC}"
 echo -e "${RED}Step1. install conda environment${NC}"
 # create conda environment
 bash 01_conda.sh
-source $PWD/../../env.sh
+
+# load env.sh. It must be loaded $PWD/../../../env.sh
+cd DATA 
+source ${envfile}
+cd ../
 
 
 # untar the data
@@ -90,6 +95,8 @@ echo -e "${RED}Step3. run evaluation process (using pre-trained model)${NC}"
 # run scripts
 for EVALCONFIG in `echo ${eval_configs}`
 do
+
+    echo -e "\n${RED}Scoring ${EVALCONFIG}${NC}"
     cp ${main_script} ${PRJDIR}/${SUBDIR}
     cp ${EVALCONFIG}.py ${PRJDIR}/${SUBDIR}
     cp ${eval_script} ${PRJDIR}/${SUBDIR}
@@ -122,6 +129,7 @@ echo -e "${RED}Step5. run evaluation process (using newly trained model)${NC}"
 # run scripts
 for EVALCONFIG in `echo ${eval_configs}`
 do
+    echo -e "\n${RED}Scoring ${EVALCONFIG}${NC}"
     cp ${main_script} ${PRJDIR}/${SUBDIR}
     cp ${EVALCONFIG}.py ${PRJDIR}/${SUBDIR}
     cp ${eval_script} ${PRJDIR}/${SUBDIR}
