@@ -52,7 +52,7 @@ def main():
     device = torch.device("cuda" if use_cuda else "cpu")
 
     # prepare data io    
-    if not args.inference:
+    if not args.inference and not args.epoch2pt:
         params = {'batch_size':  args.batch_size,
                   'shuffle':  args.shuffle,
                   'num_workers': args.num_workers, 
@@ -142,7 +142,7 @@ def main():
                                        trn_set, val_set, checkpoint)
         # done for traing
 
-    else:
+    elif args.inference:
         
         # for inference
         
@@ -204,6 +204,28 @@ def main():
         # do inference and output data
         nii_nn_wrapper.f_inference_wrapper(args, model, device, \
                                            test_set, checkpoint)
+
+    elif args.epoch2pt:
+        # for model conversion from epoch.pt to trained_network.pt
+        
+        # initialize model
+        model = prj_model.Model(
+            sum(prj_conf.input_dims), sum(prj_conf.output_dims), args, prj_conf)
+
+        if args.trained_model == "":
+            print("Please provide ---trained-model")
+            sys.exit(1)
+        else:
+            checkpoint = torch.load(args.trained_model)
+            
+        # do inference and output data
+        nii_nn_wrapper.f_convert_epoch_to_trained(
+            args, model, device, checkpoint)
+
+    else:
+        print("Fatal error in main.py")
+        sys.exit(1)
+
     # done
     return
 
