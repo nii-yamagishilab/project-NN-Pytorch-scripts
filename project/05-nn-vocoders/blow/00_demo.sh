@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AADY0pvUNpn8HCSyoI9CRN2Va/project-05-nn-vocoders-blow.tar
+MODELLINK=https://zenodo.org/record/6349637/files/project-05-nn-vocoders-blow.tar
 MODELNAME=project-05-nn-vocoders-blow
 
 DATANAME=vctk-blow
@@ -10,7 +10,7 @@ RED='\033[0;32m'
 NC='\033[0m'
 
 
-# download pre-trained model and toy test set data from dropbox
+# download pre-trained model and toy test set data
 if [ ! -e "./__pre_trained/trained_network.pt" ];then
     echo -e "${RED}Downloading pre-trained model${NC}"
     wget -q --show-progress ${MODELLINK}

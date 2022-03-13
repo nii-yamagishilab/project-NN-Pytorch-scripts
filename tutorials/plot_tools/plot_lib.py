@@ -445,6 +445,69 @@ def plot_table(data, fig, axis, config_dic):
     return fig, axis
 
 
+def plot_barh(dataset, fig, axis, configs):
+    """
+    """
+    max_bin_width = np.max([np.max(x) for x in dataset])
+    
+    if 'plot_barh' in configs:
+        if 'show_percentage' in configs['plot_barh']:
+            flag_show_per = configs['plot_barh']['show_percentage']
+        if 'ad_max_bin_width' in configs['plot_barh']:
+            max_bin_width *= configs['plot_barh']['ad_max_bin_width']
+        if 'color' in configs['plot_barh']:
+            color = configs['plot_barh']['color']
+        else:
+            color = 'Grey'
+    
+    if flag_show_per:
+        dataset_tmp = dataset / np.sum(dataset, axis=1, keepdims=True) * 100
+        max_bin_width = 100 * 1.05
+    else:
+        dataset_tmp = dataset
+    
+    # location of x
+    x_locs = [x * max_bin_width for x in np.arange(len(dataset))]
+    # temporary buffer
+    max_length = np.max([x.shape[0] for x in dataset])
+    # left most pos
+    left_most = x_locs[-1]
+    right_most = 0
+    
+    for idx, (x_loc, data) in enumerate(zip(x_locs, dataset_tmp)):
+        
+        # decide the left alignment position
+        lefts = x_loc - 0 * data
+        if 'plot_barh' in configs and 'align' in configs['plot_barh']:
+            if  configs['plot_barh']['align'] == 'middle':
+                lefts = x_loc - 0.5 * data
+            elif configs['plot_barh']['align'] == 'right':
+                lefts = x_loc - data
+                
+        # plot
+        axis.barh(np.arange(len(data)), data, height=1.0, left=lefts, 
+                  color=color)
+        
+        # show text
+        if flag_show_per:
+            for idx, (data_value, left_pos) in enumerate(zip(data, lefts)):
+                axis.text(left_pos, idx,
+                          '{:2.1f}'.format(data_value), 
+                          ha='right', va='center')
+                left_most = np.min([left_most, left_pos - max_bin_width * 0.4])
+                #right_most = np.max([right_most, left_pos + max(data)])
+            right_most = left_pos + max_bin_width * 1.05
+    if flag_show_per:
+        axis.set_xlim([left_most, right_most])
+        
+    if 'xticklabels' in configs:
+        axis.set_xticks(x_locs)
+        axis.set_xticklabels(configs['xticklabels'])
+    if 'yticklabels' in configs:
+        axis.set_yticks(np.arange(max_length))
+        axis.set_yticklabels(configs['yticklabels'])
+    return fig, axis
+
 ############################
 ## Specific functions
 ##  classification

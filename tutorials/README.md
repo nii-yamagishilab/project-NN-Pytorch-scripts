@@ -74,7 +74,7 @@ If you don't use conda, you may install software in env-cpu.yml manually.
 
 Jupyterlab since version 3.0 shows Table of Contents for the opened notebook. This is a highly recommended function. For more details, please check [this page](https://jupyterlab.readthedocs.io/en/stable/user/toc.html).
 
-Pre-trained models of WaveGlow and Blow are quite large. They are shared through Dropbox. If you cannot access Dropbox, please let me know. You may also skip the pre-trained models if you don't want to try the analysis-synthesis examples in s2*.ipynb.
+Pre-trained models of WaveGlow and Blow are quite large. They are shared through ~~Dropbox~~ [Zenodo](https://doi.org/10.5281/zenodo.6349636). If you cannot access ~~Dropbox~~ Zenodo, please let me know. You may also skip the pre-trained models if you don't want to try the analysis-synthesis examples in s2*.ipynb.
 
 #### 2.2 Run Jupyter lab
 Open the sh terminal and run shell command

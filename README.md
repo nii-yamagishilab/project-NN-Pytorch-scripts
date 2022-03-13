@@ -20,6 +20,8 @@ I am a new pytorch user. If you have any suggestions or questions, pleas email w
 
 **Updates**
 
+2022-03-13: all pre-trained models are moved to [Zenodo](https://doi.org/10.5281/zenodo.6349636). Shared links through Dropbox are removed. Please clone the latest commit
+
 2022-02-13: upload project for anti-spoofing with SSL-based front end (sec [2.6](#overview2-6))
 
 2022-01-31: upload project for anti-spoofing confidence estimation (sec [2.5](#overview2-5))
@@ -53,7 +55,7 @@ The repository is relatively large. You may use `--depth 1` option to skip unnec
 git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts.git
 ```
 
-Pre-trained models will be downloaded through Dropbox links. Please contact with Xin if you cannot downloaod. 
+Pre-trained models will be downloaded through ~~Dropbox~~ [Zenodo](https://doi.org/10.5281/zenodo.6349636). Please contact with Xin if you cannot downloaod. 
 
 <a name="overview"></a>
 ## 2. Overview

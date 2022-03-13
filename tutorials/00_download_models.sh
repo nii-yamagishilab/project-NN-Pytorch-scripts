@@ -15,7 +15,7 @@ else
 fi
 
 
-MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AADY0pvUNpn8HCSyoI9CRN2Va/project-05-nn-vocoders-blow.tar
+MODELLINK=https://zenodo.org/record/6349637/files/project-05-nn-vocoders-blow.tar
 MODELNAME=project-05-nn-vocoders-blow
 
 DIRNAME=pre_trained_blow
@@ -36,7 +36,7 @@ cd -
 
 
 
-MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AAAJhXAsiD2kUmQfO6iUrxJCa/project-05-nn-vocoders-waveglow.tar
+MODELLINK=https://zenodo.org/record/6349637/files/project-05-nn-vocoders-waveglow.tar
 MODELNAME=project-05-nn-vocoders-waveglow
 
 DIRNAME=pre_trained_waveglow
@@ -56,7 +56,7 @@ fi
 cd -
 
 
-MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AAB28EGcv4kcVE3V_0dUV2MOa/project-05-nn-vocoders-wavenet.tar
+MODELLINK=https://zenodo.org/record/6349637/files/project-05-nn-vocoders-wavenet.tar
 MODELNAME=project-05-nn-vocoders-wavenet
 
 DIRNAME=pre_trained_wavenet
@@ -76,7 +76,7 @@ fi
 cd -
 
 
-MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AABghKBKxghHaGOPeSJhMLwLa/project-05-nn-vocoders-iLPCNet.tar
+MODELLINK=https://zenodo.org/record/6349637/files/project-05-nn-vocoders-iLPCNet.tar
 MODELNAME=project-05-nn-vocoders-iLPCNet
 
 DIRNAME=pre_trained_ilpcnet

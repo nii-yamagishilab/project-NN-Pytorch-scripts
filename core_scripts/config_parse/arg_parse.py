@@ -214,6 +214,10 @@ def f_args_parsed(argument_input = None):
     mes = 'run inference mode (default: False, run training script)'
     parser.add_argument('--inference', action='store_true', \
                         default=False, help=mes)    
+
+    mes = 'run model conversion script (default: False)'
+    parser.add_argument('--epoch2pt', action='store_true', \
+                        default=False, help=mes)    
     #######
     # options to output
     mes = 'path to save generated data (default: ./output)'

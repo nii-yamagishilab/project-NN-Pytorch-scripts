@@ -1,24 +1,25 @@
 #!/bin/sh
 
-DATALINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AABceXAc2W61d6V_rsBEYpy5a/cmu-arctic-data-set.tar
+DATALINK=https://zenodo.org/record/6349637/files/project-01-train-data-set.tar
+PACKNAME=project-01-train-data-set
 FILENAME=cmu-arctic-data-set
 ENVFILE=../../../env.sh
 
 RED='\033[0;32m'
 NC='\033[0m'
 
-# download CMU-arctic data from dropbox
+# download CMU-arctic data
 if [ ! -e "../DATA/${FILENAME}" ];then
     echo -e "${RED}Downloading data${NC}"
     wget ${DATALINK}
 
-    if [ -e "./${FILENAME}.tar" ];then	
-	tar -xf ${FILENAME}.tar
+    if [ -e "./${PACKNAME}.tar" ];then	
+	tar -xf ${PACKNAME}.tar
 	cd ${FILENAME}
 	sh 00_get_wav.sh
 	cd ../
 	mv ${FILENAME} ../DATA/${FILENAME}
-	rm ${FILENAME}.tar
+	rm ${PACKNAME}.tar
     else
 	echo "Cannot download ${DATALINK}. Please contact the author"
     	exit
