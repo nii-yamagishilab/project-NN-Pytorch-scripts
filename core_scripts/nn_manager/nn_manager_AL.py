@@ -128,7 +128,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     
     no_best_epoch_num = optimizer_wrapper.get_no_best_epoch_num()
     
-    # get data loader for training set
+    # get data loader for seed training set
     if not args.active_learning_pre_train_epoch_num:
         train_dataset_wrapper.print_info()
     train_data_loader = train_dataset_wrapper.get_loader()
@@ -139,7 +139,9 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     pool_data_loader = pool_dataset_wrapper.get_loader()
     pool_seq_num = pool_dataset_wrapper.get_seq_num()
 
+    # set the number of samples take per cycle
     num_sample_al_cycle = args.active_learning_new_sample_per_cycle
+    # if not set, take batch-size of samples per cycle
     if num_sample_al_cycle < 1:
         num_sample_al_cycle = args.batch_size
     #nii_display.f_print("Add {:d} new samples per cycle".format(
@@ -177,7 +179,9 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         nii_nn_tools.f_model_show(pt_model)
         nii_nn_tools.f_loss_show(loss_wrapper)
 
+    # key names, used when saving *.epoch.pt
     cp_names = nii_nn_manage_conf.CheckPointKey()
+
     ###############################
     ## Resume training if necessary
     ###############################
@@ -205,49 +209,69 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     ### Start active learning loop
     ##############################
     # other variables
+    # initialize flag to save state of early stopping
     flag_early_stopped = False
+    # initialize the starting epoch number 
     start_epoch = monitor_trn.get_epoch()
+    # get the total number of epochs to run
     total_epoch_num = monitor_trn.get_max_epoch()    
-    
+    # a buf to store the path of trained models per cycle
+    saved_model_path_buf = []
+
     # print information
-    __print_AL_info(num_al_cycle, 
-                    epoch_per_cycle, 
-                    num_sample_al_cycle, 
-                    args)
+    __print_AL_info(num_al_cycle, epoch_per_cycle, num_sample_al_cycle, args)
+    # print training log
     _ = nii_op_display_tk.print_log_head()
     nii_display.f_print_message(train_log, flush=True, end='')
     
     # loop over cycles
-    saved_model_path_buf = []
     for cycle_idx in range(num_al_cycle):
         
-        ########
-        # select the best samples
         if pool_dataset_wrapper.get_seq_num() < 1:
             #nii_display.f_print("Pool data has been used up. Training ends.")
             break
 
-        if hasattr(pt_model, 'al_retrieve_data'):
-            # set flag
-            tmp_train_flag = True if pt_model.training else False
-            if args.active_learning_train_model_for_retrieval:
-                pt_model.train()
-            else:
-                pt_model.eval()
+        ########
+        # select the best samples
+        ########
+        # There are many methods to select samples
+        #  we require pt_model to define one of the method
+        #  I. Pool-based, no knowedge on seed data:
+        #     al_retrieve_data(pool_data_loader, 
+        #                      num_sample_al_cycle)
+        #     Only use model to score each data in pool_data_loader
+        # 
+        # II. Pool-based, w/ knowedge on seed data
+        #     al_retrieve_data_knowing_train(train_data_loader,
+        #                                    pool_data_loader, 
+        #                                    num_sample_al_cycle)
+        #     Select sample from pool given knowlege of train seed data
+        
+        # save current model flag
+        tmp_train_flag = True if pt_model.training else False
+        if args.active_learning_train_model_for_retrieval:
+            pt_model.train()
+        else:
+            pt_model.eval()
 
-            # retrieve data
+        # retrieve data
+        if hasattr(pt_model, 'al_retrieve_data'):
             data_idx = pt_model.al_retrieve_data(
                 pool_data_loader, num_sample_al_cycle)
-            data_idx = [int(x) for x in data_idx]
-
-            # set flag back
-            if tmp_train_flag:
-                pt_model.train()
-            else:
-                pt_model.eval()
+        elif hasattr(pt_model, 'al_retrieve_data_knowing_train'):
+            data_idx = pt_model.al_retrieve_data_knowing_train(
+                train_data_loader, pool_data_loader, num_sample_al_cycle)
         else:
             nii_display.f_die("model must define al_retrieve_data")
+            
+        # convert data index to int
+        data_idx = [int(x) for x in data_idx]
 
+        # set flag back
+        if tmp_train_flag:
+            pt_model.train()
+        else:
+            pt_model.eval()
         ########
         # Create Dataset wrapper for the new data add new data to train set
         tmp_data_wrapper = copy.deepcopy(pool_dataset_wrapper)
