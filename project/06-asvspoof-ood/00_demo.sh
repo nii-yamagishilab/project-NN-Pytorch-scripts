@@ -25,9 +25,9 @@ PRJDIR=$1
 
 #####
 # configurations (no need to change)
-link_set=https://www.dropbox.com/sh/bua2vks8clnl2ha/AAD5QjdbDZ-ec9emB7XcfE7fa/dataset_ood.tar
-set_name=dataset_ood.tar
-link_pretrained=https://www.dropbox.com/sh/bua2vks8clnl2ha/AACHON3_ki76AEF3H2AD8Kx_a/project-06-asvspoof-ood.tar
+link_set=https://zenodo.org/record/6349637/files/project-06-dataset_ood.tar
+set_name=project-06-dataset_ood.tar
+link_pretrained=https://zenodo.org/record/6349637/files/project-06-asvspoof-ood.tar
 model_name=project-06-asvspoof-ood.tar
 eval_script=01_eval.sh
 train_script=01_train.sh

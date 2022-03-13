@@ -1,9 +1,9 @@
 #!/bin/bash
 
-MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AAB0vGtbIG8yrNJqE06e6Uqsa/project-02-asvspoof.tar.gz
+MODELLINK=https://zenodo.org/record/6349637/files/project-02-asvspoof.tar.gz
 MODELNAME=project-02-asvspoof
 
-# download pre-trained model and toy test set data from dropbox
+# download pre-trained model and toy test set data
 if [ ! -e "./lfcc-lcnn-a-softmax/__pretrained/trained_network.pt" ];then
     echo -e "${RED}Downloading pre-trained model${NC}"
     wget -q --show-progress ${MODELLINK}

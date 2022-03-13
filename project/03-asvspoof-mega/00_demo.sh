@@ -60,7 +60,7 @@ CONVDIR=$PWD/conv
 # download link for pre-trained models
 #  don't change these
 MODELNAME=project-03-asvspoof-mega-pretrained.tar.gz
-MODELLINK=https://www.dropbox.com/sh/bua2vks8clnl2ha/AAAn2s2VjWamk8qsdIpnrNV4a/${MODELNAME}
+MODELLINK=https://zenodo.org/record/6349637/files/${MODELNAME}
 MD5SUMVAL=ff1ce800fb14b3ed0f5af170925dfbbc
 ########
 
@@ -77,7 +77,7 @@ if [[ -e "./${MODELNAME}" ]];then
 fi
 
 if [[ ! -e "./${MODELNAME}" ]];then
-    echo -e "${RED}Downloading pre-trained model from dropbox (~1G)${NC}"
+    echo -e "${RED}Downloading pre-trained model (~1G)${NC}"
     wget -q --show-progress ${MODELLINK}
 fi
 
@@ -95,7 +95,7 @@ then
     cd ${CONVDIR}
     echo "${RED}Downloading some cached files${NC}"
     echo "They are not necessary. But having them will reduce the time to load data for the 1st time"
-    wget -q --show-progress https://www.dropbox.com/sh/bua2vks8clnl2ha/AAAiKsg1KYpNxsyaZi6cmHF7a/project-03-asvspoof-mega-conv.tar
+    wget -q --show-progress https://zenodo.org/record/6349637/files/project-03-asvspoof-mega-conv.tar
     tar -xvf project-03-asvspoof-mega-conv.tar
     cd -
 fi
@@ -129,7 +129,7 @@ else
 	    # rawnet requires a different config
 	    cp ${MAINSCRIPT_RAWNET} ./main.py
 	    cp ${CONFIGSCRIPT_RAWNET} ./config.py
-	    # not copy cached durations files. they are not available in dropbox
+	    # not copy cached durations files. they are not available
 	else
 	    cp ${MAINSCRIPT} ./main.py
 	    cp ${CONFIGSCRIPT} ./config.py
@@ -158,6 +158,8 @@ echo -e "(Model ${MODEL} was trained on NII's server.)"
 LOGFILE=log_output_testset_pretrained
 python main.py --inference --model-forward-with-file-name --trained-model __pretrained/trained_network.pt > ${LOGFILE} 2>${LOGFILE}_err
 
+echo -e "\n${RED}Please check the following log files \n\t${LOGFILE}\n\t${LOGFILE}_err${NC}"
+
 echo -e "\n${RED}This is the result using pre-trained model on your GPU ${NC}"
 python ${EVALSCRIPT} ${LOGFILE}
 
@@ -173,11 +175,14 @@ echo -e "You can also run this script in background. See README of this script"
 # train using prepared script 
 # (notice that random seed is different from different RUN)
 bash 00_train.sh
+echo -e "\n${RED}Please check log_train and log_err{NC}"
 
 echo -e "\n${RED}Evaluating the trained model ${NC}"
 echo -e "The job will run in backgroun for ~20 minutes. Please wait."
 LOGFILE=log_output_testset
 python main.py --inference --model-forward-with-file-name > ${LOGFILE} 2>${LOGFILE}_err
+
+echo -e "\n${RED}Please check the following log files \n\t${LOGFILE}\n\t${LOGFILE}_err${NC}"
 
 echo -e "\n${RED}This is the result produced by your trained model  ${NC}"
 python ${EVALSCRIPT} ${LOGFILE}
