@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DATALINK=https://zenodo.org/record/6349637/files/project-01-train-data-set.tar
+DATALINK=https://zenodo.org/record/6456704/files/project-01-train-data-set.tar
 PACKNAME=project-01-train-data-set
 FILENAME=cmu-arctic-data-set
 ENVFILE=../../../env.sh
@@ -8,7 +8,7 @@ ENVFILE=../../../env.sh
 # download link for pre-trained models
 #  don't change these
 MODELNAME=project-01-hn-sinc-nsf-hifigan_pre_trained.tar.gz
-MODELLINK=https://zenodo.org/record/6349637/files/${MODELNAME}
+MODELLINK=https://zenodo.org/record/6456692/files/${MODELNAME}
 #MD5SUMVAL=ff1ce800fb14b3ed0f5af170925dfbbc
 
 RED='\033[0;32m'

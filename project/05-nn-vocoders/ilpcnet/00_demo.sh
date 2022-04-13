@@ -1,10 +1,10 @@
 #!/bin/sh
 
-DATALINK=https://zenodo.org/record/6349637/files/project-01-train-data-set.tar
+DATALINK=https://zenodo.org/record/6456704/files/project-01-train-data-set.tar
 PACKNAME=project-01-train-data-set
 FILENAME=cmu-arctic-data-set
 
-MODELLINK=https://zenodo.org/record/6349637/files/project-05-nn-vocoders-iLPCNet.tar
+MODELLINK=https://zenodo.org/record/6456692/files/project-05-nn-vocoders-iLPCNet.tar
 MODELNAME=project-05-nn-vocoders-iLPCNet
 
 ENVFILE=../../../env.sh

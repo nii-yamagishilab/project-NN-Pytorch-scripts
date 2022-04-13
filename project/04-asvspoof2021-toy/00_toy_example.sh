@@ -27,7 +27,7 @@ cd DATA
 if [ ! -e "toy_example.tar.gz" ];
 then
     echo "Downloading toy data set"
-    wget -q --show-progress https://zenodo.org/record/6349637/files/project-04-toy_example.tar.gz
+    wget -q --show-progress https://zenodo.org/record/6456704/files/project-04-toy_example.tar.gz
     mv project-04-toy_example.tar.gz toy_example.tar.gz
 fi
 tar -xzf toy_example.tar.gz

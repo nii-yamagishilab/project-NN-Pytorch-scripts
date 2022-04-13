@@ -60,7 +60,7 @@ CONVDIR=$PWD/conv
 # download link for pre-trained models
 #  don't change these
 MODELNAME=project-03-asvspoof-mega-pretrained.tar.gz
-MODELLINK=https://zenodo.org/record/6349637/files/${MODELNAME}
+MODELLINK=https://zenodo.org/record/6456692/files/${MODELNAME}
 MD5SUMVAL=ff1ce800fb14b3ed0f5af170925dfbbc
 ########
 
@@ -95,7 +95,7 @@ then
     cd ${CONVDIR}
     echo "${RED}Downloading some cached files${NC}"
     echo "They are not necessary. But having them will reduce the time to load data for the 1st time"
-    wget -q --show-progress https://zenodo.org/record/6349637/files/project-03-asvspoof-mega-conv.tar
+    wget -q --show-progress https://zenodo.org/record/6456692/files/project-03-asvspoof-mega-conv.tar
     tar -xvf project-03-asvspoof-mega-conv.tar
     cd -
 fi

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MODELLINK=https://zenodo.org/record/6349637/files/project-05-nn-vocoders-blow.tar
+MODELLINK=https://zenodo.org/record/6456692/files/project-05-nn-vocoders-blow.tar
 MODELNAME=project-05-nn-vocoders-blow
 
 DATANAME=vctk-blow
