@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODELLINK=https://zenodo.org/record/6349637/files/project-02-asvspoof.tar.gz
+MODELLINK=https://zenodo.org/record/6456692/files/project-02-asvspoof.tar.gz
 MODELNAME=project-02-asvspoof
 
 # download pre-trained model and toy test set data

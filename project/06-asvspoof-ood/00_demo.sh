@@ -25,9 +25,10 @@ PRJDIR=$1
 
 #####
 # configurations (no need to change)
-link_set=https://zenodo.org/record/6349637/files/project-06-dataset_ood.tar
-set_name=project-06-dataset_ood.tar
-link_pretrained=https://zenodo.org/record/6349637/files/project-06-asvspoof-ood.tar
+link_set=https://zenodo.org/record/6456704/files/project-06-asvspoof-ood.tar
+set_name=project-06-asvspoof-ood.tar
+temp_name=project-06-dataset_ood
+link_pretrained=https://zenodo.org/record/6456692/files/project-06-asvspoof-ood.tar
 model_name=project-06-asvspoof-ood.tar
 eval_script=01_eval.sh
 train_script=01_train.sh
@@ -79,6 +80,9 @@ then
     echo "Downloading toy data set"
     wget -q --show-progress ${link_set}
     tar -xf ${set_name}
+    mv ${temp_name}/* ./
+    rm -r ${set_name}
+    rm -r ${temp_name}
 fi
 cd ..
 

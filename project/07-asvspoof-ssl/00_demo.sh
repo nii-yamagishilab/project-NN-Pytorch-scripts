@@ -24,9 +24,9 @@ PRJDIR=$1
 
 #####
 # configurations (no need to change)
-link_set=https://zenodo.org/record/6349637/files/project-04-toy_example.tar.gz
+link_set=https://zenodo.org/record/6456704/files/project-04-toy_example.tar.gz
 set_name=project-04-toy_example.tar.gz
-link_pretrained=https://zenodo.org/record/6349637/files/project-07-asvspoof-ssl.tar
+link_pretrained=https://zenodo.org/record/6456692/files/project-07-asvspoof-ssl.tar
 model_name=project-07-asvspoof-ssl.tar
 
 eval_script=01_eval.sh
