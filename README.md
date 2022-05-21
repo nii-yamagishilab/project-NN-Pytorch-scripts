@@ -1,49 +1,39 @@
 # project-NII-pytorch-scripts
 By Xin Wang, National Institute of Informatics, since 2021
 
-I am a new pytorch user. If you have any suggestions or questions, pleas email wangxin at nii dot ac dot jp
-
 **Table of Contents**
 
 * [Note](#note)
-
 * [Overview](#overview)
-
 * [Requirement & dependency](#env)
-
 * [How to use](#use)
-
 * [Project design](#conv)
-
 * [Misc](#miscs)
 
-
-**Updates**
-
-2022-03-13: all pre-trained models are moved to [Zenodo](https://doi.org/10.5281/zenodo.6349636). Shared links through Dropbox are removed. Please clone the latest commit
-
-2022-02-13: upload project for anti-spoofing with SSL-based front end (sec [2.6](#overview2-6))
-
-2022-01-31: upload project for anti-spoofing confidence estimation (sec [2.5](#overview2-5))
-
-2022-01-08: upload hn-sinc-nsf + hifi-gan (sec [2.1](#overview2-1))
-
-2022-01-08: upload RawNet2 for anti-spoofing (sec [2.4](#overview2-4))
+I am a new pytorch user. If you have any suggestions or questions, please email wangxin at nii dot ac dot jp.
 
 
 ------
 <a name="note"></a>
 ## 1. Note 
+**For hands-on material for ICASSP 2022 short course**
 
-**For tutorials on neural vocoders**
+1. Please click [here](https://colab.research.google.com/drive/1EO-ggi1U9f2zXwTiqg7AEljVx11JKta7?usp=sharing) to jump to Google Colab
 
-Tutorials are available in `./tutorials`. Please follow the `./tutorials/README` and work in this folder first
+2. This repository holds the scripts for model training. Please check Sec.[2.1](#overview2-1) and Sec.[2.2](#overview2-2)
 
-```sh
-cd ./tutorials
-head -n 2 README.md
-# Hands-on materials for neural vocoders
-```
+**Updates**
+* 2022-05-21: tutorials were updated and moved to Google Colab, click [here](https://colab.research.google.com/drive/1EO-ggi1U9f2zXwTiqg7AEljVx11JKta7?usp=sharing) to jump.
+
+* 2022-03-13: all pre-trained models are moved to [Zenodo](https://doi.org/10.5281/zenodo.6349636). Shared links through Dropbox are removed. Please clone the latest commit. Please contact Xin if you cannot download the file. 
+
+* 2022-02-13: upload project for anti-spoofing with SSL-based front end (sec [2.6](#overview2-6))
+
+* 2022-01-31: upload project for anti-spoofing confidence estimation (sec [2.5](#overview2-5))
+
+* 2022-01-08: upload hn-sinc-nsf + hifi-gan (sec [2.1](#overview2-1))
+
+* 2022-01-08: upload RawNet2 for anti-spoofing (sec [2.4](#overview2-4))
 
 **For other projects**
 
@@ -55,7 +45,7 @@ The repository is relatively large. You may use `--depth 1` option to skip unnec
 git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts.git
 ```
 
-Pre-trained models will be downloaded through ~~Dropbox~~ [Zenodo](https://doi.org/10.5281/zenodo.6349636). Please contact with Xin if you cannot downloaod. 
+------
 
 <a name="overview"></a>
 ## 2. Overview
@@ -165,7 +155,7 @@ This project requires a specific version of [fairseq](https://github.com/pytorch
 
 ![EER-mintDCF](./misc/fig-ssl.png)
 
-
+------
 <a name="env"></a>
 ## 3. Python environment
 
@@ -193,7 +183,7 @@ bash env-fs-install.sh
 conda activate fairseq-pip2
 ```
 
-
+------
 <a name="use"></a>
 ## 4. How to use
 
@@ -225,6 +215,7 @@ bash 00_demo.sh > log_batch 2>&1 &
 
 The above steps will download the CMU-arctic data, run waveform generation using a pre-trained model, and train a new model. 
 
+------
 <a name="conv"></a>
 ## 5. Project design and convention
 
@@ -284,7 +275,7 @@ The separation is not always strictly followed.
 
 ### How the script works
 
-The script starts with main.py and calls different function for model training and inference. 
+The script starts with main.py and calls different functions for model training and inference. 
 
 ```sh
 During training:
@@ -358,7 +349,7 @@ Start training       core_scripts/nn_manager/nn_manager.py f_train_wrapper()
 
 A detailed flowchat is [./misc/APPENDIX_1.md](./misc/APPENDIX_1.md). This may be useful if you want to hack on the code.
 
-
+------
 <a name="miscs"></a>
 ## 6 Misc
 ### On NSF
