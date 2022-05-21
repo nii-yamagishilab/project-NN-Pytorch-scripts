@@ -1,17 +1,19 @@
-# Hands-on materials for Neural vocoders
+# Tutorials on Neural vocoders
 
-Xin Wang, National Institute of Informatics, 2021
+Xin Wang, National Institute of Informatics, 2022
+
+**The latest notebooks are maintained on Goole colab, please click [here](https://colab.research.google.com/drive/1EO-ggi1U9f2zXwTiqg7AEljVx11JKta7?usp=sharing).**
+
+**Notebooks in this directory are not maintained anymore.**
+
 
 This hands-on material covers only the basics of some neural vocoders. Models and implementations are for the tutorial, therefore lacking intensive tuning and optimization. Neither am I good at that. If you have ideas on how to improve, your feedback is appreciated!
 
 **Table of Contents:**
 
 * [Usage](#usage)
-
 * [Work on Part 1 and 2](#part12)
-
 * [Work Part 3](#part3)
-
 * [FAQ](#faq)
 
 

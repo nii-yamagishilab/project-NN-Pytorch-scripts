@@ -38,6 +38,15 @@ def __print_new_sample_list(cycle_idx, data_idx, dataset_wrapper):
     mes += '\nNumber of samples: {:d}'.format(len(set(data_idx)))
     nii_display.f_eprint(mes)
     return
+
+def __print_excl_sample_list(cycle_idx, data_idx, dataset_wrapper):
+    """ print information on the newly removed data 
+    """
+    mes = 'Before learning cycle {:d}, remove: '.format(cycle_idx)
+    mes += ', '.join(dataset_wrapper.get_seq_list())
+    mes += '\nNumber of removed samples: {:d}'.format(len(set(data_idx)))
+    nii_display.f_eprint(mes)
+    return
    
 def __print_cycle(cycle_idx, train_s, pool_s):
     """ print information added to the error log
@@ -246,7 +255,14 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         #                                    pool_data_loader, 
         #                                    num_sample_al_cycle)
         #     Select sample from pool given knowlege of train seed data
-        
+        #
+        # III. Pool-based, but to exclude data first
+        #     al_exclude_data(train_data_loader,pool_data_loader, 
+        #                                    num_sample_al_cycle)
+        #     Exclude samples from the pool set
+        #     If provided, this function will be called first before executing
+        #     Pool-based II and I
+
         # save current model flag
         tmp_train_flag = True if pt_model.training else False
         if args.active_learning_train_model_for_retrieval:
@@ -254,6 +270,25 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         else:
             pt_model.eval()
 
+        # exclude data if necesary
+        if hasattr(pt_model, 'al_exclude_data'):
+            # select least useful data
+            data_idx = pt_model.al_exclude_data(
+                pool_data_loader, num_sample_al_cycle)
+            # convert data index to int
+            data_idx = [int(x) for x in data_idx]
+
+            # print datat to be excluded for debugging
+            tmp_data_wrapper = copy.deepcopy(pool_dataset_wrapper)
+            tmp_data_wrapper.manage_data(data_idx, 'keep')
+            if args.verbose == 1:
+                __print_excl_sample_list(cycle_idx, data_idx, tmp_data_wrapper)
+
+            # remove the pool
+            pool_dataset_wrapper.manage_data(data_idx, 'delete')
+            pool_data_loader = pool_dataset_wrapper.get_loader()
+            
+            
         # retrieve data
         if hasattr(pt_model, 'al_retrieve_data'):
             data_idx = pt_model.al_retrieve_data(
@@ -272,12 +307,16 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             pt_model.train()
         else:
             pt_model.eval()
+
         ########
         # Create Dataset wrapper for the new data add new data to train set
+        ########
+        # create data that contains selected data only
+        #  the database only contains data index, so it is fast to do deepcopy  
         tmp_data_wrapper = copy.deepcopy(pool_dataset_wrapper)
         tmp_data_wrapper.manage_data(data_idx, 'keep')
         
-        # Delete data if we sample without replacement
+        # Delete data from original pool if we sample without replacement
         if not args.active_learning_with_replacement:
             pool_dataset_wrapper.manage_data(data_idx, 'delete')
             pool_data_loader = pool_dataset_wrapper.get_loader()
@@ -288,12 +327,12 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         else:
             # base dataset + augmented data
             train_dataset_wrapper.add_dataset(tmp_data_wrapper)
-            
+        
+        # prepare for training
         train_data_loader = train_dataset_wrapper.get_loader()
         train_seq_num = train_dataset_wrapper.get_seq_num()
         pool_seq_num = pool_dataset_wrapper.get_seq_num()
         tmp_monitor_trn = nii_monitor.Monitor(epoch_per_cycle, train_seq_num)
-        
         
         if args.verbose == 1:
             __print_new_sample_list(cycle_idx, data_idx, tmp_data_wrapper)
