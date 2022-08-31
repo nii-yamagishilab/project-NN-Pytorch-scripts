@@ -257,8 +257,8 @@ More instructions can be found in the Jupyter notebook [./tutorials/c01_data_for
 
 Name | Function
 ------------ | -------------
-./core_scripts | scripts to manage the training process, data io, and so on
-./core_modules | finished pytorch modules 
+./core_scripts | scripts (Numpy or Pytorch code) to manage the training process, data io, etc.
+./core_modules | finalized pytorch modules 
 ./sandbox | new functions and modules to be test
 ./project | project directories, and each folder correspond to one model for one dataset
 ./project/\*/\*/main.py | script to load data and run training and inference

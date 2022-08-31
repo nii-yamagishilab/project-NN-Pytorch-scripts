@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import os
 import sys
 import numpy as np
+from inspect import signature
 import torch
 import torch.utils.data
 
@@ -33,16 +34,24 @@ __copyright__ = "Copyright 2020, Xin Wang"
 ###
 ## functions wrappers to read/write data for this data_io
 ###
-def _data_reader(file_path, dim, flag_lang):
+def _data_reader(file_path, dim, flag_lang, g2p_tool):
     """ A wrapper to read raw binary data, waveform, or text
     """
     file_name, file_ext = os.path.splitext(file_path)
     if file_ext == '.wav':
         sr, data = nii_wav_tk.waveReadAsFloat(file_path)
+        if data.ndim > 1 and data.shape[-1] != dim:
+            nii_warn.f_print("Expect {:d} channel(s)".format(dim), 'error')
+            nii_warn.f_die("But {:s} has {:d} channel(s)".format(
+                file_path, data.shape[-1]))
     elif file_ext == '.flac':
         sr, data = nii_wav_tk.flacReadAsFloat(file_path)
+        if data.ndim > 1 and data.shape[-1] != dim:
+            nii_warn.f_print("Expect {:d} channel(s)".format(dim), 'error')
+            nii_warn.f_die("But {:s} has {:d} channel(s)".format(
+                file_path, data.shape[-1]))
     elif file_ext == '.txt':
-        data = nii_text_tk.textloader(file_path, flag_lang)
+        data = nii_text_tk.textloader(file_path, flag_lang, g2p_tool)
     else:
         data = nii_io_tk.f_read_raw_mat(file_path, dim)
     return data
@@ -240,7 +249,13 @@ class NIIDataSet(torch.utils.data.Dataset):
 
         # in case there is text data in input or output features
         self.m_flag_lang = flag_lang
-
+        self.m_g2p_tool = None
+        if hasattr(dset_config, 'text_process_options') and \
+           type(dset_config.text_process_options) is dict:
+            self.m_flag_lang = dset_config.text_process_options['flag_lang']
+            if 'g2p_tool' in dset_config.text_process_options:
+                self.m_g2p_tool = dset_config.text_process_options['g2p_tool']
+        
         # sanity check on resolution configuration
         # currently, only input features can have different reso,
         # and the m_input_reso must be the same for all input features
@@ -289,7 +304,8 @@ class NIIDataSet(torch.utils.data.Dataset):
 
         # method to load/write raw data
         if data_format == nii_dconf.h_dtype_str:
-            self.f_load_data = lambda x, y: _data_reader(x, y, self.m_flag_lang)
+            self.f_load_data = lambda x, y: _data_reader(
+                x, y, self.m_flag_lang, self.m_g2p_tool)
             self.f_length_data = _data_len_reader
             self.f_write_data = lambda x, y: _data_writer(x, y, self.m_wav_sr)
         else:
@@ -305,12 +321,17 @@ class NIIDataSet(torch.utils.data.Dataset):
         def get_name(stats_path, set_name, file_name):
             tmp = set_name + '_' + file_name
             return os.path.join(stats_path, tmp)
-        
-        self.m_ms_input_path = get_name(stats_path, self.m_set_name, \
+        if global_arg is not None and global_arg.path_cache_file:
+            nii_warn.f_print("Cached files are re-directed to {:s}".format(
+                global_arg.path_cache_file))
+            tmp_stats_path = global_arg.path_cache_file
+        else:
+            tmp_stats_path = stats_path
+        self.m_ms_input_path = get_name(tmp_stats_path, self.m_set_name, \
                                         nii_dconf.mean_std_i_file)
-        self.m_ms_output_path = get_name(stats_path, self.m_set_name, \
+        self.m_ms_output_path = get_name(tmp_stats_path, self.m_set_name, \
                                          nii_dconf.mean_std_o_file)
-        self.m_data_len_path = get_name(stats_path, self.m_set_name, \
+        self.m_data_len_path = get_name(tmp_stats_path, self.m_set_name, \
                                         nii_dconf.data_len_file)
         
         # initialize data length and mean /std, read prepared data stats
@@ -329,6 +350,13 @@ class NIIDataSet(torch.utils.data.Dataset):
             self.m_flag_reverse_load_order = True
         else:
             self.m_flag_reverse_load_order = False
+        
+        #
+        if hasattr(global_arg, "force_update_seq_length") and \
+           global_arg.force_update_seq_length:
+            self.m_force_update_seq_length = True
+        else:
+            self.m_force_update_seq_length = False
         
 
         # check
@@ -576,6 +604,8 @@ class NIIDataSet(torch.utils.data.Dataset):
                     #  corresponds to waveform length, update it
                     if tmp_seq_info.length == in_data.shape[0]:
                         tmp_seq_info.length = in_data_n.shape[0]
+                        if self.m_force_update_seq_length:
+                            seq_info.update_len_for_sampler(in_data_n.shape[0])
                 else:
                     in_data_n = in_data
 
@@ -589,6 +619,9 @@ class NIIDataSet(torch.utils.data.Dataset):
                     # this is temporary setting, use length if it is compatible
                     if tmp_seq_info.length == out_data.shape[0]:
                         tmp_seq_info.length = out_data_n.shape[0]
+                        if self.m_force_update_seq_length:
+                            seq_info.update_len_for_sampler(out_data_n.shape[0])
+
                 else:
                     out_data_n = out_data
             else:
@@ -601,12 +634,39 @@ class NIIDataSet(torch.utils.data.Dataset):
             if self.m_inaug_funcs:
                 if len(self.m_input_exts) == 1:
                     # only a single input feature, 
-                    in_data_n = self.m_inaug_funcs[0](in_data_n)
+                    sig = signature(self.m_inaug_funcs[0])
+                    if len(sig.parameters) == 1:
+                        in_data_n = self.m_inaug_funcs[0](in_data_n)
+                    elif len(sig.parameters) == 2:
+                        in_data_n = self.m_inaug_funcs[0](in_data_n, seq_info)
+                    else:
+                        in_data_n = self.m_inaug_funcs[0](in_data_n)
 
                     # more rules should be applied to handle the data length
                     # here, simply set length
-                    if tmp_seq_info.length > in_data_n.shape[0]:
-                        tmp_seq_info.length = in_data_n.shape[0]
+                    if type(in_data_n) == np.ndarray:
+                        if tmp_seq_info.length > in_data_n.shape[0]:
+                            tmp_seq_info.length = in_data_n.shape[0]
+                    elif type(in_data_n) == dict:
+                        if 'length' in in_data_n:
+                            tmp_seq_info.length = in_data_n['length']
+
+                        if 'data' in in_data_n:
+                            in_data_n = in_data_n['data']
+                        else:
+                            print("Input data aug method does not return data")
+                            sys.exit(1)
+                    
+                    if self.m_force_update_seq_length:
+                        # Update the data length so that correct data length
+                        # can be used for --sampler block_shuffle_by_length
+                        #
+                        #tmp_len = seq_info.length
+                        seq_info.update_len_for_sampler(tmp_seq_info.length)
+                        #print("{:s} {:s} {:d} -> {:d}".format(
+                        #    seq_info.seq_name, seq_info.print_to_str(),
+                        #    tmp_len, seq_info.valid_len), 
+                        #      flush=True)
                 else:
                     # multiple input features, 
                     # must check whether func changes the feature length
@@ -625,7 +685,13 @@ class NIIDataSet(torch.utils.data.Dataset):
             if self.m_ouaug_funcs:
                 if len(self.m_output_exts) == 1:
                     # only a single output feature type
-                    out_data_n = self.m_ouaug_funcs[0](out_data_n)
+                    sig = signature(self.m_ouaug_funcs[0])
+                    if len(sig.parameters) == 1:
+                        out_data_n = self.m_ouaug_funcs[0](out_data_n)
+                    elif len(sig.parameters) == 2:
+                        out_data_n = self.m_ouaug_funcs[0](out_data_n, seq_info)
+                    else:
+                        out_data_n = self.m_ouaug_funcs[0](out_data_n)
 
                     # more rules should be applied to handle the data length
                     # here, simply set length
@@ -653,6 +719,10 @@ class NIIDataSet(torch.utils.data.Dataset):
                 # update sequence length
                 tmp_seq_info.length = tmp_len
 
+                if self.m_force_update_seq_length:
+                    seq_info.update_len_for_sampler(tmp_seq_info.length)
+
+
             return in_data_n, out_data_n, tmp_seq_info, idx
         
     
@@ -667,6 +737,20 @@ class NIIDataSet(torch.utils.data.Dataset):
         """
         return [x.seq_length() for x in self.m_seq_info]
     
+    def f_get_updated_seq_len_for_sampler_list(self):
+        """ Similar to f_get_seq_len_list
+        but it returns the updated data sequence length only for 
+        length-based shuffling in sampler
+        """
+        return [x.seq_len_for_sampler() for x in self.m_seq_info]
+
+    def f_update_seq_len_for_sampler_list(self, data_idx, data_len):
+        try:
+            self.m_seq_info[data_idx].update_len_for_sampler(data_len)
+        except IndexError:
+            nii_warn.f_die("Fail to index data {:d}".format(data_idx))
+        return
+
     def f_get_mean_std_tuple(self):
         return (self.m_input_mean, self.m_input_std,
                 self.m_output_mean, self.m_output_std)
@@ -721,8 +805,10 @@ class NIIDataSet(torch.utils.data.Dataset):
             if len(tmp_new_list) < 1:
                 nii_warn.f_print("Possible error when scanning:", 'error')
                 nii_warn.f_print(" {:s} for {:s}".format(tmp_d, tmp_e), 'error')
-                nii_warn.f_print('Here are some names to be scanned:', 'error')
+                nii_warn.f_print('Some file names to be scanned:', 'error')
                 nii_warn.f_print(' ' + ' '.join(self.m_file_list[0:10]),'error')
+                if self.m_file_list[0].endswith(tmp_e):
+                    nii_warn.f_print('Names should not have {:s}'.format(tmp_e))
                 if os.path.isfile(self.m_file_list[0]):
                     mes = "The above name seems not to be the data name. "
                     mes += "It seems to be a file path. "
@@ -1275,7 +1361,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         # done
         return
         
-    def f_putitem(self, output_data, save_dir, data_infor_str):
+    def f_putitem(self, output_data, save_dir, filename_prefix, data_infor_str):
         """ 
         """
         # Change the dimension to (length, dim)
@@ -1311,6 +1397,9 @@ class NIIDataSet(torch.utils.data.Dataset):
 
         # write the data
         file_name = tmp_seq_info.seq_tag()
+        if len(filename_prefix):
+            file_name = filename_prefix + file_name 
+
         seq_length = tmp_seq_info.seq_length()
         s_dim = 0
         e_dim = 0
@@ -1318,12 +1407,29 @@ class NIIDataSet(torch.utils.data.Dataset):
             zip(self.m_output_exts, self.m_output_dims, self.m_output_reso):
             e_dim = s_dim + t_dim
             file_path = nii_str_tk.f_realpath(save_dir, file_name, t_ext)
-            expect_len = seq_length // t_reso
-            if output_data.shape[0] < expect_len:
-                nii_warn.f_print("Warning {:s}".format(file_path), "error")
-                nii_warn.f_print("The generated data is shorter than expected")
-                nii_warn.f_print("Please check the generated file")
-            self.f_write_data(output_data[:expect_len, s_dim:e_dim], file_path)
+            
+            if seq_length > 0:
+                expect_len = seq_length // t_reso
+                # confirm that the generated file length is as expected
+                if output_data.shape[0] < expect_len:
+                    nii_warn.f_print("Warning {:s}".format(file_path), "error")
+                    nii_warn.f_print("Generated data is shorter than expected")
+                    nii_warn.f_print("Please check the generated file")
+                if s_dim == 0 and e_dim == output_data.shape[1]:
+                    # if there is only one output feature, directly output it
+                    self.f_write_data(output_data[:expect_len], file_path)
+                else:
+                    # else, output the corresponding dimentions
+                    self.f_write_data(output_data[:expect_len, s_dim:e_dim], 
+                                      file_path)
+            elif seq_length == 0:
+                # if seq_length == 0, this is for unaligned input
+                if s_dim == 0 and e_dim == output_data.shape[1]:
+                    self.f_write_data(output_data, file_path)
+                else:
+                    self.f_write_data(output_data[s_dim:e_dim], file_path)
+            else:
+                nii_warn.f_die("Error: seq_length < 0 in generation")
         
         return
 
@@ -1594,11 +1700,12 @@ class NIIDataSetLoader:
         return self.m_dataset.f_get_seq_list()
 
 
-    def putitem(self, output_data, save_dir, data_infor_str):
+    def putitem(self, output_data, save_dir, filename_prefix, data_infor_str):
         """ Decompose the output_data from network into
         separate files
         """
-        self.m_dataset.f_putitem(output_data, save_dir, data_infor_str)
+        self.m_dataset.f_putitem(output_data, save_dir, filename_prefix, 
+                                 data_infor_str)
 
     def get_in_dim(self):
         """ Return the dimension of input features
@@ -1624,7 +1731,7 @@ class NIIDataSetLoader:
 
     def manage_data(self, data_idx, opt):
         """
-        f_delete_seq(self, data_idx)
+        manage_data(self, data_idx)
         
         Args:
           data_idx: list of indices, samples with these indices will be deleted
@@ -1636,7 +1743,33 @@ class NIIDataSetLoader:
         # rebuild dataloader
         self.m_loader = self.build_loader()        
         return
+    
+    def update_seq_len_in_sampler_sub(self, data_info):
+        """
+        """
+        data_idx = seq_info.parse_idx(one_info)
+        data_len = seq_info.parse_length(one_info)
+        self.m_dataset.f_update_seq_len_for_sampler_list(data_idx, data_len)
+        return 
 
+    def update_seq_len_in_sampler(self):
+        """update_seq_len()
+
+        Update sequence length if sequence length has been changed
+        (for example, during silence trim process)
+        
+        This is necessary when using shuffle_by_seq_length sampler
+        and the sequences were trimmed in data augmentation function.
+        """
+        # only useful for shuffle_by_seq_length sampler
+        if self.m_params['sampler'] == nii_sampler_fn.g_str_sampler_bsbl:
+            if hasattr(self.m_loader.sampler, 'update_seq_length'):
+                self.m_loader.sampler.update_seq_length(
+                    self.m_dataset.f_get_updated_seq_len_for_sampler_list())
+            else:
+                print("Unknown error in update_seq_len_in_sampler")
+                sys.exit(1)
+        return
     
 if __name__ == "__main__":
     pass

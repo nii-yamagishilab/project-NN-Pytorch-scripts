@@ -43,6 +43,10 @@ def f_args_parsed(argument_input = None):
     # Training settings    
     mes = 'batch size for training/inference (default: 1)'
     parser.add_argument('--batch-size', type=int, default=1, help=mes)
+
+
+    mes = 'number of mini-batches to accumulate (default: 1)'
+    parser.add_argument('--size-accumulate-grad', type=int, default=1, help=mes)
     
     mes = 'number of epochs to train (default: 50)'
     parser.add_argument('--epochs', type=int, default=50, help=mes)
@@ -68,6 +72,19 @@ def f_args_parsed(argument_input = None):
     mes += ' Training stopped after --no-best-epochs.'
     parser.add_argument('--lr-decay-factor', type=float, default=-1.0, help=mes)
     
+    mes = 'lr scheduler: 0: ReduceLROnPlateau (default); 1: StepLR; '
+    mes += 'this option is set on only when --lr-decay-factor > 0. '
+    mes += 'Please check core_scripts/op_manager/lr_scheduler.py '
+    mes += 'for detailed hyper config for each type of lr scheduler'
+    parser.add_argument('--lr-scheduler-type', type=int, default=0, help=mes)
+
+    mes = 'lr patience: patience for torch_optim_steplr.ReduceLROnPlateau '
+    mes += 'this option is used only when --lr-scheduler-type == 0. '
+    parser.add_argument('--lr-patience', type=int, default=5, help=mes)
+
+    mes = 'lr step size: step size for torch.optim.lr_scheduler.StepLR'
+    mes += 'this option is used only when --lr-scheduler-type == 1. '
+    parser.add_argument('--lr-steplr-size', type=int, default=5, help=mes)
 
     mes = 'L2 penalty on weight (default: not use). '
     mes += 'It corresponds to the weight_decay option in Adam'
@@ -77,13 +94,7 @@ def f_args_parsed(argument_input = None):
     mes += 'default (-1, not use)'
     parser.add_argument('--grad-clip-norm', type=float, default=-1.0,
                         help=mes)
-
-    mes = 'lr scheduler: 0: ReduceLROnPlateau (default); 1: StepLR; '
-    mes += 'this option is set on only when --lr-decay-factor > 0. '
-    mes += 'Please check core_scripts/op_manager/lr_scheduler.py '
-    mes += 'for detailed hyper config for each type of lr scheduler'
-    parser.add_argument('--lr-scheduler-type', type=int, default=0, help=mes)
-
+    
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     
@@ -134,6 +145,10 @@ def f_args_parsed(argument_input = None):
     mes = "Ignore existing cache file dic"
     parser.add_argument('--ignore-cached-file-infor', 
                         action='store_true', default=False, help=mes)
+
+    mes = "External directory to store cache file dic"
+    parser.add_argument('--path-cache-file', type=str, default="", help=mes)
+
     ######
     # options to save model / checkpoint
     parser.add_argument('--save-model-dir', type=str, \
@@ -223,6 +238,11 @@ def f_args_parsed(argument_input = None):
     mes = 'path to save generated data (default: ./output)'
     parser.add_argument('--output-dir', type=str, default="./output", \
                         help=mes)
+
+    # options to output
+    mes = 'prefix added to file name (default: no string)'
+    parser.add_argument('--output-filename-prefix', type=str, default="", \
+                        help=mes)
     
     mes = 'truncate input data sequences so that the max length < N.'
     mes += ' (default: -1, not do truncating at all)'
@@ -297,6 +317,14 @@ def f_args_parsed(argument_input = None):
     mes += 'It only processes waveform. Other features will not be trimmed.'
     parser.add_argument('--opt-wav-silence-handler', type=int, 
                         default=0, help=mes)
+
+
+    mes = 'update data length in internal buffer if data length is changed '
+    mes += 'by augmentation method. This is useful, for example, when using '
+    mes += '--sampler block_shuffle_by_length --opt-wav-silence-handler 3 '
+    mes += 'or using other data augmentation method changes data length.'
+    parser.add_argument('--force-update-seq-length', action='store_true', \
+                        default=False, help=mes)
 
 
     #

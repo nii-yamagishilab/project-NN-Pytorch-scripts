@@ -33,7 +33,8 @@ def f_run_one_epoch(args,
                     pt_model, loss_wrapper, \
                     device, monitor,  \
                     data_loader, epoch_idx, optimizer = None, \
-                    target_norm_method = None):
+                    target_norm_method = None, 
+                    data_set_wrapper = None):
     """
     f_run_one_epoch: 
        run one poech over the dataset (for training or validation sets)
@@ -52,6 +53,8 @@ def f_run_one_epoch(args,
                      (for developlement set)
        target_norm_method: method to normalize target data
                            (by default, use pt_model.normalize_target)
+       data_set_wrapper: pytorch Dataset. It is only used to update 
+                     information
     """
     # timer
     start_time = time.time()
@@ -70,7 +73,13 @@ def f_run_one_epoch(args,
         
         # send data to device
         if optimizer is not None:
-            optimizer.zero_grad()
+            if args.size_accumulate_grad > 1:
+                # if accumulate-gradient is on, only zero out grad here 
+                if data_idx % args.size_accumulate_grad == 0:
+                    optimizer.zero_grad()
+            else:
+                # zero grad is gradient accumulation is not used
+                optimizer.zero_grad()
 
         ############
         # compute output
@@ -176,16 +185,35 @@ def f_run_one_epoch(args,
 
         # Back-propgation using the summed loss
         if optimizer is not None and loss.requires_grad:
-            # backward propagation
-            loss.backward()
 
-            # apply gradient clip 
-            if args.grad_clip_norm > 0:
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    pt_model.parameters(), args.grad_clip_norm)
+            if args.size_accumulate_grad > 1:
+                # if gradient accumulation is on
+
+                # adjust loss based on the number of batches accumulated
+                loss = loss / args.size_accumulate_grad
+                loss.backward()
+
+                # do updating only after specified number of mini-batches
+                if (data_idx + 1) % args.size_accumulate_grad == 0:
+                    # apply gradient clip 
+                    if args.grad_clip_norm > 0:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            pt_model.parameters(), args.grad_clip_norm)
                 
-            # update parameters
-            optimizer.step()
+                    # update parameters
+                    optimizer.step()
+            else:
+                # else
+                # backward propagation
+                loss.backward()
+
+                # apply gradient clip 
+                if args.grad_clip_norm > 0:
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        pt_model.parameters(), args.grad_clip_norm)
+                
+                # update parameters
+                optimizer.step()
             
         # save the training process information to the monitor
         end_time = time.time()
@@ -232,6 +260,14 @@ def f_run_one_epoch(args,
             nii_display.f_print("Debug mode is on. This epoch is finished")
             break
         
+        # other procedures
+        if data_set_wrapper and args.force_update_seq_length:
+            # update data length for sampler
+            # when using multi-thread (workers > 0), the information updated
+            # in each subthread will not be reflected here.
+            # we need to do this update manually
+            data_set_wrapper.update_seq_len_in_sampler_sub(data_info)
+
     # loop done
     return
     
@@ -365,18 +401,28 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
 
         # training one epoch
         pt_model.train()
-        # set validation flag if necessary
+        
+        # set validation and other flags if necessary
+        # this tells the model whether the current epoch is for validation 
         if hasattr(pt_model, 'validation'):
             pt_model.validation = False
             mes = "Warning: model.validation is deprecated, "
-            mes += "please use model.flag_validation"
+            mes += "please use model.g_flag_validation"
             nii_display.f_print(mes, 'warning')
         if hasattr(pt_model, 'flag_validation'):
             pt_model.flag_validation = False
-
+        if hasattr(pt_model, 'g_flag_validation'):
+            pt_model.g_flag_validation = False
+        
+        # set epoch number
+        if hasattr(pt_model, 'g_epoch_idx'):
+            pt_model.g_epoch_idx = epoch_idx
+            
+        # run one epoch
         f_run_one_epoch(args, pt_model, loss_wrapper, device, \
                         monitor_trn, train_data_loader, \
-                        epoch_idx, optimizer, normtarget_f)
+                        epoch_idx, optimizer, normtarget_f, \
+                        train_dataset_wrapper)
         time_trn = monitor_trn.get_time(epoch_idx)
         loss_trn = monitor_trn.get_loss(epoch_idx)
         
@@ -399,18 +445,20 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                 f_run_one_epoch(args, pt_model, loss_wrapper, \
                                 device, \
                                 monitor_val, val_data_loader, \
-                                epoch_idx, None, normtarget_f)
+                                epoch_idx, None, normtarget_f, \
+                                val_dataset_wrapper)
             time_val = monitor_val.get_time(epoch_idx)
             loss_val = monitor_val.get_loss(epoch_idx)
             
             # update lr rate scheduler if necessary
             if lr_scheduler.f_valid():
-                lr_scheduler.f_step(loss_val)
+                lr_scheduler.f_step(
+                    monitor_val.get_loss_for_learning_stopping(epoch_idx))
 
         else:
-            time_val = monitor_val.get_time(epoch_idx)
-            loss_val = monitor_val.get_loss(epoch_idx)
-            #time_val, loss_val = 0, 0
+            #time_val = monitor_val.get_time(epoch_idx)
+            #loss_val = monitor_val.get_loss(epoch_idx)
+            time_val, loss_val = 0, np.zeros_like(loss_trn)
                 
         
         if val_dataset_wrapper is not None:
@@ -467,6 +515,13 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             flag_early_stopped = True
             break
         
+        # Update datasets informaiton if necessary
+        if args.force_update_seq_length:
+            # update the sequence length logged in sampler if sequence
+            # length are to be changed during data loading process
+            train_dataset_wrapper.update_seq_len_in_sampler()
+            val_dataset_wrapper.update_seq_len_in_sampler()
+
     # loop done        
     nii_op_display_tk.print_log_tail()
     if flag_early_stopped:
@@ -627,6 +682,7 @@ def f_inference_wrapper(args, pt_model, device, \
                     #nii_display.f_print(seq_info)
                     test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
                                                  args.output_dir, \
+                                                 args.output_filename_prefix, \
                                                  seq_info)
 
             start_time_load = time.time()
@@ -635,8 +691,9 @@ def f_inference_wrapper(args, pt_model, device, \
             # print information
             time_cost = time_cost_load + time_cost_inf + time_cost_save
             for idx, seq_info in enumerate(data_info):
-                #print("{:s} {:f} {:f} {:f}".format(
-                #    seq_info, time_cost_load, time_cost_inf, time_cost_save))
+                if args.verbose == 2:
+                    print("{:s} {:f} {:f} {:f}".format(
+                        seq_info,time_cost_load, time_cost_inf, time_cost_save))
                 sample_account += 1
                 _ = nii_op_display_tk.print_gen_info(
                     seq_info, time_cost, sample_account)

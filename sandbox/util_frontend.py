@@ -39,7 +39,7 @@ __copyright__ = "Copyright 2021, Xin Wang"
 ## other utilities
 ##################
 def stft_wrapper(x, fft_n, frame_shift, frame_length, window, 
-                 pad_mode="constant"):
+                 pad_mode="constant", return_complex=False):
     """Due to the different signature of torch.stft, write a 
     wrapper to handle this
 
@@ -63,7 +63,23 @@ def stft_wrapper(x, fft_n, frame_shift, frame_length, window,
         #  torch > 1.7
         return torch.stft(x, fft_n, frame_shift, frame_length, 
                           window=window, onesided=True, pad_mode=pad_mode,
-                          return_complex=False)
+                          return_complex=return_complex)
+
+
+def istft_wrapper(x, fft_n, frame_shift, frame_length, window, 
+                 pad_mode="constant"):
+    
+    # there are better ways, but for convenience
+    if torch.__version__.split('.')[1].isnumeric() and \
+       int(torch.__version__.split('.')[1]) < 7:
+        #  torch 1.6.*
+        return torch.istft(x, fft_n, frame_shift, frame_length, 
+                           window=window, onesided=True, pad_mode=pad_mode)
+    else:
+        #  torch > 1.7
+        return torch.istft(x, fft_n, frame_shift, frame_length, 
+                           window=window, onesided=True)
+
 
 
 
@@ -551,6 +567,71 @@ class MFCC(torch_nn.Module):
 
         # done
         return output
+
+
+#######################
+# spectrum substraction
+#######################
+def spectral_substraction(input_wav, noise_wav, ratio = 0.1,
+                          fft_n = 512, frame_shift = 256, frame_length = 512):
+    """
+    output = spectrum_substraction(input_wav, noise_wav)
+        
+    input
+    -----
+      input_wav: tensor, (batch, length1, 1)
+      noise_wav: tensor, (batch, length2, 1)
+      ratio: float, default 0.1, ratio to be multiplied with noise spectrum
+      fft_n: int, default 1024, fft length
+      frame_shift: int, default 256, frame shift
+      frame_length: int, default 512, frame_shift
+    
+    output
+    ------
+      output: tensor, de-noised waveform
+    
+    Note: this function do spectral_substraction. 
+    noise_wav does not need to have the same length as input_wav.
+    spectra amplitude of noise_wav will be averaged and subtracted from 
+      input_wav stft spectra amplitude
+    """    
+    window = torch.hamming_window(frame_length).to(input_wav.device)
+    
+    # stft
+    input_spec = stft_wrapper(
+        input_wav.squeeze(-1), fft_n, frame_shift, frame_length, window, 
+        return_complex=True)
+    
+    noise_spec = stft_wrapper(
+        noise_wav.squeeze(-1), fft_n, frame_shift, frame_length, window, 
+        return_complex=True)
+        
+    # input wave spectral amplitude and phase (batch, fft_n//2+1, length, )
+    input_spec_abs = torch.abs(input_spec)
+    input_spec_pha = torch.angle(input_spec)
+    
+    # noise spectral, averaged
+    noise_spec_abs = torch.abs(noise_spec).mean(axis=-1).unsqueeze(-1)
+    
+    # spectral subtraction
+    denoi_spec_abs = input_spec_abs - noise_spec_abs * ratio
+    denoi_spec_abs = torch.clamp(denoi_spec_abs, min=0.00000001)
+        
+    # recover waveform
+    input_spec = torch.complex(
+        denoi_spec_abs * torch.cos(input_spec_pha),
+        denoi_spec_abs * torch.sin(input_spec_pha),
+    )
+        
+    output = istft_wrapper(
+        input_spec, fft_n, frame_shift, frame_length, window)
+
+    # adjust waveform length
+    length = min([input_wav.shape[1], output.shape[1]])
+    output_new = torch.zeros_like(input_wav)
+    output_new[:, 0:length, 0] = output[:, 0:length]
+    return output_new
+
 
 if __name__ == "__main__":
     print("Definition of front-end for Anti-spoofing")

@@ -37,7 +37,7 @@ def parse_curly_bracket(text):
     ------
       text_list: list of str
 
-    For example, 'text {AH II} test' -> ['text ', 'AH II', ' test']
+    For example, 'text {AH II} test' -> ['text ', '{AH II', ' test']
     """
     text_list = []
     text_tmp = text
@@ -47,15 +47,20 @@ def parse_curly_bracket(text):
         
         if re_matched:
             # e.g., 'text {AH II} test'
-            # group(1), group(2) -> ['text ', 'AH II']
+            # group(1), group(2) -> ['text ', '{AH II']
             text_list.append(re_matched.group(1))
+            # the '{' in front of AH II should be trimmed off when parsing the
+            # text string later
             text_list.append(_curly_symbol + re_matched.group(2))
             # group(3) -> ' test'
             text_tmp = re_matched.group(3)
         else:
             text_list.append(text_tmp)
             break
-    return text_list
+
+    # exclude the empty truck, for example in ['', '{AH II']
+    text_list_filtered = [x for x in text_list if len(x) > 0]
+    return text_list_filtered
 
 
 if __name__ == "__main__":

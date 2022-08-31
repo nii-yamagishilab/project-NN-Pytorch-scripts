@@ -603,9 +603,9 @@ def f_train_wrapper_GAN(
                     monitor_val, val_data_loader, \
                     epoch_idx, None, None, normtarget_f)
             time_val = monitor_val.get_time(epoch_idx)
-            loss_val = monitor_val.get_loss(epoch_idx)
+            loss_dev = monitor_val.get_loss(epoch_idx)
         else:
-            time_val, loss_val = 0, 0
+            time_val, loss_dev = 0, np.zeros_like(loss_trn)
                 
         
         if val_dataset_wrapper is not None:
@@ -615,7 +615,7 @@ def f_train_wrapper_GAN(
             
         # print information
         train_log += nii_op_display_tk.print_train_info(
-            epoch_idx, time_trn, loss_trn, time_val, loss_val, 
+            epoch_idx, time_trn, loss_trn, time_val, loss_dev, 
             flag_new_best, optimizer_G_wrapper.get_lr_info())
 
         # save the best model

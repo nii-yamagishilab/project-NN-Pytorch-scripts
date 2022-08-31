@@ -21,7 +21,10 @@ __copyright__ = "Copyright 2021, Xin Wang"
 
 # symbols
 _pad = '_'
+# 'space' is treated as a symbol
 _punctuation = '!\'(),-.:;? '
+# space
+_space = ' '
 _eos = '~'
 _letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 _skip_symbols = ['_', '~']
@@ -60,6 +63,10 @@ def symbol2index(x):
 
 def index2symbol(x):
     return _symbols[x]
+
+def eos_index():
+    return _symbol_to_index[_eos]
+
 
 #####
 ## Functions for text normalization
@@ -103,6 +110,31 @@ def text_normalizer(text):
     """
     return text_whitespace_convert(text_numbers(text_case_convert(text)))
 
+def g2poutput_process(sym_seq):
+    """ remove unnecessary space (inplace)
+    
+    """
+    punc_list = [x for x in _punctuation]
+    new_sym_seq = []
+
+    for idx, sym in enumerate(sym_seq):
+        if sym == _space:
+            # skip initial space
+            if idx == 0:
+                continue
+        
+            # skip space before punctunation
+            if idx < len(sym_seq) - 1 and sym_seq[idx+1] in punc_list:
+                continue
+
+            # skip space after puncutation
+            if idx > 0 and sym_seq[idx-1] in punc_list:
+                continue
+            
+        new_sym_seq.append(sym)
+        
+    return new_sym_seq
+
 #####
 ## Functions to convert symbol to index
 #####
@@ -135,7 +167,6 @@ def rawtext2indices(text):
     for example, 'text' -> [23, 16, 28, 23]
     """
     output = [symbol2index(x) for x in text if flag_convert_symbol(x)]
-    output.append(symbol2index(_eos))
     return output
 
 def arpabet2indices(arpa_text):
@@ -149,36 +180,47 @@ def arpabet2indices(arpa_text):
     ------
       list of indices
 
-    for example, 'AH HH' -> [12 19]
+    for example, 'AH_HH' -> [12 19]
     """
-    tmp = [_arpabet_symbol_marker + x for x in arpa_text.split()]
-    return [symbol2index(x) for x in tmp if flag_convert_symbol(x)]
+    _fun_at = lambda x: _arpabet_symbol_marker + x if x != _space else x
+    tmp = [_fun_at(x) for x in arpa_text.split(_pad)]
+    output = [symbol2index(x) for x in tmp if flag_convert_symbol(x)]
+    return output
     
 #####
 ## Main function
 #####
 
 
-def text2code(text):
+def text2code(text, flag_append_eos=True):
     """ Convert English text and ARPAbet into code symbols (int)
     """
     if text.startswith(toolkit_all._curly_symbol):
         # phonemic annotation, no normalization
-        return arpabet2indices(text.lstrip(toolkit_all._curly_symbol))
+        output = arpabet2indices(text.lstrip(toolkit_all._curly_symbol))
     else:
         # normal text, do normalization before conversion
         # text normalization
         text_normalized = text_normalizer(text)
-        return rawtext2indices(text_normalized)
-    # done
+        output = rawtext2indices(text_normalized)
+
+    # if necessary, add the eos symbol
+    if flag_append_eos:
+        output.append(symbol2index(_eos))
+
+    return output
+
 
 def code2text(codes):
+    """ Convert index back to text
+    
+    Unfinished. ARPAbet cannot be reverted in this function
+    """
     # x-1 because  _symbol_to_index
     txt_tmp = [index2symbol(x) for x in codes]
     txt_tmp = ''.join(txt_tmp)
     return text_whitespace_convert(txt_tmp.replace(_arpabet_symbol_marker, ' '))
     
-
 
 if __name__ == "__main__":
     print("Definition of text processing toolkit for English")

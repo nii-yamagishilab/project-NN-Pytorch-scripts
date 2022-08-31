@@ -21,6 +21,7 @@ import core_scripts.other_tools.display as nii_warn
 import sandbox.block_nn as nii_nn
 
 import sandbox.block_waveglow as nii_waveglow
+import sandbox.util_frontend as nii_nn_frontend
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -86,7 +87,10 @@ class Model(torch_nn.Module):
             self.flag_affine,
             self.early_z_feature_dim,
             self.flag_affine_legacy_implementation)
-        
+
+        # buffer for noise in inference
+        self.bg_noise = None
+
         # done
         return
     
@@ -175,6 +179,13 @@ class Model(torch_nn.Module):
         noise = self.m_waveglow.get_z_noises(length, noise_std=0.6, 
                                              batchsize=input_feat.shape[0])
         output = self.m_waveglow.reverse(noise, input_feat)
+
+        # use a randomized 
+        if self.bg_noise is None:
+            self.bg_noise = self.m_waveglow.reverse(noise, input_feat * 0)
+
+        # do post filtering
+        output = nii_nn_frontend.spectral_substraction(output,self.bg_noise,1.0)
         return output
 
 

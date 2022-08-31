@@ -173,4 +173,12 @@ def write_list_to_text_file(data_list, filepath, endl='\n'):
     return
 
 if __name__ == "__main__":
-    print("Definition of tools for list operation")
+    #print("Definition of tools for list operation")
+    
+    input_list1 = read_list_from_text(sys.argv[1])
+    input_list2 = read_list_from_text(sys.argv[2])
+    residual_list = members_in_a_not_in_b(input_list1, input_list2)
+    for filename in residual_list:
+        print(filename)
+    
+    

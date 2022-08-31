@@ -62,6 +62,8 @@ def main():
                        if hasattr(prj_conf, 'input_trans_fns') else None
         out_trans_fns = prj_conf.output_trans_fns \
                         if hasattr(prj_conf, 'output_trans_fns') else None
+        inout_trans_fns = prj_conf.input_output_trans_fn \
+                  if hasattr(prj_conf, 'input_output_trans_fn') else None
         
 
         # Load file list and create data loader
@@ -89,19 +91,30 @@ def main():
             global_arg = args,
             dset_config = prj_conf,
             input_augment_funcs = in_trans_fns,
-            output_augment_funcs = out_trans_fns)
+            output_augment_funcs = out_trans_fns,
+            inoutput_augment_func = inout_trans_fns)
+
+        if hasattr(prj_conf, 'val_input_dirs'):
+            val_input_dirs = prj_conf.val_input_dirs
+        else:
+            val_input_dirs = prj_conf.input_dirs
+
+        if hasattr(prj_conf, 'val_output_dirs'):
+            val_output_dirs = prj_conf.val_output_dirs
+        else:
+            val_output_dirs = prj_conf.output_dirs
 
         if prj_conf.val_list is not None:
             val_lst = prj_conf.val_list
             val_set = nii_dset.NII_MergeDataSetLoader(
                 prj_conf.val_set_name,
                 val_lst,
-                prj_conf.input_dirs, \
+                val_input_dirs, \
                 prj_conf.input_exts, \
                 prj_conf.input_dims, \
                 prj_conf.input_reso, \
                 prj_conf.input_norm, \
-                prj_conf.output_dirs, \
+                val_output_dirs, \
                 prj_conf.output_exts, \
                 prj_conf.output_dims, \
                 prj_conf.output_reso, \
@@ -116,7 +129,8 @@ def main():
                 global_arg = args,
                 dset_config = prj_conf,
                 input_augment_funcs = in_trans_fns,
-                output_augment_funcs = out_trans_fns)
+                output_augment_funcs = out_trans_fns,
+                inoutput_augment_func = inout_trans_fns)
         else:
             val_set = None
 
@@ -156,7 +170,10 @@ def main():
                        if hasattr(prj_conf, 'test_input_trans_fns') else None
         out_trans_fns = prj_conf.test_output_trans_fns \
                         if hasattr(prj_conf, 'test_output_trans_fns') else None
-        
+        inout_trans_fns = prj_conf.test_input_output_trans_fn \
+                          if hasattr(prj_conf, 'test_input_output_trans_fn') \
+                             else None
+
         if type(prj_conf.test_list) is list:
             t_lst = prj_conf.test_list
         else:
@@ -185,7 +202,8 @@ def main():
             global_arg = args,
             dset_config = prj_conf,
             input_augment_funcs = in_trans_fns,
-            output_augment_funcs = out_trans_fns)
+            output_augment_funcs = out_trans_fns,
+            inoutput_augment_func = inout_trans_fns)
         
         # initialize model
         model = prj_model.Model(test_set.get_in_dim(), \

@@ -308,6 +308,7 @@ def silence_handler(wav, sr, fl=320, fs=80,
       flag_only_startend_sil: bool, whether only consider silence in 
           the begining and end. If False, silence within the utterance
           will be marked / removed (default False)
+
     output
     ------
       wav_no_sil: np.array, (length_1, ), waveform after removing silence
@@ -420,6 +421,9 @@ def silence_handler(wav, sr, fl=320, fs=80,
     else:
         return spe_buf, sil_buf, frame_tag
 
+###################
+# wrapper functions
+###################
 
 def silence_handler_wrapper(wav, sr, fl=320, fs=80, 
                             max_thres_below=30, 
@@ -429,7 +433,11 @@ def silence_handler_wrapper(wav, sr, fl=320, fs=80,
                             flag_norm_amp=True,
                             flag_only_startend_sil=False):
     """Wrapper over silence_handler
-    For conveneince, input and output wav have shape (length, 1)
+
+    Many APIs used in this project assume (length, 1) shape.
+    Thus, this API is a wrapper to accept (length, 1) and output (length, 1)
+    
+    See more on silence_handler
     """
     output = silence_handler(
         wav[:, 0], sr, fl, fs, max_thres_below, 
@@ -447,9 +455,67 @@ def silence_handler_wrapper(wav, sr, fl=320, fs=80,
             output[2]
 
 
+
+###################
+# Other tools
+###################
+
+def wav_get_amplitude(waveform, method='max'):
+    """
+    input
+    -----
+      wavform: np.array, (length, 1)
+      method: str, 
+        'max': compute np.max(np.abs(waveform))
+        'mean': compute np.mean(np.abs(waveform))
+        
+    output
+    ------
+      amp: np.array (1) 
+    """
+    if method == 'max':
+        return np.max(np.abs(waveform))
+    else:
+        return np.mean(np.abs(waveform))
+    
+def wav_norm_amplitude(waveform, method='max', floor=1e-12):
+    """
+    input
+    -----
+      wavform: np.array, (length, 1)
+      method: str, 
+        'max': compute np.max(np.abs(waveform))
+        'mean': compute np.mean(np.abs(waveform))
+        
+    output
+    ------
+      amp: np.array (1) 
+    """
+    amp = wav_get_amplitude(waveform, method=method)
+    amp = amp + floor if amp < floor else amp
+    return waveform / amp
+
+def wav_scale_amplitude_to(waveform, amp, method = 'max'):
+    """
+    input
+    -----
+      wavform: np.array, (length, 1)
+      get_amp_method: str, 
+        'max': compute np.max(np.abs(wavform))
+        'mean': compute np.mean(np.abs(wavform))
+        
+    output
+    ------
+      waveform: np.array, (length, 1)
+    """
+    
+    return wav_norm_amplitude(waveform, method=method) * amp
+
+
 ###################
 # legacy functions
 ###################
+
 def wavformRaw2MuLaw(wavdata, bit=16, signed=True, quanLevel = 256.0):
     """ 
     wavConverted = wavformRaw2MuLaw(wavdata, bit=16, signed=True, \
@@ -536,6 +602,52 @@ def float2wav(rawData, wavFile, bit=16, samplingRate = 16000):
         rawData  = np.asarray(rawData, dtype=np.int16)
     scipy.io.wavfile.write(wavFile, samplingRate, rawData)
     return
+
+
+#################################
+# Other utilities based on Numpy
+#################################
+def f_overlap_cat(data_list, overlap_length):
+    """Wrapper for overlap and concatenate
+
+    input:
+    -----
+      data_list: list of np.array, [(length1, dim), (length2, dim)]
+    
+    output
+    ------
+      data: np.array, (length1 + length2 ... - overlap_length * N, dim)
+    """
+    data_dtype = data_list[0].dtype
+    if data_list[0].ndim == 1:
+        dim = 1
+    else:
+        dim = data_list[0].shape[1]
+
+    total_length = sum([x.shape[0] for x in data_list])
+    data_gen = np.zeros([total_length, dim], dtype=data_dtype)
+    
+    prev_end = 0
+    for idx, data_trunc in enumerate(data_list):
+        tmp_len = data_trunc.shape[0]
+        if data_trunc.ndim == 1:
+            data_tmp = np.expand_dims(data_trunc, 1)
+        else:
+            data_tmp = data_trunc
+
+        if idx == 0:
+            data_gen[0:tmp_len] = data_tmp
+            prev_end = tmp_len
+        else:
+            win_len = min([prev_end, overlap_length, tmp_len])
+            win_cof = np.arange(0, win_len)/win_len
+            win_cof = np.expand_dims(win_cof, 1)
+            data_gen[prev_end - win_len:prev_end] *= 1.0 - win_cof
+            data_tmp[:win_len] *= win_cof
+            data_gen[prev_end-win_len:prev_end-win_len+tmp_len] += data_tmp
+            prev_end = prev_end-win_len+tmp_len
+    return data_gen[0:prev_end]
+
 
 if __name__ == "__main__":
     print("Definition of tools for wav")

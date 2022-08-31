@@ -282,7 +282,7 @@ class LinearDCT(torch_nn.Linear):
 
     Args:
     ----
-      in_features: int, expected length of the signal. 
+      in_features: int, which is equal to expected length of the signal. 
       type: string, dct1, idct1, dct, or idct
       norm: string, ortho or None, default None
       bias: bool, whether add bias to this linear layer. Default None

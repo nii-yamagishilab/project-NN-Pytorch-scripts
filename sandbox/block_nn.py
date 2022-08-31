@@ -1635,6 +1635,19 @@ class LSTMLayer(torch_nn.Module):
             # step-by-step processing
             return self._forwardstep(x, step_idx)
 
+class DropoutForMC(torch_nn.Module):
+    """Dropout layer for Bayesian model
+    THe difference is that we do dropout even in eval stage
+    """
+    def __init__(self, p, dropout_flag=True):
+        super(DropoutForMC, self).__init__()
+        self.p = p
+        self.flag = dropout_flag
+        return
+        
+    def forward(self, x):
+        return torch_nn_func.dropout(x, self.p, training=self.flag)
+        
 
 if __name__ == "__main__":
     print("Definition of block NN")

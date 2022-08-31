@@ -36,11 +36,21 @@ class SeqInfo():
                        original utterance
             info_id: idx of this seq segment in training set
         """
+        # data length (data stored on HDD)
         self.length = int(length)
+        # name of the data sequence
         self.seq_name = seq_name
+        # idx of the data in data set
         self.seg_idx = seg_idx
+        # from which time step does this data sequence starts 
         self.start_pos = int(start_pos)
+        # other information
         self.info_id = info_id
+
+        # add one slot for updating sequence information, 
+        # this is only used for sampler shuffling
+        self.valid_len = 0
+        return
         
         
     def print_to_dic(self):
@@ -70,11 +80,9 @@ class SeqInfo():
         """
         Print infor to str
         """
-        temp = "{:d},{},{:d},{:d},{:d}".format(self.info_id, \
-                                               self.seq_name, \
-                                               self.seg_idx, \
-                                               self.length, \
-                                               self.start_pos)
+        temp = "{:d},{},{:d},{:d},{:d}".format(
+            self.info_id, self.seq_name, self.seg_idx, self.length, 
+            self.start_pos)
         return temp
 
     def parse_from_str(self, input_str):
@@ -100,6 +108,17 @@ class SeqInfo():
 
     def seq_start_pos(self):
         return self.start_pos
+
+    def seq_len_for_sampler(self):
+        return self.valid_len
+
+    def update_len_for_sampler(self, valid_len):
+        # udpate the valid length of the data
+        # due to data augmentation or trimming, the actual data sequence 
+        # may be shorter than self.length.
+        # this affects sampler such as shuffle_by_seq_length
+        self.valid_len = valid_len
+        return 
 
 ############
 ### Util to parse the output from print_to_str

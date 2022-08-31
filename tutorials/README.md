@@ -2,7 +2,7 @@
 
 Xin Wang, National Institute of Informatics, 2022
 
-**The latest notebooks are maintained on Goole colab, please click [here](https://colab.research.google.com/drive/1EO-ggi1U9f2zXwTiqg7AEljVx11JKta7?usp=sharing).**
+**The latest notebooks are maintained on Goolge colab, please click [here](https://colab.research.google.com/drive/1EO-ggi1U9f2zXwTiqg7AEljVx11JKta7?usp=sharing).**
 
 **Notebooks in this directory are not maintained anymore.**
 

@@ -17,6 +17,7 @@ from __future__ import absolute_import
 import os
 import sys
 import numpy as np
+import scipy 
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
@@ -30,7 +31,7 @@ class Melspec(object):
     Most of the API is written by Dr. Shinji Takaki 
     """
     def __init__(self, sf=16000, fl=400, fs=80, fftl=1024, mfbsize=80, 
-                 melmin=0, melmax=None):
+                 melmin=0, melmax=None, ver=1):
         """Melspec(sf, fl, fs, fftl, mfbsize, melmin, melmax)
         
         Args
@@ -42,7 +43,14 @@ class Melspec(object):
           mfbsize: int, mel-filter bank size
           melmin: float, lowest freq. covered by mel-filter bank, default 0
           melmax: float, highest freq. covered by mel-filter bank, default sf/2
+
+        Note
+        ----
+          configuration for Voiceprivacy challenge:
+             dsp_tools.Melspec(fftl=1024, fl=400, fs=160, ver=2)
         """
+        #
+        self.ver = ver
         # sampling rate
         self.sf = sf
         # frame length 
@@ -64,7 +72,11 @@ class Melspec(object):
         # windows
         self.window = np.square(np.blackman(self.fl).astype(np.float32))
         winpower = np.sqrt(np.sum(self.window))
-        self.window = self.window / winpower
+
+        if self.ver == 2:
+            self.window = np.blackman(self.fl).astype(np.float32) / winpower
+        else:
+            self.window = self.window / winpower
         
         # create mel-filter bank
         self.melfb = self._melfbank(self.melmin, self.melmax)
@@ -144,11 +156,19 @@ class Melspec(object):
         M = np.log(np.dot(A, self.melfb.T))
         return M
 
+    def _preprocess(self, X):
+        if self.ver == 2:
+            # in ver2, assume wave in 16 bits
+            return X * np.power(2, 15)
+        else:
+            return X
+
     def analyze(self, X):
         """Mel = analysze(X)
         input: X, np.array, waveform data, (length, )
         output: Mel, np.array, melspec., (frame_length, melfb_size)
         """
+        X = self._preprocess(X)
         M = self._amplitude(self._rfft(self._anawindow(self._frame(X))))
         M = self._logmelfbspec(M)
         return M
@@ -631,6 +651,311 @@ class LPClite(object):
         return lpc_coef
     
 
+
+def f0resize(input_f0, input_reso, output_reso):
+    """output_f0 = f0size(input_f0, input_reso, output_reso)
+    
+    input
+    -----
+      input_f0: array, (length, )
+      input_reso: int, frame_shift, ms
+      output_reso: int, frame_shift, ms
+
+    output
+    ------
+      output_f0: array, (length2, )
+         where length2 ~ np.ceil(length * input_reso / output_reso)
+    """
+    # function to merge two f0 value
+    #  average them unless there is u/v mismatch
+    def merge_f0(val1, val2):
+        if val1 < 1 and val2 < 1:
+            return (val1 + val2)/2
+        elif val1 < 1:
+            return val2
+        elif val2 < 1:
+            return val1
+        else:
+            return (val1 + val2)/2
+        
+    def retrieve_f0(buf, idx):
+        if idx > 0 and idx < buf.shape[0]:
+            return buf[idx]
+        else:
+            return 0
+        
+    # input length
+    input_len = input_f0.shape[0]
+    # output length
+    output_len = int(np.ceil(input_len * input_reso / output_reso))
+    # output buffer
+    output_f0 = np.zeros([output_len])
+    
+    for idx in np.arange(output_len):
+        input_idx = idx * output_reso / input_reso
+        input_idx_left = int(np.floor(input_idx))
+        input_idx_right = int(np.ceil(input_idx))
+        
+        # get the nearest value from input f0
+        val1 = retrieve_f0(input_f0, input_idx_left)
+        val2 = retrieve_f0(input_f0, input_idx_right)
+        output_f0[idx] = merge_f0(val1, val2)
+    return output_f0
+
+
+def spectra_substraction(input1, input2, ratio=0.1, 
+                         frame_length = 512, frame_shift = 256, fft_n = 512):
+    """
+    output = spectra_substraction(input1, input2, ratio=0.1,
+                     frame_length = 512, frame_shift = 256, fft_n = 512)
+    
+    input
+    -----
+      input1: array, (length1 ), waveform to be denoised
+      input2: array, (length2 ), waveform background noise
+      ratio: float, weight to average spectra of noise
+   
+      frame_length, frame_shift, fft_n
+
+    output
+    ------
+      output: array, (length 1)
+      
+    """
+    _, _, input_spec1 = scipy.signal.stft(
+        input1, nperseg = frame_length, 
+        noverlap = frame_length - frame_shift, nfft=fft_n)
+
+    _, _, input_spec2 = scipy.signal.stft(        
+        input1, nperseg = frame_length, 
+        noverlap = frame_length - frame_shift, nfft=fft_n)
+    
+    # ampltiude and phase
+    amp1 = np.abs(input_spec1)
+    pha1 = np.angle(input_spec1)
+    
+    # nosie average spectrum
+    amp2 = np.abs(input_spec2)
+    amp2 = amp2.mean(axis=1, keepdims=1)
+    
+    #idx = np.bitwise_and(amp1 > 0.0000001, amp2 > 0.0000001)
+    #amp_new = amp1
+    #amp_new[idx] = np.exp(np.log(amp1[idx]) - np.log((amp2[idx] * ratio)))
+    
+    # spectra substraction
+    amp_new = amp1 - amp2 * ratio
+    
+    # keep amplitude none-negative
+    amp_new[amp_new<0] = 0.0
+    
+    # reconstruct
+    spec_new = amp_new * np.cos(pha1) + 1j * amp_new * np.sin(pha1)
+    
+    _, output = scipy.signal.istft(
+        spec_new, nperseg=frame_length, 
+        noverlap=frame_length - frame_shift, nfft = fft_n)
+    
+    return output
+
+
+def GriffinLim(sp_amp, n_iter, fl, fs, fft_n, 
+               window='hann', momentum=0.99, init='rand'):
+    """
+    wav = GriffinLim(sp_amp, n_iter, fl, fs, fft_n, 
+         window='hann', momentum=0.99, init='rand')
+    
+    Code based on librosa API.
+    
+    input
+    -----
+      sp_amp: array, (frame, fft_n//2+1), spectrum amplitude (linear domain)
+      n_iter: int, number of GL iterations
+      fl: int, frame length
+      fs: int, frame shift
+      fft_n: int, number of FFT points,
+      window: str, default hann window
+      momentum: float, momentum for fast GL iteration default 0.99
+      init: str, initialization method of initial phase, default rand
+    
+    output
+    ------
+      wav: array, (length, ), reconstructed waveform
+      
+    Example
+    -------
+      nfft = 512
+      fl = 512
+      fs = 256
+
+      _, _, data_stft = scipy.signal.stft(data1, window='hann', nperseg=fl, 
+                                        noverlap=fl - fs, nfft = nfft)
+      data_stft = np.abs(data_stft)
+
+      wav = GriffinLim(data_stft, 32, fl, fs, nfft)
+    """
+    def angle_to_complex(x):
+        return np.cos(x) + 1j * np.sin(x)
+
+    # check data shape
+    if sp_amp.shape[0] != fft_n // 2 + 1:
+        spec_amp = sp_amp.T
+        if spec_amp.shape[0] != fft_n // 2 + 1:
+            print("Input sp_amp has shape {:s}".format(str(sp_amp)))
+            print("FFT bin number is {:d}, incompatible".format(fft_n))
+    else:
+        spec_amp = sp_amp
+    
+    # small value
+    eps = 0.0000001
+    
+    # buffer for angles
+    angles = np.zeros(spec_amp.shape, dtype=np.complex64)
+    
+    # initialize phase
+    if init == "rand":
+        angles[:] = angle_to_complex(2*np.pi * np.random.rand(*spec_amp.shape))
+    else:
+        angles[:] = 1.0
+    
+    # Place-holders for temporary data and reconstructed buffer
+    rebuilt = None
+    tprev = None
+    inverse = None
+
+    # Absorb magnitudes into angles
+    angles *= spec_amp
+    
+    for _ in range(n_iter):
+        # Invert 
+        _, inverse = scipy.signal.istft(angles, window = window, 
+                                    nperseg=fl, noverlap=fl - fs, nfft = fft_n)
+
+        # rebuild
+        _, _, rebuilt = scipy.signal.stft(inverse, window = window, 
+                                     nperseg=fl, noverlap=fl - fs, nfft = fft_n)
+
+        # update
+        angles[:] = rebuilt
+        if tprev is not None:
+            angles -= (momentum / (1 + momentum)) * tprev
+        angles /= np.abs(angles) + eps
+        angles *= spec_amp
+        
+        # 
+        rebuilt, tprev = tprev, rebuilt
+
+    # reconstruct
+    _, wav = scipy.signal.istft(angles, window = window, 
+                                nperseg=fl, noverlap=fl - fs, nfft = fft_n)
+    return wav
+
+
+def warp_function_bilinear(normed_freq, alpha=0):
+    """ warped_freq = warp_function_quadratic(normed_freq)
+
+    Frequency warping using bi-linear function
+    
+    input
+    -----
+      normed_freq: np.array, (N, ), normalized frequency values
+                   between 0 and pi
+      alpha: float, warping coefficient. alpha=0 means no warping
+     
+    output
+    ------
+      warped_freq: np.array, (N, ), warpped normalized frequency
+    
+    Example
+    -------
+      orig_rad = np.arange(0, 512)/512 * np.pi
+      warp_rad = warp_function_bilinear(orig_rad, alpha=0.3)
+    
+    """
+    if np.any(normed_freq < 0) or np.any(normed_freq > np.pi):
+        print("Input freq. out of range")
+        sys.exit(1)
+    nom = (1 - alpha * alpha) * np.sin(normed_freq)
+    den = (1 + alpha * alpha) * np.cos(normed_freq) - 2 * alpha
+    output = np.arctan(nom / den)
+    output[output < 0] = output[output < 0] + np.pi
+    return output
+
+def warp_interpolation(spec, alpha, warp_func=None):
+    """output = wrap_interpolation(spec, spec)
+
+    Do frequency Warping and linear interpolation of spectrum.
+    This is used for Vocal-tract pertubation
+
+    input
+    -----
+      spec: spectra evelope, (L, N), where L is the frame number
+      alpha: float, coefficients for warping
+      warp_func: a warp function, 
+            if None, we will use warp_function_bilinear in dsp_tools.py
+      
+    output
+    ------
+      output: spectra evelope, (L, N), where L is the frame number
+
+
+    Example
+    -------
+      # let us vocal-tract length perturbation
+      # let's do warping on spectrum envelope
+      # we use pyworld to extract spectrum envelope 
+
+      import pyworld as pw      
+      x, sf = some_waveread_function(audio_file)
+
+      # World analysis
+      _f0, t = pw.dio(x, sf)    # raw pitch extractor
+      f0 = pw.stonemask(x, _f0, t, sf)  # pitch refinement
+      sp = pw.cheaptrick(x, f0, t, sf)  # extract smoothed spectrogram
+      ap = pw.d4c(x, f0, t, sf)         # extract aperiodicity
+
+      # Synthesis without warpping
+      y = pw.synthesize(f0, sp, ap, sf) 
+
+      # Synthesis after warpping 
+      alpha = 0.1
+      sp_wrapped = warp_interpolation(sp, warp_function_bilinear, alpha)
+      ap_wrapped = warp_interpolation(ap, warp_function_bilinear, alpha)
+
+      y_wrapped = pw.synthesize(f0, sp_wrapped, ap_wrapped, sf) 
+
+      # please listen and compare y and y_wrapped
+    """
+    nbins = spec.shape[1]
+    
+    orig_rad = np.arange(0, nbins) / nbins * np.pi
+    warp_rad = warp_func(orig_rad, alpha=alpha)
+    if np.mean(np.abs(warp_rad - orig_rad)) < 0.0001:
+        return spec
+    else:
+        output = np.zeros_like(spec)
+
+        for rad_idx in np.arange(nbins):
+            warp = warp_rad[rad_idx]
+            warp_idx = warp / np.pi * nbins
+            idx_left = int(np.floor(warp_idx))
+            idx_right = int(np.ceil(warp_idx))
+
+            if idx_left < 0:
+                idx_left = 0
+            if idx_right >= nbins:
+                idx_right = nbins - 1
+
+            if idx_left == idx_right:
+                w_l, w_r = 0.0, 1.0
+            else:
+                w_l = warp_idx - idx_left
+                w_r = idx_right - warp_idx
+                
+            # weighted sum for interpolation
+            output[:,rad_idx] = spec[:,idx_left] * w_l + spec[:,idx_right] * w_r
+        return output
+
+
 if __name__ == "__main__":
     print("DSP tools using numpy")
     
@@ -659,3 +984,4 @@ if __name__ == "__main__":
     # RC to LPC
     lpc_coef_tmp = m_lpc._rc2lpc(rc)
     print(np.std(lpc_coef_tmp - lpc_coef))
+

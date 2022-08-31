@@ -7,6 +7,7 @@ Utilities for probabilistic distribution
 Code adapted from
 https://github.com/fatchord/WaveRNN/blob/master/utils/distribution.py
 
+I haven't used these codes before.
 To be moved to core_scripts/math_tools
 """
 
@@ -150,3 +151,7 @@ def sample_from_discretized_mix_logistic(y, log_scale_min=None):
     x = torch.clamp(torch.clamp(x, min=-1.), max=1.)
 
     return x
+
+
+if __name__ == "__main__":
+    print("dist")

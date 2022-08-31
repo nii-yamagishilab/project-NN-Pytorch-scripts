@@ -36,21 +36,25 @@ class LRScheduler():
         self.lr_scheduler_type = args.lr_scheduler_type
         
         # patentience for ReduceLROnPlateau
-        self.lr_patience = 5
+        self.lr_patience = args.lr_patience
 
         # step size for stepLR
-        self.lr_stepLR_size = 10
+        self.lr_stepLR_size = args.lr_steplr_size
 
         if self.lr_decay > 0:
             if self.lr_scheduler_type == 1:
                 # StepLR
                 self.lr_scheduler = torch.optim.lr_scheduler.StepLR(
-                    optimizer=optimizer, step_size=self.lr_stepLR_size, 
-                    gamma=self.lr_decay)
+                    optimizer = optimizer, step_size = self.lr_stepLR_size, 
+                    gamma = self.lr_decay)
             elif self.lr_scheduler_type == 2:
                 # StepLR
                 self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
-                    optimizer=optimizer, gamma=self.lr_decay)
+                    optimizer = optimizer, gamma = self.lr_decay)
+            elif self.lr_scheduler_type == 3:
+                # Cosine
+                self.lr_shceduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+                    optimizer = optimizer, T_0 = self.lr_patience)
             else:
                 # by default, ReduceLROnPlateau
                 if args.no_best_epochs < 0:
