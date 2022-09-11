@@ -973,6 +973,9 @@ if __name__ == "__main__":
     # excitation with Gain
     excitation_new = m_lpc._overlapadd(err * gain)
 
+    # need to import
+    # from tutorials.plot_tools import plot_API
+    # from tutorials.plot_tools import plot_lib
     plot_API.plot_API([wav_re[:, 0], data1, 
                        err_overlapped[:, 0], 
                        excitation_new[:, 0]], 

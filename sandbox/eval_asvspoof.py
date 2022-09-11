@@ -793,6 +793,9 @@ def read_cm_txt_file(file_path):
 
 if __name__ == "__main__":
     
+    # these two files are deleted from the repo
+    # for usage on the evaluation tool, 
+    # please check ../tutorials/README.md
     asv_scores = read_asv_txt_file('./data/asvspoof2019/asv_dev.txt')
     cm_scores = read_cm_txt_file('./data/asvspoof2019/cm_dev.txt')
 

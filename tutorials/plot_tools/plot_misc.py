@@ -1,9 +1,20 @@
+#!/usr/bin/env python
+"""
+Misc tools used before the start of plot_API and plot_lib
+
+"""
+from __future__ import absolute_import
+from __future__ import print_function
+
 from mpl_toolkits.mplot3d import Axes3D
 
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.rcParams['figure.figsize'] = (10, 5)
 
+__author__ = "Xin Wang"
+__email__ = "wangxin@nii.ac.jp"
+__copyright__ = "Copyright 2020, Xin Wang"
 
 def plot_signal(data, fig, axis, xlabel='', ylabel='', title=''):
     """
@@ -162,3 +173,6 @@ def plot_tensor(data_tensor, shift=0.1, colormap='Greys',
     if len(title):
         fig.text(0.5, 0.99, title, ha='center') 
     return fig, axis
+
+if __name__ == "__main__":
+    print("Misc tools from ../plot_lib.py")
