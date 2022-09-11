@@ -209,19 +209,21 @@ def supcon_loss(input_feat,
 ################
 
 class MixUpCE(torch_nn.Module):
-    def __init__(self):
+    def __init__(self, weight = None):
         super(MixUpCE, self).__init__()
-        self.m_loss1 = torch_nn.CrossEntropyLoss(reduction='none')
-        self.m_loss2 = torch_nn.CrossEntropyLoss(reduction='none')
+        self.m_loss1 = torch_nn.CrossEntropyLoss(weight=weight,reduction='none')
+        self.m_loss2 = torch_nn.CrossEntropyLoss(weight=weight,reduction='none')
         return
 
-    def forward(self, logits, y1, y2, gammas):
+    def forward(self, logits, y1, y2=None, gammas=None):
         """ loss = MixUpCE.forward(logits, y1, y2, gammas)
 
         This API computes the mixup cross-entropy. 
         Logits is assumed to be f( gammas * x1 + (1-gammas) * x2).
         Thus, this API only compute the CE:
           gammas * Loss(logits, y1) + (1 - gammas) * Loss(logits, y2)
+        
+        Note that if y2 and gammas are None, it uses common CE
 
         input
         -----
@@ -235,8 +237,11 @@ class MixUpCE(torch_nn.Module):
         ------
           loss: scalar  
         """
-        loss_val = gammas * self.m_loss1(logits, y1) 
-        loss_val += (1-gammas) * self.m_loss2(logits, y2) 
+        if y2 is None and gammas is None:
+            loss_val = self.m_loss1(logits, y1)
+        else:
+            loss_val = gammas * self.m_loss1(logits, y1) 
+            loss_val += (1-gammas) * self.m_loss2(logits, y2) 
         return loss_val.mean()
     
 

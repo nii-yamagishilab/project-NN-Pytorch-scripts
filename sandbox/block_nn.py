@@ -751,6 +751,10 @@ class SelfWeightedPooling(torch_nn.Module):
     https://github.com/joaomonteirof/e2e_antispoofing/blob/master/model.py
     To avoid confusion, I will call it self weighted pooling
     
+    Using self-attention format, this is similar to softmax(Query, Key)Value
+    where Query is a shared learnarble mm_weight, Key and Value are the input
+    Sequence.
+
     l_selfpool = SelfWeightedPooling(5, 1, False)
     with torch.no_grad():
         input_data = torch.rand([3, 10, 5])

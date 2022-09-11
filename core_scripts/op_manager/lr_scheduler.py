@@ -57,10 +57,6 @@ class LRScheduler():
                     optimizer = optimizer, T_0 = self.lr_patience)
             else:
                 # by default, ReduceLROnPlateau
-                if args.no_best_epochs < 0:
-                    self.lr_patience = 5
-                    nii_warn.f_print("--no-best-epochs is set to 5 ")
-                    nii_warn.f_print("for learning rate decaying")
                         
                 self.lr_scheduler = torch_optim_steplr.ReduceLROnPlateau(
                     optimizer=optimizer, factor=self.lr_decay, 

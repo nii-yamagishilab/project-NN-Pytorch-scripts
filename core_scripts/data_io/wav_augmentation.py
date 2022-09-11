@@ -164,7 +164,122 @@ def wav_time_mask(input_data, wav_samp_rate):
     tmp = np.ones_like(input_data)
     tmp[start_idx:start_idx+seg_width] = 0
     return input_data * tmp
+
+
     
+def batch_siltrim_for_multiview(input_data_batch, wav_samp_rate,
+                                random_trim_sil=False, 
+                                random_trim_nosil=False):
+    """ output = batch_trim(input_data, wav_samp_rate)
+    
+    For multi-view data, trim silence
+    
+    input
+    -----
+      input_data: list of np.array, (length, 1)
+      wav_samp_rate: int, waveform sampling rate
+    
+    output
+    ------
+      output:  list of np.array, (length, 1)
+    """
+
+    # output buffer
+    output_data_batch = []
+    
+    # original length
+    orig_len = input_data_batch[0].shape[0]
+
+    # get the starting and ending of non-silence region
+    #  (computed based on the first wave in the list)
+    _, start_time, end_time = wav_rand_sil_trim(
+        input_data_batch[0], wav_samp_rate, 
+        random_trim_sil, random_trim_nosil)
+    
+    # do trimming on all waveforms in the input list
+    if start_time < end_time and start_time > 0:
+        for data in input_data_batch:
+            output_data_batch.append(data[start_time:end_time])
+    else:
+        for data in input_data_batch:
+            output_data_batch.append(data)
+    return output_data_batch
+
+
+def batch_pad_for_multiview(input_data_batch_, wav_samp_rate, length,
+                            random_trim_nosil=False, repeat_pad=False):
+    """ output = batch_pad_for_multiview(
+          input_data_batch, wav_samp_rate, length, random_trim_nosil=False)
+    
+    If input_data_batch is a single trial, trim it to a fixed length
+    For multi-view data, trim all the trials to a fixed length, using the same
+    random start and end
+
+    input
+    -----
+      input_data: list of np.array, (length, 1)
+      wav_samp_rate: int, waveform sampling rate
+    
+    output
+    ------
+      output:  list of np.array, (length, 1)
+    """
+
+    # unify the length of input data before further processing
+    def _ad_length(x, length, repeat_pad):
+        # adjust the length of the input x
+        if length > x.shape[0]:
+            if repeat_pad:
+                rt = int(length / x.shape[0]) + 1
+                tmp = np.tile(x, (rt, 1))[0:length]
+            else:
+                tmp = np.zeros([length, 1])
+                tmp[0:x.shape[0]] = x
+        else:
+            tmp = x[0:length]
+        return tmp
+    # use the first data in the list
+    firstlen = input_data_batch_[0].shape[0]
+    input_data_batch = [_ad_length(x, firstlen, repeat_pad) \
+                        for x in input_data_batch_]
+
+    # 
+    new_len = input_data_batch[0].shape[0]    
+    if repeat_pad is False:
+        
+        # if we simply trim longer sentence but not pad shorter sentence
+        if new_len < length:
+            start_len = 0
+            end_len = new_len
+
+        elif random_trim_nosil:
+            start_len = int(np.random.rand() * (new_len - length))
+            end_len = start_len + length
+
+        else:
+            start_len = 0
+            end_len = length
+        input_data_batch_ = input_data_batch
+
+    else:
+        
+        if new_len < length:
+            start_len = 0
+            end_len = length
+            rt = int(length / new_len) + 1
+            # repeat multiple times
+            input_data_batch_ = [np.tile(x, (rt, 1)) for x in input_data_batch]
+        elif random_trim_nosil:
+            start_len = int(np.random.rand() * (new_len - length))
+            end_len = start_len + length
+            input_data_batch_ = input_data_batch
+        else:
+            start_len = 0
+            end_len = length
+            input_data_batch_ = input_data_batch
+
+    output_data_batch = [x[start_len:end_len] for x in input_data_batch_]
+    return output_data_batch
 
 
 
@@ -363,11 +478,11 @@ def morph_wavform(wav1, wav2, para=0.5, method=2,
     else:
         data2 = wav2[0:length]
 
-    if method == 1:
+    if method == 1 or method == 'wav':
         # waveform level 
         data = data1 * para + data2 * (1.0 - para)
 
-    elif method == 2:
+    elif method == 2 or method == 'specamp':
         # spectrum amplitude 
         
         _, _, Zxx1 = signal.stft(
@@ -388,7 +503,7 @@ def morph_wavform(wav1, wav2, para=0.5, method=2,
         _, data = signal.istft(
             Zxx, nperseg = fl, noverlap = fl - fs, nfft = nfft)
         
-    elif method == 3:
+    elif method == 3 or method == 'phase':
         # phase, 
         _, _, Zxx1 = signal.stft(
             data1, nperseg=fl, noverlap=fl - fs, nfft=nfft)
@@ -404,7 +519,8 @@ def morph_wavform(wav1, wav2, para=0.5, method=2,
         Zxx = amp1 * np.cos(pha1) + 1j * amp1 * np.sin(pha)
         _, data = signal.istft(
             Zxx, nperseg=fl, noverlap=fl-fs, nfft=nfft)
-    elif method == 4:
+
+    elif method == 4 or method == 'specamp-phase':
         # both
         _, _, Zxx1 = signal.stft(
             data1, nperseg=fl, noverlap=fl - fs, nfft=nfft)
