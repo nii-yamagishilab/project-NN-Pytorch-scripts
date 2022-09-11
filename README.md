@@ -1,61 +1,41 @@
-# project-NII-pytorch-scripts
-By Xin Wang, National Institute of Informatics, since 2021
+# Welcome 
 
-**Table of Contents**
+This is a set of Python / Pytorch scripts and tools for various speech processing projects. 
 
-* [Note](#note)
-* [Overview](#overview)
-* [Requirement & dependency](#env)
-* [How to use](#use)
-* [Project design](#conv)
-* [Misc](#miscs)
+It is maintained by [Xin Wang](http://tonywangx.github.io/) since 2021.  XW is a Pytorch beginner, Feel free to give suggestions and feedback
 
-I am a new pytorch user. If you have any suggestions or questions, please email wangxin at nii dot ac dot jp.
+## Notes
 
 
-------
-<a name="note"></a>
-## 1. Note 
-**For hands-on material for ICASSP 2022 short course**
-
-1. Please click [here](https://colab.research.google.com/drive/1EO-ggi1U9f2zXwTiqg7AEljVx11JKta7?usp=sharing) to jump to Google Colab
-
-2. This repository holds the scripts for model training. Please check Sec.[2.1](#overview2-1) and Sec.[2.2](#overview2-2)
-
-**Updates**
-* 2022-05-21: tutorials were updated and moved to Google Colab, click [here](https://colab.research.google.com/drive/1EO-ggi1U9f2zXwTiqg7AEljVx11JKta7?usp=sharing) to jump.
-
-* 2022-03-13: all pre-trained models are moved to [Zenodo](https://doi.org/10.5281/zenodo.6349636). Shared links through Dropbox are removed. Please clone the latest commit. Please contact Xin if you cannot download the file. 
-
-* 2022-02-13: upload project for anti-spoofing with SSL-based front end (sec [2.6](#overview2-6))
-
-* 2022-01-31: upload project for anti-spoofing confidence estimation (sec [2.5](#overview2-5))
-
-* 2022-01-08: upload hn-sinc-nsf + hifi-gan (sec [2.1](#overview2-1))
-
-* 2022-01-08: upload RawNet2 for anti-spoofing (sec [2.4](#overview2-4))
-
-**For other projects**
-
-Just follow the rest of README.
-
-The repository is relatively large. You may use `--depth 1` option to skip unnecessary files.
+* The repo is relatively large. Please use `--depth 1` option for fast cloning.
 
 ```sh
 git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts.git
 ```
 
-------
+* Latest updates:
 
+   Pointer to tutorials on neural vocoders were moved to [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder/README.md).
+   
+   All pre-trained models were moved to [Zenodo](https://doi.org/10.5281/zenodo.6349636).
+
+## Table of Contents
+
+* [Overview](#overview)
+* [Requirements](#env)
+* [How to use](#use)
+* [Project design](#conv)
+
+---
 <a name="overview"></a>
-## 2. Overview
-This repository hosts Pytorch codes for the following projects:
+## Overview
+This repository hosts the following projects:
 
 <a name="overview2-1"></a>
-### 2.1 Neural source-filter waveform model 
+### Neural source-filter waveform model 
 [./project/01-nsf](./project/01-nsf)
 
-Implementations available: 
+Models available: 
 
 1. [Cyclic-noise neural source-filter waveform model (NSF)](https://nii-yamagishilab.github.io/samples-nsf/nsf-v4.html)
 
@@ -67,19 +47,18 @@ Implementations available:
 
 All the projects include a pre-trained model on CMU-arctic database (4 speakers) and a demo script to run, train, do inference. Please check [./project/01-nsf/README](./project/01-nsf/README).
 
-Generated samples from pre-trained models are in `./project/01-nsf/*/__pre_trained/output`. If not, please run the demo script to produce waveforms using pre-trained models.
 
-Tutorial on NSF models is also available in [./tutorials](./tutorials)
+Tutorial on NSF models is also available in [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder)
 
-Note that this is the re-implementation of the projects based on [CURRENNT](https://github.com/nii-yamagishilab/project-CURRENNT-public). All the papers published so far used CURRENNT implementation. 
 
-Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/).
+Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/). Also reference papers.
+
 
 <a name="overview2-2"></a>
-### 2.2 Other neural waveform models 
+### Other neural waveform models 
 [./project/05-nn-vocoders](./project/05-nn-vocoders)
 
-Implementations available:
+Models available:
 
 1. [WaveNet vocoder](https://deepmind.com/blog/wavenet-generative-model-raw-audio/)
 
@@ -91,34 +70,34 @@ Implementations available:
 
 All the projects include a pre-trained model and a one-click demo script. Please check [./project/05-nn-vocoders/README](./project/05-nn-vocoders/README).
 
-Generated samples from pre-trained models are in `./project/05-nn-vocoders/*/__pre_trained/output`.
-
-Tutorial is also available in [./tutorials](./tutorials)
+Tutorial on NSF models is also available in [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder)
 
 <a name="overview2-3"></a>
-### 2.3 ASVspoof project with toy example 
+### ASVspoof project with toy example 
 [./project/04-asvspoof2021-toy](./project/04-asvspoof2021-toy)
 
-It takes time to download ASVspoof2019 database. Therefore, this project demonstrates how to train and evaluate the anti-spoofing model using a toy dataset.
+It takes time to download ASVspoof2019 database. 
 
-Please try this project before checking other ASVspoof projects below.
-
-A similar project is adopted for [ASVspoof2021 LFCC-LCNN baseline](https://github.com/asvspoof-challenge/2021), although the LFCC front-end is slightly different.
+This project demonstrates how to train and evaluate the anti-spoofing model using a toy dataset.
 
 Please check [./project/04-asvspoof2021-toy/README](./project/04-asvspoof2021-toy/README).
 
 
 <a name="overview2-4"></a>
-### 2.4 Speech anti-spoofing for ASVspoof 2019 LA 
+### Speech anti-spoofing for ASVspoof 2019 LA 
 [./project/03-asvspoof-mega](./project/03-asvspoof-mega)
 
-This is for [A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection](https://www.isca-speech.org/archive/interspeech_2021/wang21fa_interspeech.html).
+This is for Interspeech paper ([Link](https://www.isca-speech.org/archive/interspeech_2021/wang21fa_interspeech.html)) and a new book chapter ([Link]((https://arxiv.org/abs/2201.03321)))
+
+```sh
+Xin Wang, and Junich Yamagishi. A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection. In Proc. Interspeech, 4259–4263. doi:10.21437/Interspeech.2021-702. 2021.
+
+Xin Wang, and Junichi Yamagishi. A Practical Guide to Logical Access Voice Presentation Attack Detection. In Frontiers in Fake Media Generation and Detection, 169–214. doi:10.1007/978-981-19-1524-6_8. 2022.
+```
 
 There were 36 systems investigated, each of which was trained and evaluated for 6 rounds with different random seeds.
 
 ![EER-mintDCF](./misc/fig_eer_table.png)
-
-This project is later extended to a book chapter called [A Practical Guide to Logical Access Voice Presentation Attack Detection](https://arxiv.org/abs/2201.03321). Single system using RawNet2 is added, and score fusion is added.
 
 ![EER-mintDCF](./misc/bookchapter_det_3.png)
 
@@ -127,13 +106,16 @@ Pre-trained models, scores, training recipes are all available. Please check [./
 
 For LCNN, please check [this paper](https://www.isca-speech.org/archive/Interspeech_2019/abstracts/1768.html); for LFCC, please check [this paper](https://www.isca-speech.org/archive/interspeech_2015/i15_2087.html); for one-class softmax in ASVspoof, please check [this paper](https://arxiv.org/pdf/2010.13995).
 
-For statistical analysis, please check this tutorial notebook [./project/07-asvspoof-ssl/02_stats_test.ipynb](./project/07-asvspoof-ssl/02_stats_test.ipynb)
+For statistical analysis, please check this tutorial notebook in [./tutorials/b2_anti_spoofing](./tutorials/b2_anti_spoofing/chapter_a1_stats_test.ipynb)
 
 <a name="overview2-5"></a>
-### 2.5 Confidence estimation for speech anti-spoofing 
+### Confidence estimation for speech anti-spoofing 
 [./project/06-asvspoof-ood](./project/06-asvspoof-ood)
 
-Project for paper https://arxiv.org/abs/2110.04775 (to appear in ICASSP 2022)
+Project for ICASSP paper
+```
+Xin Wang, and Junichi Yamagishi. Estimating the Confidence of Speech Spoofing Countermeasure. In Proc. ICASSP, 6372–6376. 2022.
+```
 
 Pre-trained models, recipes are all available. Please check [./project/06-asvspoof-ood/README](./project/06-asvspoof-ood/README).
 
@@ -142,22 +124,23 @@ Pre-trained models, recipes are all available. Please check [./project/06-asvspo
 
 
 <a name="overview2-6"></a>
-### 2.6 Speech anti-spoofing with SSL front end
+### Speech anti-spoofing with SSL front end
 [./project/07-asvspoof-ssl](./project/07-asvspoof-ssl)
 
-Project for paper https://arxiv.org/abs/2111.07725
+Project for Odyssey paper ([Link](https://www.isca-speech.org/archive/odyssey_2022/wang22_odyssey.html))
+```
+Xin Wang, and Junichi Yamagishi. Investigating Self-Supervised Front Ends for Speech Spoofing Countermeasures. In Proc. Odyssey, 100–106. ISCA: ISCA. doi:10.21437/Odyssey.2022-14. 2022.
+```
 
 Pre-trained models, recipes are all available. Please check [./project/07-asvspoof-ssl/README](./project/07-asvspoof-ssl/README).
 
-A [tutorial notebook](./project/07-asvspoof-ssl/02_stats_test.ipynb) on statistical analysis is available.
-
-This project requires a specific version of [fairseq](https://github.com/pytorch/fairseq/) and uses [env-fs-install.sh](env-fs-install.sh) to install the dependency. For convenience, the demonstration script [./project/07-asvspoof-ssl/00_demo.sh](./project/07-asvspoof-ssl/00_demo.sh) will call the shell script and install the dependency automatically. Just go to there and run 00_demo.sh.
+**Note that** this project requires a specific version of [fairseq](https://github.com/pytorch/fairseq/) and uses [env-fs-install.sh](env-fs-install.sh) to install the dependency. For convenience, the demonstration script [./project/07-asvspoof-ssl/00_demo.sh](./project/07-asvspoof-ssl/00_demo.sh) will call the shell script and install the dependency automatically. Just go to there and run 00_demo.sh.
 
 ![EER-mintDCF](./misc/fig-ssl.png)
 
 ------
 <a name="env"></a>
-## 3. Python environment
+## Python environment
 
 Projects above use either one of the two environments:
 
@@ -185,7 +168,7 @@ conda activate fairseq-pip2
 
 ------
 <a name="use"></a>
-## 4. How to use
+## How to use
 
 Please check README in each project.
 
@@ -217,7 +200,7 @@ The above steps will download the CMU-arctic data, run waveform generation using
 
 ------
 <a name="conv"></a>
-## 5. Project design and convention
+## Project design and convention
 
 ### Data format
 
@@ -349,44 +332,13 @@ Start training       core_scripts/nn_manager/nn_manager.py f_train_wrapper()
 
 A detailed flowchat is [./misc/APPENDIX_1.md](./misc/APPENDIX_1.md). This may be useful if you want to hack on the code.
 
-------
-<a name="miscs"></a>
-## 6 Misc
-### On NSF
-#### Differences of NSF Pytorch and [CURRENNT implementation](https://github.com/nii-yamagishilab/project-CURRENNT-public)
-There may be more, but here are the important ones:
 
-* "Batch-normalization": in CURRENNT, "batch-normalization" is conducted along the length sequence, i.e., assuming each frame as one sample;
-
-* No bias in CNN and FF: due to the 1st point, NSF in this repository uses bias=false for CNN and feedforward layers in neural filter blocks, which can be helpful to make the hidden signals around 0;
-
-* Smaller learning rate: due to the 1st point, learning rate in this repository is decreased from 0.0003 to a smaller value. Accordingly, more training epochs are required;
-
-* STFT framing/padding: in CURRENNT, the first frame starts from the 1st step of a signal; in this Pytorch repository (as Librosa), the first frame is centered around the 1st step of a signal, and the frame is padded with 0;
-
-* STFT backward: in CURRENNT, STFT backward follows the steps in [this paper](https://ieeexplore.ieee.org/document/8915761/); in Pytorch repository, backward over STFT is done by the Pytorch library. 
-
-* ...
-
-The learning curves look similar to the CURRENNT version.
-![learning_curve](./misc/fig1_curve.png)
-
-
-#### 24kHz
-Most of my experiments are done on 16 kHz waveforms. For 24 kHz waveforms, FIR or sinc digital filters in the model may be changed for better performance:
-
-1. **hn-nsf**: lp_v, lp_u, hp_v, and hp_u are calculated for 16 kHz configurations. For different sampling rate, you may use this online tool http://t-filter.engineerjs.com to get the filter coefficients. In this case, the stop-band for lp_v and lp_u is extended to 12k, while the pass-band for hp_v and hp_u is extended to 12k. The reason is that, no matter what is the sampling rate, the actual formats (in Hz) and spectral of sounds don't change with the sampling rate;
-
-2. **hn-sinc-nsf and cyc-noise-nsf**: for the similar reason above, the cut-off-frequency value (0, 1) should be adjusted. I will try (hidden_feat * 0.2 + uv * 0.4 + 0.3) * 16 / 24 in model.CondModuleHnSincNSF.get_cut_f();
-
-#### NSF with GAN
-Spectral loss of NSF is insufficient for high-quality sound generation. Please try NSF + GAN (see Overview 2.1).
-
-## Links
+## Resources & links
 
 * [NSF model homepage](https://nii-yamagishilab.github.io/samples-nsf/)
 
-* [Presentation slides related to this projects](http://tonywangx.github.io/slide.html)
+* [Presentation slides related to the above projects](http://tonywangx.github.io/slide.html)
 
 
-The end
+---
+By [Xin Wang](http://tonywangx.github.io/)
