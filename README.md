@@ -2,7 +2,9 @@
 
 This is a set of Python / Pytorch scripts and tools for various speech processing projects. 
 
-It is maintained by [Xin Wang](http://tonywangx.github.io/) since 2021.  XW is a Pytorch beginner, Feel free to give suggestions and feedback
+It is maintained by [Xin Wang](http://tonywangx.github.io/) since 2021.  
+
+XW is a Pytorch beginner. Please feel free to give suggestions and feedback.
 
 ## Notes
 
@@ -26,7 +28,7 @@ git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scrip
 * [How to use](#use)
 * [Project design](#conv)
 
----
+
 <a name="overview"></a>
 ## Overview
 This repository hosts the following projects:
@@ -48,7 +50,7 @@ Models available:
 All the projects include a pre-trained model on CMU-arctic database (4 speakers) and a demo script to run, train, do inference. Please check [./project/01-nsf/README](./project/01-nsf/README).
 
 
-Tutorial on NSF models is also available in [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder)
+Tutorial on NSF models is also available in [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder).
 
 
 Many samples can be found on [NSF homepage](https://nii-yamagishilab.github.io/samples-nsf/). Also reference papers.
@@ -70,10 +72,10 @@ Models available:
 
 All the projects include a pre-trained model and a one-click demo script. Please check [./project/05-nn-vocoders/README](./project/05-nn-vocoders/README).
 
-Tutorial on NSF models is also available in [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder)
+Tutorial on NSF models is also available in [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder).
 
 <a name="overview2-3"></a>
-### ASVspoof project with toy example 
+### ASVspoof project with a toy data set
 [./project/04-asvspoof2021-toy](./project/04-asvspoof2021-toy)
 
 It takes time to download ASVspoof2019 database. 
@@ -109,7 +111,7 @@ For LCNN, please check [this paper](https://www.isca-speech.org/archive/Interspe
 For statistical analysis, please check this tutorial notebook in [./tutorials/b2_anti_spoofing](./tutorials/b2_anti_spoofing/chapter_a1_stats_test.ipynb)
 
 <a name="overview2-5"></a>
-### Confidence estimation for speech anti-spoofing 
+### Speech anti-spoofing with confidence estimation
 [./project/06-asvspoof-ood](./project/06-asvspoof-ood)
 
 Project for ICASSP paper
