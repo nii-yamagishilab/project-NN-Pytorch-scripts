@@ -176,7 +176,7 @@ class HzCentConverter(torch_nn.Module):
         # target
         # since target is (1, N, 1), the last dimension size is 1
         # self.m_dis_cent (bins) -> propagated to (1, N, bins)
-        target_mat = torch.exp(-torch.pow(self.m_dis_cent - target, 2)/2/std)
+        target_mat = torch.exp(-torch.pow(self.m_dis_cent - target, 2)/2/var)
         
         # set unvoiced to zero
         for idx in range(target_mat.shape[0]):
@@ -186,7 +186,7 @@ class HzCentConverter(torch_nn.Module):
         # return
         return target_mat
         
-    def recover_f0(self, bin_mat):
+    def recover_f0(self, bin_mat, viterbi_decode=True):
         """ 
         recover_f0(self, bin_mat)
         Produce F0 from a probability matrix.
@@ -216,11 +216,18 @@ class HzCentConverter(torch_nn.Module):
             sys.exit(1)
             
         # generation
-        if not self.m_viterbi_decode:
+        if not self.m_viterbi_decode or not viterbi_decode:
+            
+            # denominator
+            prob_sum = torch.sum(bin_mat, axis=2)
+            # add floor
+            prob_sum[prob_sum < 1e-07] = 1e-07
+
             # normal sum 
-            cent = torch.sum(bin_mat * self.m_dis_cent, axis=2) / \
-                   torch.sum(bin_mat, axis=2)
-            return self.cent2hz(cent)
+            cent = torch.sum(bin_mat * self.m_dis_cent, axis=2) / prob_sum
+            f0 = self.cent2hz(cent)
+            f0[cent < 1] = 0
+            return f0.unsqueeze(-1)
         else:
             tmp_bin_mat = bin_mat.to('cpu')
 
@@ -262,7 +269,7 @@ class HzCentConverter(torch_nn.Module):
                 # unvoiced
                 f0[0, u_idx]=0
                 
-            return f0
+            return f0.unsqueeze(-1)
 
     def f0_probmat_postprocessing(self, f0_prob_mat):
         """

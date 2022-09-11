@@ -31,7 +31,8 @@ __copyright__ = "Copyright 2020, Xin Wang"
 ############
 ## Utilities
 ############
-_marker_bag = ["*","o","v","^","<",">","x","s","p","P","h","H","+",".","D","d","|","_"]
+_marker_bag = ["*","o","v","^","<",">","x","s","p","P",
+               "h","H","+",".","D","d","|","_"]
 _line_style_bag = ['-','--', '-.', ':']
 _color_bag = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 
@@ -61,7 +62,7 @@ def get_colors(total, colormap='jet'):
                'color': plot_API.get_color(x, color_num, mapname)}} \
               for x in range(color_num)]
     plot_API.plot_API(datas, plot_lib.plot_hist, 'single', 
-                      {'sub_plot': config, 'title': mapname.replace('_', '-')})
+                     {'sub_plot': config, 'title': mapname.replace('_', '-')})
     
     """
     color_bag = []
@@ -93,7 +94,8 @@ def get_colors(total, colormap='jet'):
                               [139,139,139], [200,200,200]])/255.0;
     elif colormap == 'self_6':
         # grey
-        color_bag = np.array([[243,243,243],[202,202,202],[160,160,160]])/255.0
+        color_bag = np.array([[243,243,243],[202,202,202],
+                              [160,160,160]])/255.0
     elif colormap == 'self_7':
         # office colors, black -> red -> blue -> green
         color_bag = np.array([[0, 0, 0],[182,0,0],[60,103,188],
@@ -199,21 +201,7 @@ def plot_API(data, plot_func, split_mode='single',
             nrows = len(data)
         else:
             # grid mode
-            if "ncols" in config_dic and "nrows" not in config_dic:
-                ncols = config_dic["ncols"]
-                nrows = int(np.ceil(len(data) * 1.0 / ncols))    
-            elif "ncols" not in config_dic and "nrows" in config_dic:
-                nrows = config_dic["nrows"]
-                ncols = int(np.ceil(len(data) * 1.0 / nrows))
-            elif "ncols" not in config_dic and "nrows" not in config_dic:
-                nrows = int(np.sqrt(len(data)))
-                ncols = int(np.ceil(len(data) * 1.0 / nrows))
-            else:
-                nrows = config_dic["nrows"]
-                ncols = config_dic["ncols"]
-                if nrows * ncols < len(data):
-                    print("nrows * ncols < len(data)")
-                    sys.exit(1)
+            nrows, ncols = get_nrow_ncol_config(len(data), config_dic)
         
         # grid 
         wspace = config_dic["wspace"] if "wspace" in config_dic else None
@@ -283,11 +271,15 @@ def plot_API2(data_list, plot_funcs, grid_configs,
     -----
       data_list: list of np.array or list of list of np.arrays
       plot_func_list: list of functions to plot a single figure
-      grid_config_list: list of grid configuration
-                [[[row_start, row_end], [col_start, col_end]],  # for 1st subfig
-                 [[row_start, row_end], [col_start, col_end]],  # for 2nd subfig
+      grid_config_list: it can be
+            list of grid configuration:
+                [[[row_start, row_end], [col_start, col_end]],# for 1st subfig
+                 [[row_start, row_end], [col_start, col_end]],# for 2nd subfig
                  ...
                  ]
+            or 'v': align figure vertically
+            or 'h': align figure horizontally
+            or 'grid': align figure in a grid
       config_dic: configuration dictionary
       verbose: whether print out the config_dic information for each figure 
               (default: False)
@@ -305,6 +297,12 @@ def plot_API2(data_list, plot_funcs, grid_configs,
         figsize = config_dic["figsize"]
     fig = plt.figure(figsize=figsize)
     
+    # get the grid
+    if type(grid_configs) is str:
+        grid_configs = get_grid_config(len(data_list), 
+                                       grid_configs, config_dic)
+    
+
     # analyze grid configuration
     nrows = max([x[0][1] for x in grid_configs])
     ncols = max([x[1][1] for x in grid_configs])
@@ -340,7 +338,8 @@ def plot_API2(data_list, plot_funcs, grid_configs,
         if type(data_entry) is list:
             for idx2, sub_data_entry in enumerate(data_entry):
                 sub_tmp_config = process_config_dic(tmp_config, idx2)
-                fig, axis = plot_func(sub_data_entry, fig, axis, sub_tmp_config)
+                fig, axis = plot_func(sub_data_entry, fig, axis, 
+                                      sub_tmp_config)
                 util_options(fig, axis, sub_tmp_config)
                 if verbose:
                     print(str(tmp_config))
@@ -371,6 +370,7 @@ def plot_API2(data_list, plot_funcs, grid_configs,
             axis.set_xlim(xlim_bag)
         if "sharey" in config_dic and config_dic["sharey"]:
             axis.set_ylim(ylim_bag)
+            
 
     return fig, axis_bags
 
@@ -378,6 +378,47 @@ def plot_API2(data_list, plot_funcs, grid_configs,
 ##############
 ## Utilities
 ##############
+
+def get_nrow_ncol_config(data_num, config_dic):
+    if "ncols" in config_dic and "nrows" not in config_dic:
+        ncols = config_dic["ncols"]
+        nrows = int(np.ceil(data_num * 1.0 / ncols))    
+    elif "ncols" not in config_dic and "nrows" in config_dic:
+        nrows = config_dic["nrows"]
+        ncols = int(np.ceil(data_num * 1.0 / nrows))
+    elif "ncols" not in config_dic and "nrows" not in config_dic:
+        nrows = int(np.sqrt(data_num))
+        ncols = int(np.ceil(data_num * 1.0 / nrows))
+    else:
+        nrows = config_dic["nrows"]
+        ncols = config_dic["ncols"]
+        if nrows * ncols < data_num:
+            print("nrows * ncols < number of data in list")
+            sys.exit(1)
+    return nrows, ncols
+
+def get_grid_config(data_num, option, config):
+    """grid_spec = get_grid_config(data_num, option)
+    
+    used by plot_API2 for creating the grid spec
+    
+    """
+    if option == 'h':
+        output = [[[0, 1], [x, x+1]] for x in range(data_num)]
+    elif option == 'v':
+        output = [[[x, x+1], [0, 1]] for x in range(data_num)]
+    else:
+        if option != 'grid':
+            print("Cannot create grid for option:" + str(option))
+            print("Use grid by default")
+        nrows, ncols = get_nrow_ncol_config(data_num, config)
+        output = []
+        for row_idx in range(nrows):
+            for col_idx in range(ncols):
+                output.append([[row_idx, row_idx+1], 
+                               [col_idx, col_idx+1]])
+    return output
+
 
 def util_options(fig, axis, config_dic):
     """util_options(fig, axis, config_dic)

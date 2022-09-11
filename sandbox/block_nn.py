@@ -751,6 +751,10 @@ class SelfWeightedPooling(torch_nn.Module):
     https://github.com/joaomonteirof/e2e_antispoofing/blob/master/model.py
     To avoid confusion, I will call it self weighted pooling
     
+    Using self-attention format, this is similar to softmax(Query, Key)Value
+    where Query is a shared learnarble mm_weight, Key and Value are the input
+    Sequence.
+
     l_selfpool = SelfWeightedPooling(5, 1, False)
     with torch.no_grad():
         input_data = torch.rand([3, 10, 5])
@@ -1635,6 +1639,19 @@ class LSTMLayer(torch_nn.Module):
             # step-by-step processing
             return self._forwardstep(x, step_idx)
 
+class DropoutForMC(torch_nn.Module):
+    """Dropout layer for Bayesian model
+    THe difference is that we do dropout even in eval stage
+    """
+    def __init__(self, p, dropout_flag=True):
+        super(DropoutForMC, self).__init__()
+        self.p = p
+        self.flag = dropout_flag
+        return
+        
+    def forward(self, x):
+        return torch_nn_func.dropout(x, self.p, training=self.flag)
+        
 
 if __name__ == "__main__":
     print("Definition of block NN")

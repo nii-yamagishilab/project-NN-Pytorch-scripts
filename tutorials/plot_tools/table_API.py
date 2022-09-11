@@ -39,11 +39,17 @@ def wrap_value(data, wrap_factor=0):
         return np.power((1 - np.power(1 - data, ratio)), 1/ratio)
 
 def return_latex_color_cell(value, val_min, val_max, scale, wrap, color_func):
+    
+    # clip the value for color rendering
+    value = np.clip(value, val_min, val_max)
+    
+    # normalized value
     if scale < 0:
         value = wrap_value((value - val_min) / (val_max - val_min), wrap)*-scale
         value = -scale - value
     else:
         value = wrap_value((value - val_min) / (val_max - val_min), wrap)*scale
+
     # only use RGB, not RGBA
     color_code = color_func(value)[:-1]
     
@@ -62,6 +68,8 @@ def is_valid_float(val):
             return False
 
 def return_valid_number_idx(data_array):
+    """return the index of data ceil that has valid nummerical value
+    """
     is_numeric_3 = np.vectorize(is_valid_float, otypes = [bool])
     return is_numeric_3(data_array)
 
@@ -70,9 +78,9 @@ def print_table(data_array, column_tag, row_tag,
                 print_format = "1.2f", 
                 with_color_cell = True,
                 colormap='Greys', 
-                colorscale=0.5, 
-                colorwrap=0, 
-                col_sep='', 
+                colorscale = 0.5, 
+                colorwrap = 0, 
+                col_sep = '', 
                 print_latex_table=True, 
                 print_text_table=True,
                 print_format_along_row=True,
@@ -81,7 +89,10 @@ def print_table(data_array, column_tag, row_tag,
                 pad_dummy_col = 0):
     """
     print a latex table given the data (np.array) and tags    
-    
+    step1. table will be normalized so that values will be (0, 1.0)
+    step2. each normalzied_table[i,j] will be assigned a RGB color tuple 
+           based on color_func( normalzied_table[i,j] * color_scale)
+
     input
     -----
       data_array: np.array [M, N]
@@ -99,12 +110,19 @@ def print_table(data_array, column_tag, row_tag,
                       whether to use color in each latex cell
       colormap: str, color map name (matplotlib)
       colorscale: float, default 0.5, 
-                    the color value will be between (0, colorscale)
+                    normalized table value will be scaled 
+                    color = color_func(nomrlized_table[i,j] * colorscale)
                   list of float
+                    depends on configuration of color_minmax_in
+                    if color_minmax_in = 'row', colorscale[i] for the i-th row
+                    if color_minmax_in = 'col', colorscale[j] for the j-th row
+                  np.array
+                    color_minmax_in cannot be 'row' or 'col'. 
+                    colorscale[i, j] is used for normalized_table[i, j]
       colorwrap: float, default 0, wrap the color-value mapping curve
                  colorwrap > 0 works like mels-scale curve
       col_sep: str, additional string to separate columns. 
-                  You may use '\t' or ',' for CSV
+               You may use '\t' or ',' for CSV
       print_latex_table: bool, print the table as latex command (default True)
       print_text_table: bool, print the table as text format (default True)
       color_minmax_in: how to decide the max and min to compute cell color?
@@ -165,7 +183,7 @@ def print_table(data_array, column_tag, row_tag,
 
     # color configuration
     color_func = cm.get_cmap(colormap)
-    data_idx = return_valid_number_idx(data_array)    
+    #data_idx = return_valid_number_idx(data_array)    
     #value_min = np.min(data_array[data_idx])
     #value_max = np.max(data_array[data_idx])
     
@@ -186,13 +204,13 @@ def print_table(data_array, column_tag, row_tag,
         elif type(color_minmax_in) is tuple or type(color_minmax_in) is list:
             value_min = color_minmax_in[0]
             value_max = color_minmax_in[1]
-            if type(colorscale) is list:
+            if type(colorscale) is np.ndarray:
                 colorscale_tmp = colorscale[row_idx, col_idx]
         else:
             data_idx = return_valid_number_idx(data_array)
             value_min = np.min(data_array[data_idx])
             value_max = np.max(data_array[data_idx])
-            if type(colorscale) is list:
+            if type(colorscale) is np.ndarray:
                 colorscale_tmp = colorscale[row_idx, col_idx]
             
         if type(colorscale) is not list:
@@ -311,7 +329,10 @@ def print_table(data_array, column_tag, row_tag,
 
 
 
-def concatenate_table(table_list, ignore_initial=True, add_separator=1, latex=True):
+def concatenate_table(table_list, ignore_initial=True, 
+                      add_separator=1, latex=True):
+    """
+    """
     rows = [len(x) for x in table_list]
     if len(list(set(rows))) > 1:
         print("Input tables have different row numbers")
@@ -342,3 +363,11 @@ def concatenate_table(table_list, ignore_initial=True, add_separator=1, latex=Tr
 
 if __name__ == "__main__":
     print("Tools for printing table for latex")
+
+    # example
+    data = np.random.randn(5, 3)
+    col_tags = ['A', 'B', 'C']
+    row_tags = ['1', '2', '3', '4', '5']
+    _ = print_table(data, col_tags, row_tags)
+    
+    # Latex code of the colored table will be printed

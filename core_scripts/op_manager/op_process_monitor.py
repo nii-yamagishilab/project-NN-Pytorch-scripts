@@ -118,6 +118,11 @@ class Monitor():
         # return a array
         return np.mean(self.loss_mat[epoch, :], axis=0)
 
+    def get_loss_for_learning_stopping(self, epoch_idx):
+        # get_loss return the loss for displaying, not all the loss
+        # are used as criterion for early stopping or learning rate adjusting
+        return self._get_loss_for_learning_stopping(epoch_idx)
+
     def get_epoch(self):
         return self.cur_epoch
 

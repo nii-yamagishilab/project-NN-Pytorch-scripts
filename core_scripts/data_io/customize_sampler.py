@@ -76,6 +76,18 @@ class SamplerBlockShuffleByLen(torch_sampler.Sampler):
         https://pytorch.org/docs/stable/data.html#torch.utils.data.Sampler
         """
         return len(self.m_idx)
+    
+    def update_seq_length(self, buf_dataseq_length):
+        """Update sequence length if necessary
 
+        This will resort the sequences based on updated sequence length
+        """
+        if len(buf_dataseq_length) == len(self.m_idx):
+            self.m_idx = np.argsort(buf_dataseq_length)
+        else:
+            print("Incompatible sequence length input: updata_seq_length")
+            sys.exit(1)
+        return
+    
 if __name__ == "__main__":
     print("Definition of customized_sampler")

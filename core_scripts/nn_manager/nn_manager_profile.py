@@ -609,6 +609,7 @@ def f_inference_wrapper(args, pt_model, device, \
                     nii_display.f_print(seq_info)
                     test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
                                                  args.output_dir, \
+                                                 args.output_filename_prefix, \
                                                  seq_info)
         
         # done for

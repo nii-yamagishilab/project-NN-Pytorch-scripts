@@ -5,6 +5,11 @@ PACKNAME=project-01-train-data-set
 FILENAME=cmu-arctic-data-set
 ENVFILE=../../../env.sh
 
+# download link for pre-trained models                         
+#  don't change these                                          
+MODELNAME=projec-01-nsf-pre-trained-models.tar.gz
+MODELLINK=https://zenodo.org/record/7067677/files/${MODELNAME}
+
 RED='\033[0;32m'
 NC='\033[0m'
 
@@ -29,6 +34,16 @@ fi
 # try pre-trained model
 if [ -e "../DATA/${FILENAME}" ];then
     echo -e "${RED}Try pre-trained model${NC}"
+
+    # download pretrained models
+    if [ ! -e "__pre_trained/trained_network.pt" ]; then
+	cd ..
+	wget -q --show-progress ${MODELLINK}
+	tar -xzf ${MODELNAME}
+	rm ${MODELNAME}
+	cd -
+    fi
+
     source ${ENVFILE}
     python main.py --inference --trained-model __pre_trained/trained_network.pt --output-dir __pre_trained/output
     echo -e "${RED}Please check generated waveforms from pre-trained model in ./__pre_trained/output"

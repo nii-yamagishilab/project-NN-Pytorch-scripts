@@ -114,6 +114,7 @@ def customize_collate(batch):
             numel = max([x.numel() for x in batch_new]) * len(batch_new)
             storage = elem.storage()._new_shared(numel)
             out = elem.new(storage)
+            #print(batch_new.shape[0], batch_new.shape[1])
         return torch.stack(batch_new, 0, out=out)
 
     elif elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_' \
