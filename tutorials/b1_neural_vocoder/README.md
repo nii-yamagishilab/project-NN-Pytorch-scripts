@@ -3,19 +3,18 @@
 These are tutorials on some deep-neural-network vocoders in Pytorch and Python. 
 
 Features of these tutorials:
-1. Pre-trained model is provided to produce audio sample.
-2. No paiful installation of dependency. Just directly run the notebook on Google Colab.
+1. Pre-trained model is provided to produce audio samples.
+2. No painful installation of dependency. Just directly run the notebook on Google Colab.
 3. Very detailed implementations, for example, how to cache intermediate output in causal dilated convolution.
 4. Not only DNN but also DSP techniques are explained, e.g., linear prediction, overlap-add ...
 
-All are hosted on Google Colab platform.
+All are hosted on the Google Colab platform.
 
 
 | Link | Chapter |  |
 | --- | :-- | :-- |
 | | **Introduction and basics**  | |
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1EO-ggi1U9f2zXwTiqg7AEljVx11JKta7?usp=sharing)| **chapter_1_introduction.ipynb** | entry point and Python/Pytorch conventions |
-| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1mZo73dbKeWr4hDHftDQI9rlDK1HyMf5C?usp=sharing) | **chapter_2_DSP_tools_Python.ipynb** | selected DSP tools for speech processing
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1mZo73dbKeWr4hDHftDQI9rlDK1HyMf5C?usp=sharing) | **chapter_2_DSP_tools_Python.ipynb** | selected DSP tools for speech processing
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1BEVR6jPFelczCPM5NZvuk8cRy8YpGacR?usp=sharing) | **chapter_3_DSP_tools_in_DNN_Pytorch.ipynb** |  selected DSP tools implemented as layers in neural networks;
 | | **DSP-based Vocoder** | 
@@ -31,7 +30,7 @@ All are hosted on Google Colab platform.
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1G8lUTlEQmKinh80OdP5NY7tflOyvVQAo?usp=sharing) | **chapter_a2_Music_NSF.ipynb** | Application of NSF to music instrumental audios.
 
 
-Clike `Open in Colab` will open the book. You can also download them from [Google Drive](https://drive.google.com/drive/folders/1lbIzlIWEDasNZFz9oerWAJmQC6YQIJyl?usp=sharing).
+Click `Open in Colab` will open the book. You can also download them from [Google Drive](https://drive.google.com/drive/folders/1lbIzlIWEDasNZFz9oerWAJmQC6YQIJyl?usp=sharing).
 
 Models and implementations are for the tutorial, therefore lacking intensive tuning and optimization. Neither am I good at that. If you have ideas on how to improve, your feedback is appreciated!
 
