@@ -286,6 +286,12 @@ def silence_handler(wav, sr, fl=320, fs=80,
                     flag_norm_amp=True,
                     flag_only_startend_sil=False)
     
+    Based on the Speech activity detector mentioned in Sec5.1 of
+    Tomi Kinnunen, and Haizhou Li. 
+    An Overview of Text-Independent Speaker Recognition: From Features to 
+    Supervectors. Speech Communication 52 (1). 
+    Elsevier: 12–40. doi:10.1016/j.specom.2009.08.009. 2010.
+    
     input
     -----
       wav: np.array, (wav_length, ), wavform data

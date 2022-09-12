@@ -92,7 +92,7 @@ Please check [./project/04-asvspoof2021-toy/README](./project/04-asvspoof2021-to
 This is for Interspeech paper ([Link](https://www.isca-speech.org/archive/interspeech_2021/wang21fa_interspeech.html)) and a new book chapter ([Link]((https://arxiv.org/abs/2201.03321)))
 
 ```sh
-Xin Wang, and Junich Yamagishi. A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection. In Proc. Interspeech, 4259–4263. doi:10.21437/Interspeech.2021-702. 2021.
+Xin Wang, and Junichi Yamagishi. A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection. In Proc. Interspeech, 4259–4263. doi:10.21437/Interspeech.2021-702. 2021.
 
 Xin Wang, and Junichi Yamagishi. A Practical Guide to Logical Access Voice Presentation Attack Detection. In Frontiers in Fake Media Generation and Detection, 169–214. doi:10.1007/978-981-19-1524-6_8. 2022.
 ```
@@ -119,7 +119,7 @@ Project for ICASSP paper
 Xin Wang, and Junichi Yamagishi. Estimating the Confidence of Speech Spoofing Countermeasure. In Proc. ICASSP, 6372–6376. 2022.
 ```
 
-Pre-trained models, recipes are all available. Please check [./project/06-asvspoof-ood/README](./project/06-asvspoof-ood/README).
+Pre-trained models and recipes are all available. Please check [./project/06-asvspoof-ood/README](./project/06-asvspoof-ood/README).
 
 <img src="./misc/Conf-estimator_test2.png" alt="drawing" width="300"/>
 
@@ -136,7 +136,7 @@ Xin Wang, and Junichi Yamagishi. Investigating Self-Supervised Front Ends for Sp
 
 Pre-trained models, recipes are all available. Please check [./project/07-asvspoof-ssl/README](./project/07-asvspoof-ssl/README).
 
-**Note that** this project requires a specific version of [fairseq](https://github.com/pytorch/fairseq/) and uses [env-fs-install.sh](env-fs-install.sh) to install the dependency. For convenience, the demonstration script [./project/07-asvspoof-ssl/00_demo.sh](./project/07-asvspoof-ssl/00_demo.sh) will call the shell script and install the dependency automatically. Just go to there and run 00_demo.sh.
+**Note that** this project requires a specific version of [fairseq](https://github.com/pytorch/fairseq/) and uses [env-fs-install.sh](env-fs-install.sh) to install the dependency. For convenience, the demonstration script [./project/07-asvspoof-ssl/00_demo.sh](./project/07-asvspoof-ssl/00_demo.sh) will call the shell script and install the dependency automatically. Just go there and run 00_demo.sh.
 
 ![EER-mintDCF](./misc/fig-ssl.png)
 
@@ -235,7 +235,7 @@ data2 = readwrite.f_read_raw_mat('./temp.bin', 3)
 data - data2
 ```
 
-More instructions can be found in the Jupyter notebook [./tutorials/c01_data_format.ipynb](./tutorials/c01_data_format.ipynb).
+More instructions can be found in the Jupyter notebook [here](https://colab.research.google.com/drive/1EO-ggi1U9f2zXwTiqg7AEljVx11JKta7?usp=sharing).
 
 
 ### Files in this repository
@@ -332,7 +332,7 @@ Start training       core_scripts/nn_manager/nn_manager.py f_train_wrapper()
        Done
 ```
 
-A detailed flowchat is [./misc/APPENDIX_1.md](./misc/APPENDIX_1.md). This may be useful if you want to hack on the code.
+A detailed flowchart is [./misc/APPENDIX_1.md](./misc/APPENDIX_1.md). This may be useful if you want to hack into the code.
 
 
 ## Resources & links
