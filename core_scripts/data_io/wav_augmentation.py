@@ -287,6 +287,43 @@ def batch_pad_for_multiview(input_data_batch_, wav_samp_rate, length,
 # Frequency domain
 ##################
 
+
+def wav_freq_mask_fixed(input_data, wav_samp_rate, start_b, end_b):
+    """ output = wav_freq_mask_fixed(input_data, wav_samp_rate, start_b, end_b)
+    
+    Mask the frequency range, fixed 
+    
+    input
+    -----
+      input_data: np.array, (length, 1)
+      wav_samp_rate: int, waveform sampling rate
+      start_b: float
+      end_b: float
+
+    output
+    ------
+      output:  np.array, (length, 1)
+    """
+    # order of the filder, fixed to be 10
+    # change it to a random number later
+    filter_order = 10
+    
+    if start_b < 0.01:
+        sos = signal.butter(filter_order, end_b, 'highpass', output='sos')
+    elif end_b > 0.99:
+        sos = signal.butter(filter_order, start_b, 'lowpass',output='sos')
+    else:
+        sos = signal.butter(
+            filter_order, [start_b, end_b], 'bandstop', output='sos')
+        
+    filtered = signal.sosfilt(sos, input_data[:, 0])
+
+    # change dimension
+    output = np.expand_dims(filtered, axis=1)
+
+    return output
+
+
 def wav_freq_mask(input_data, wav_samp_rate):
     """ output = wav_freq_mask(input_data, wav_samp_rate)
     
@@ -314,29 +351,15 @@ def wav_freq_mask(input_data, wav_samp_rate):
     if band_w < 0.05:
         # if the bandwidth is too small, do no masking
         output = input_data
-    
     else:
         # start
         start_b = np.random.rand() * (1 - band_w)
-        
         # end
         end_b = start_b + band_w
-
-        # 
-        if start_b < 0.01:
-            sos = signal.butter(filter_order, end_b, 'highpass', output='sos')
-        elif end_b > 0.99:
-            sos = signal.butter(filter_order, start_b, 'lowpass',output='sos')
-        else:
-            sos = signal.butter(
-                filter_order, [start_b, end_b], 'bandstop', output='sos')
-        
-        filtered = signal.sosfilt(sos, input_data[:, 0])
-
-        # change dimension
-        output = np.expand_dims(filtered, axis=1)
+        output = wav_freq_mask_fixed(input_data, wav_samp_rate, start_b, end_b)
 
     return output
+
 
 ##################
 # Compression codec
