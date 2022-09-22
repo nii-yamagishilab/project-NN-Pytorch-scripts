@@ -6,7 +6,7 @@ This folder hosts links to my tutorials notebooks.
 | --- | :-- | :-- |
 | [b1_neural_vocoder](./b1_neural_vocoder/README.md) | readable and executable | tutorials on selected neural vocoders
 | [b2_anti_spoofing](./b2_anti_spoofing/README.md) | unfinished | tutorials on [speech audio anti-spoofing](https://www.asvspoof.org/) 
-| [b3_voice_privacy](https://colab.research.google.com/drive/1_zRL_f9iyDvl_5Y2Rdakg0hYAl_5Rgyq?usp=sharing) | readable and executable | tutorials on [voice privacy challenge](https://www.voiceprivacychallenge.org/)baselines
+| [b3_voice_privacy](https://colab.research.google.com/drive/1_zRL_f9iyDvl_5Y2Rdakg0hYAl_5Rgyq?usp=sharing) | readable and executable | tutorials on [voice privacy challenge](https://www.voiceprivacychallenge.org/) baselines
 
 Notes: 
 1. Large notebooks are directly hosted on Google Colab, not in this git repo.

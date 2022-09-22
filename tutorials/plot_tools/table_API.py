@@ -253,6 +253,8 @@ def print_table(data_array, column_tag, row_tag,
     else:
         latex_buffer += r"\begin{tabular}{" \
                         + ''.join(['c' for x in column_tag + ['']]) + r"}"+"\n"
+
+    latex_buffer += r"\toprule" + "\n"
     
     # head row
     #  for latex
@@ -262,6 +264,8 @@ def print_table(data_array, column_tag, row_tag,
         hrow = [fill_cell("", 1) for x in range(pad_dummy_col)] + hrow
 
     latex_buffer += return_one_row_latex(hrow)
+    latex_buffer += r"\midrule" + "\n"
+
     latex_cell_buffer.append(hrow)
 
     #  for plain text (add additional separator for each column)
@@ -319,6 +323,7 @@ def print_table(data_array, column_tag, row_tag,
         text_buffer += return_one_row_text(row_content_text)
         text_cell_buffer.append(row_content_text)
 
+    latex_buffer += r"\bottomrule" + "\n"
     latex_buffer += r"\end{tabular}" + "\n"
 
     if print_latex_table:
