@@ -38,6 +38,9 @@ def f_args_parsed(argument_input = None):
     mes = 'module of configuration (default config, config.py will be loaded)'
     parser.add_argument('--module-config', type=str, default="config", 
                         help=mes)
+
+    mes = 'module of auxiliary model definition (in case this is needed)'
+    parser.add_argument('--module-model-aux', type=str, default="", help=mes)
     
     ######
     # Training settings    

@@ -86,7 +86,8 @@ def print_table(data_array, column_tag, row_tag,
                 print_format_along_row=True,
                 color_minmax_in = 'global',
                 pad_data_column = 0,
-                pad_dummy_col = 0):
+                pad_dummy_col = 0,
+                func_after_row = None):
     """
     print a latex table given the data (np.array) and tags    
     step1. table will be normalized so that values will be (0, 1.0)
@@ -228,15 +229,23 @@ def print_table(data_array, column_tag, row_tag,
     if print_format_along_row:
         tmp_len = []
         for idx, data_row in enumerate(data_array):
-            tmp_len.append(
-                max([len("{num:{form}}".format(num=x, form=print_format[idx])) \
-                     for x in data_row]))
+            if len(print_format[0]):
+                tmp_len.append(
+                    max([len("{num:{form}}".format(num=x, 
+                                                   form=print_format[idx])) \
+                         for x in data_row]))
+            else:
+                tmp_len.append(0)
     else:
         tmp_len = []
         for idx, data_col in enumerate(data_array.T):
-            tmp_len.append(
-                max([len("{num:{form}}".format(num=x, form=print_format[idx])) \
+            if len(print_format[0]):
+                tmp_len.append(
+                    max([len("{num:{form}}".format(num=x, 
+                                                   form=print_format[idx])) \
                      for x in data_col]))
+            else:
+                tmp_len.append(0)
     col_tag_max_len = max([len(x) for x in column_tag] + tmp_len)
     
     # prepare buffer
@@ -295,13 +304,23 @@ def print_table(data_array, column_tag, row_tag,
                 tmp_print_format = print_format[col_idx]
 
             if is_valid_float(data_array[row_idx,col_idx]):
-                num_str = "{num:{form}}".format(num=data_array[row_idx,col_idx],
-                                                form=tmp_print_format)
-                latex_color_cell = get_latex_color(data_array, row_idx, col_idx,
-                                                   color_minmax_in)
+                if len(tmp_print_format):
+                    num_str = "{num:{form}}".format(
+                        num=data_array[row_idx,col_idx],
+                        form=tmp_print_format)
+                else:
+                    num_str = ""
+                latex_color_cell = get_latex_color(
+                    data_array, row_idx, col_idx,
+                    color_minmax_in)
+
             elif type(data_array[row_idx,col_idx]) is str:
-                num_str = "{num:{form}}".format(num=data_array[row_idx,col_idx],
-                                                form=tmp_print_format)
+                if len(tmp_print_format):
+                    num_str = "{num:{form}}".format(
+                        num=data_array[row_idx,col_idx],
+                        form=tmp_print_format)
+                else:
+                    num_str = ""
                 latex_color_cell = ''
             else:
                 num_str = ''
@@ -322,6 +341,12 @@ def print_table(data_array, column_tag, row_tag,
         # text content
         text_buffer += return_one_row_text(row_content_text)
         text_cell_buffer.append(row_content_text)
+
+        if func_after_row is not None: 
+            latex_buffer += func_after_row(row_idx)
+        
+            
+        
 
     latex_buffer += r"\bottomrule" + "\n"
     latex_buffer += r"\end{tabular}" + "\n"
