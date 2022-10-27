@@ -1,7 +1,7 @@
 # A Comparative Study on Recent Neural Spoofing Countermeasures for Synthetic Speech Detection
 
 
-<img src="https://d3i71xaburhd42.cloudfront.net/7d3d547871324093c76b2f994493c77bbd842285/4-Table1-1.png" alt="drawing" width="600"/>
+<img src="../../misc/fig_eer_table.png" alt="drawing" width="600"/>
 
 This project compares a few popular CMs. The main findings are:
 1. CM performance may be heavily influenced by the random initial seed. Multiple running is recommended.

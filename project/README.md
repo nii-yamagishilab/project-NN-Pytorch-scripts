@@ -35,11 +35,11 @@ Projects for other waveform models, including WaveNet vocoder, WaveGlow, Blow, a
 
 ### [03-asvspoof-mega](./03-asvspoof-mega) Spoofing countermeasures on ASVspoof 2019 LA 
 
-<img src="https://d3i71xaburhd42.cloudfront.net/7d3d547871324093c76b2f994493c77bbd842285/4-Table1-1.png" alt="drawing" width="600"/>
+<img src="../misc/fig_eer_table.png" alt="drawing" width="600"/>
 
-<img src="https://www.researchgate.net/publication/357734435/figure/fig5/AS:1110903252627457@1641871383208/DET-curves-left-of-LCNN-LSTM-sum-with-LFCC-and-vanilla-softmax-sm-in-six-training-and.png" alt="drawing" width="400"/>
+<img src="../misc/bookchapter_det_3.png" alt="drawing" width="400"/>
 
-Project to compare 36 models.
+Project to compare 36 models, 6 runs per system.
 
 * Pre-trained models, scores, training recipes are all available. 
 
@@ -55,7 +55,7 @@ Xin Wang, and Junichi Yamagishi. A Practical Guide to Logical Access Voice Prese
 
 ### [06-asvspoof-ood](./06-asvspoof-ood) Spoofing countermeasures confidence estimation 
 
-<img src="https://www.researchgate.net/publication/355224018/figure/fig2/AS:1079187767066625@1634309822768/Scatter-plot-and-histogram-of-CM-and-confidence-scores-Each-sub-caption-lists.ppm" alt="drawing" width="300"/>
+<img src="../misc/Conf-estimator_test2.png" alt="drawing" width="300"/>
 
 Project to estimate confidence for speech spoofing countermeasure
 
@@ -65,7 +65,7 @@ Xin Wang, and Junichi Yamagishi. Estimating the Confidence of Speech Spoofing Co
 
 ### [07-asvspoof-ssl](./07-asvspoof-ssl) Spoofing countermeasures using SSL-based front end 
 
-<img src="https://pbs.twimg.com/media/FEc07JGacAA2kfc?format=png&name=small" alt="drawing" width="300"/>
+<img src="../misc/fig-ssl.png" alt="drawing" width="300"/>
 
 Project to use SSL-based front end
 

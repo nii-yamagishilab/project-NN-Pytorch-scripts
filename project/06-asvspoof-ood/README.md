@@ -1,9 +1,6 @@
 # SSL-based front-end for spoofing countermeasure
 
-
-
-
-<img src="https://www.researchgate.net/publication/355224018/figure/fig2/AS:1079187767066625@1634309822768/Scatter-plot-and-histogram-of-CM-and-confidence-scores-Each-sub-caption-lists.ppm" alt="drawing" width="300"/>
+<img src="../../misc/Conf-estimator_test2.png" alt="drawing" width="300"/>
 
 
 This project estimates the confidence of speech spoofing countermeasures. 
