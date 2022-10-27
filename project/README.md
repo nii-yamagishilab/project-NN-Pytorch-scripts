@@ -33,7 +33,7 @@ Projects for other waveform models, including WaveNet vocoder, WaveGlow, Blow, a
 * Tutorial on NSF models is also available in [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder).
 
 
-### [03-asvspoof-mega](./03-asvspoof-mega) Spoofing countermeasures on ASVspoof 2019 LA 
+## [03-asvspoof-mega](./03-asvspoof-mega) Spoofing countermeasures on ASVspoof 2019 LA 
 
 <img src="../misc/fig_eer_table.png" alt="drawing" width="600"/>
 
@@ -53,7 +53,7 @@ Xin Wang, and Junichi Yamagishi. A Practical Guide to Logical Access Voice Prese
 ```
 
 
-### [06-asvspoof-ood](./06-asvspoof-ood) Spoofing countermeasures confidence estimation 
+## [06-asvspoof-ood](./06-asvspoof-ood) Spoofing countermeasures confidence estimation 
 
 <img src="../misc/Conf-estimator_test2.png" alt="drawing" width="300"/>
 
@@ -63,9 +63,9 @@ Project to estimate confidence for speech spoofing countermeasure
 Xin Wang, and Junichi Yamagishi. Estimating the Confidence of Speech Spoofing Countermeasure. In Proc. ICASSP, 6372–6376. 2022.
 ```
 
-### [07-asvspoof-ssl](./07-asvspoof-ssl) Spoofing countermeasures using SSL-based front end 
+## [07-asvspoof-ssl](./07-asvspoof-ssl) Spoofing countermeasures using SSL-based front end 
 
-<img src="../misc/fig-ssl.png" alt="drawing" width="300"/>
+<img src="../misc/fig-ssl.png" alt="drawing" width="600"/>
 
 Project to use SSL-based front end
 
@@ -78,7 +78,7 @@ Xin Wang, and Junichi Yamagishi. Investigating Self-Supervised Front Ends for Sp
 ```
 
 
-### [08-asvspoof-activelearn](./08-asvspoof-activelearn) Spoofing countermeasures using active learning 
+## [08-asvspoof-activelearn](./08-asvspoof-activelearn) Spoofing countermeasures using active learning 
 
 <img src="https://pbs.twimg.com/media/FPFN_3AaIAM5ANl?format=png&name=medium" alt="drawing" width="400"/>
 

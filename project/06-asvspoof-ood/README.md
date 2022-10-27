@@ -83,7 +83,7 @@ This demo.sh will
 Softmax-energy/config_train_asvspoof2019_bc10 can be run after manually downloading the BC data. See Note 1 below.
 
 ### step.3 Get metric
-Get evaluation metrics using 02_eval_metric.ipynb
+Get evaluation metrics using [02_metrics.ipynb](02_metrics.ipynb)
 This is a Jupyter notebook.
 Please check it on github website.
 
