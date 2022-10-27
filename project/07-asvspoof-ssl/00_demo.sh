@@ -1,15 +1,19 @@
 #!/bin/bash
 ########################
-# Script for confidence estimation
+# Script for demontration
 # 
-# Usage: bash 00_demo.sh PATH
-# where PATH can be model-W2V-XLSR-ft-GF/config_train_asvspoof2019/
-# or other model-*/config_train_asvspoof2019 folders
-#
+# Usage: bash 00_demo.sh PATH CONFIG RAND_SEED
+# where 
+#   PATH can be model-LFCC-LLGF
+#        or other model-* folders
+#   CONFIG can be config_train_toyset
+#       if you prepare other config, you can use them as well
+#   RAND_SEED can be 01, 02 or any other numbers
+# 
 # This script will 
 #  1. install pytorch env using conda 
 #  2. untar data set (toy_dataset)
-#  3. run evaluation and training process
+#  3. run training and scoring
 #
 # This script will use the data set in DATA/
 #
@@ -21,15 +25,18 @@ RED='\033[0;32m'
 NC='\033[0m'
 
 PRJDIR=$1
+CONFIG=$2
+RAND_SEED=$3
 
 #####
 # configurations (no need to change)
 link_set=https://zenodo.org/record/6456704/files/project-04-toy_example.tar.gz
 set_name=project-04-toy_example.tar.gz
+
 link_pretrained=https://zenodo.org/record/6456692/files/project-07-asvspoof-ssl.tar
 model_name=project-07-asvspoof-ssl.tar
 
-eval_script=01_eval.sh
+score_script=02_score.sh
 train_script=01_train.sh
 main_script=main.py
 condafile=$PWD/../../env-fs-install.sh
@@ -37,27 +44,16 @@ envfile=$PWD/../../env-fs.sh
 pretrained_model=__pretrained/trained_network.pt
 trained_model=./trained_network.pt
 
-# random seeds
-seeds=(1 10 100)
-dirnames=(01 02 03)
-
-# try the first random index
-seed_idx=0
+# we will use this toy data set for demonstration
+configs_name=${CONFIG}
+PRJDIR=${PRJDIR}/${CONFIG}
 
 #####
 # check
-SUBDIR=${dirnames[${seed_idx}]}
+SUBDIR=${RAND_SEED}
 if [ ! -d ${PRJDIR}/${SUBDIR} ];
 then
-    if [ ! -d ${PRJDIR} ];
-    then
-	echo "Not found: ${PRJDIR}"
-    else
-	echo "Fail to parse input argument"
-    fi
-    echo "Please use one of the following as argument"
-    ls -d model-*/config_train_asvspoof2019
-    exit 1;
+    mkdir -p ${PRJDIR}/${SUBDIR}
 fi
 
 #####
@@ -103,59 +99,33 @@ fi
 echo -e "\nDowloading pre-trained SSL models"
 bash 01_download_ssl.sh
 
-#####
-# step 3 run evaluation process on toy set
-echo -e "\n${RED}=======================================================${NC}"
-echo -e "${RED}Step3. scoring toy data set (using pre-trained model)${NC}"
-com="bash ${eval_script} $PWD/DATA/toy_example/eval toy_eval_set 
-	  $PWD/${PRJDIR}/${SUBDIR} $PWD/${PRJDIR}/${SUBDIR}/${pretrained_model} pretrained"
-echo ${com}
-eval ${com}
-
-if [ -e $PWD/${PRJDIR}/${SUBDIR}/log_eval_pretrained_toy_eval_set_score.txt ];
-then
-    echo -e "\nCompute EERs"
-    com="python 02_evaluate.py 
-        ${PRJDIR}/${SUBDIR}/log_eval_pretrained_toy_eval_set_score.txt
-    	DATA/toy_example/protocol.txt"
-    echo ${com}
-    eval ${com}
-fi
-
 
 #####
-# step 4 training
+# step 3 training
 echo -e "\n${RED}=======================================================${NC}"
-echo -e "${RED}Step4. run training process${NC}"
+echo -e "${RED}Step3. training using ${CONFIG} ${NC}"
 
-if [ ! -e DATA/asvspoof2019_LA/train_dev/LA_D_1000265.wav ];
-then
-    echo -e "${RED}ASVspoof2019 LA data is not found${NC}"
-    echo -e "${RED}We will use the toy training set for demonstration only${NC}"
-    echo -e "${RED}If you want to train a good model, please use ASVspoof2019 LA data${NC}"
-    com="bash ${train_script} ${seeds[${seed_idx}]} config_train_toyset ${PRJDIR}/${SUBDIR}"
-else
-    TRAINCONFIG=`echo ${PRJDIR} | xargs -I{} basename {}`   
-    com="bash ${train_script} ${seeds[${seed_idx}]} ${TRAINCONFIG} ${PRJDIR}/${SUBDIR}"
-fi
+com="bash ${train_script} ${RAND_SEED} ${CONFIG} ${PRJDIR}/${SUBDIR}"
 echo ${com}
 eval ${com}
 
 #####
-# step 5 inference using newly trained model
+# step 4 inference 
 echo -e "\n${RED}=======================================================${NC}"
-echo -e "${RED}Step5. run evaluation process (using newly trained model)${NC}"
-com="bash ${eval_script} $PWD/DATA/toy_example/eval toy_eval_set 
-	  $PWD/${PRJDIR}/${SUBDIR} $PWD/${PRJDIR}/${SUBDIR}/${trained_model} trained"
+echo -e "${RED}Step4. scoring using the toy set${NC}"
+com="bash ${score_script} $PWD/DATA/toy_example/eval toy_eval_set 
+	  $PWD/${PRJDIR}/${SUBDIR} $PWD/${PRJDIR}/${SUBDIR}/${trained_model} 
+	  trained"
 echo ${com}
 eval ${com}
 
-if [ -e $PWD/${PRJDIR}/${SUBDIR}/log_eval_trained_toy_eval_set_score.txt ];
-then
-    echo -e "\nCompute EERs"
-    com="python 02_evaluate.py 
-        ${PRJDIR}/${SUBDIR}/log_eval_trained_toy_eval_set_score.txt
-    	DATA/toy_example/protocol.txt"
-    echo ${com}
-    eval ${com}
-fi
+#####
+# step 5 inference
+echo -e "\n${RED}=======================================================${NC}"
+echo -e "${RED}Step5. scoring using the toy set and models trained by author${NC}"
+com="bash ${score_script} $PWD/DATA/toy_example/eval toy_eval_set
+          $PWD/${PRJDIR}/../config_train_asvspoof2019/01
+          $PWD/${PRJDIR}/../config_train_asvspoof2019/01/__pretrained/${trained_model}
+          pretrained"
+echo ${com}
+eval ${com}

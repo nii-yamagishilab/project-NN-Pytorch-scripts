@@ -36,8 +36,8 @@ __copyright__ = "Copyright 2022, Xin Wang"
 # negative energy [1]
 #####################
 
-def neg_energy(logits, temperature):
-    """ neg_eng = neg_energy(logits, temperature)
+def neg_energy(logits, temperature=1):
+    """ neg_eng = neg_energy(logits, temperature=1)
 
     neg_eng[x] =  -T \log \sum_y \exp (logits[x, y] / T)
 

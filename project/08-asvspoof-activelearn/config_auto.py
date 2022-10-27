@@ -3,7 +3,7 @@
 config.py 
 
 This configuration file will read environment variables
-for configuration. it is used for evaluation (scoring stage)
+for configuration. it is used for scoring
 
 It assumes that input data will be waveform files (*.wav)
 No need to change settings here
@@ -60,10 +60,26 @@ minimum_len = None
 optional_argument = ['']
 
 
+# ===
+# pre-trained SSL model
+# ===
+# We will load this pre-trained SSL model as the front-end
+# We need this because the model definition is written in
+# this file.
+# Its weight will be overwritten by the trained CM.
+#
+# path to the SSL model. It will be loaded as front-end
+ssl_front_end_path = os.path.dirname(__file__) \
+                     + '/../../../SSL_pretrained/xlsr_53_56k.pt'
+
+# dimension of the SSL model output
+ssl_front_end_out_dim = 1024
+
 #########################################################
 ## Configuration for inference stage
 #########################################################
-# similar options to training stage
+# We set environment variables 
+# No need to change
 
 test_set_name = [os.getenv('TEMP_DATA_NAME')]
 

@@ -4,8 +4,7 @@ config.py for project-NN-pytorch/projects
 
 Usage: 
  For training, change Configuration for training stage
- For inference, change Configuration for inference stage (although 
-    this configuration will only be used for training)
+ For inference, change Configuration for inference stage
 """
 import os
 
@@ -95,6 +94,28 @@ output_exts = ['.bin']
 output_reso = [1]
 output_norm = [False]
 
+
+# ===
+# For active learning pool data
+# ===
+# Similar configurations as above
+# 
+# This is for demonstration, we still use the toy set as pool set.
+# And we will merge the trainin and development sets as the pool set
+#
+# Name of the pool subsets
+al_pool_set_name = ['pool_toyset_trn',  'pool_toyset_val']
+
+# list of files for each pool subsets
+al_pool_list = [tmp + '/scp/train.lst', tmp + '/scp/val.lst']
+
+# list of input data directories
+al_pool_in_dirs = [[tmp + '/train_dev'], 
+                   [tmp + '/train_dev']]
+
+al_pool_out_dirs = [[] for x in al_pool_in_dirs]
+
+
 # ===
 # Waveform configuration
 # ===
@@ -105,14 +126,14 @@ wav_samp_rate = 16000
 
 # Truncating input sequences so that the maximum length = truncate_seq
 #  When truncate_seq is larger, more GPU mem required
-# If you don't want truncating, please truncate_seq = None
+#  If you don't want truncating, please truncate_seq = None
 truncate_seq = 64000
 
 # Minimum sequence length
 #  If sequence length < minimum_len, this sequence is not used for training
 #  minimum_len can be None
 minimum_len = 8000
-
+    
 # Optional argument
 #  This used to load protocol(s)
 #  Multiple protocol files can be specified in the list
@@ -124,15 +145,25 @@ minimum_len = 8000
 #  Here, this protocol will cover all the data in the toy set
 optional_argument = [tmp + '/protocol.txt']
 
-#import augment
-#input_trans_fns = [[augment.wav_aug]]
-#output_trans_fns = [[]]
+
+# ===
+# pre-trained SSL model
+# ===
+# We will load this pre-trained SSL model as the front-end
+# 
+# path to the SSL model (it is downloaded by 01_download.sh)
+ssl_front_end_path = os.path.dirname(__file__) \
+                     + '/../../../SSL_pretrained/xlsr_53_56k.pt'
+# dimension of the SSL model output
+#  this must be provided.
+ssl_front_end_out_dim = 1024
+
 
 #########################################################
-## Configuration for inference stage (place holder)
+## Configuration for inference stage
 #########################################################
-# Please use config_test_*.py inference
-# This part is just a place holder
+# This part is not used in this project
+# They are place holders
 
 test_set_name = trn_set_name + val_set_name
 

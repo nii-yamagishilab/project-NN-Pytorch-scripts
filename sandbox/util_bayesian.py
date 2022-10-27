@@ -20,7 +20,10 @@ __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2022, Xin Wang"
 
 
-## utils to save guide and model Pyro
+######
+# utils to save guide and model Pyro
+# not used anymore
+######
 def save_model_guide(model, guide, path_model, path_guide): 
     #torch.save(dnn_net.state_dict(), "mnist_cnn_{:03d}.pt".format(idx))
     torch.save({"model" : model.state_dict(), 
@@ -36,8 +39,9 @@ def load_model_guide(model, path_model, path_guide):
     return guide
 
 
-## Utils to compute metrics for Bayesian inference
-#
+######
+# Utils to compute metrics for Bayesian inference
+######
 def _xent(y, dim=-1, log_floor = 0.000001):
     """xe = xent(y, dim)
     input: y, tensor, (..., num_classes), probablity matrix

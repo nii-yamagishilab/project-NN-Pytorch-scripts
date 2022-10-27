@@ -1,6 +1,6 @@
 #!/bin/bash
 ########################
-# Script for evaluation
+# Script for training
 # Usage:
 #   1. please check that config.py has been properly configured
 #   2. $: bash 00_train.sh SEED CONFIG_NAME > /dev/null 2>&1 &
