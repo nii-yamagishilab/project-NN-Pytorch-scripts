@@ -521,14 +521,19 @@ class Model(torch_nn.Module):
         """
         
         # buffer
-        idx_list = []
-        conf_list = []
-            
+        # note that data_loader.dataset.__len__() returns the number of 
+        # individual samples, not the number of mini-batches
+        idx_list = np.zeros([data_loader.dataset.__len__()])
+        conf_list = np.zeros([data_loader.dataset.__len__()])
+        # 
+        counter = 0
+
         # loop over the pool set
         with torch.no_grad():
             for data_idx, (x, y, data_info, idx_orig) in \
                 enumerate(data_loader):
-                
+                    
+                # feedforward pass
                 filenames = [nii_seq_tk.parse_filename(y) for y in data_info]
                 datalength = [nii_seq_tk.parse_length(y) for y in data_info]
                 
@@ -545,9 +550,12 @@ class Model(torch_nn.Module):
                 # back-end
                 scores, _, energy = self.m_back_end.inference(feat_vec)
                 
-                # add the energy and index to the buffer
-                conf_list += [x.item() for x in energy]
-                idx_list += idx_orig
+                # add the energy (confidence score) and data index to the buffer
+                conf_list[counter:counter+x.shape[0]] = np.array(
+                    [x.item() for x in energy])
+                idx_list[counter:counter+x.shape[0]] = np.array(
+                    idx_orig)
+                counter += x.shape[0]
 
         # select the most useful data (those with high enerngy, low-confidence)
         sorted_idx = np.argsort(conf_list)[::-1]

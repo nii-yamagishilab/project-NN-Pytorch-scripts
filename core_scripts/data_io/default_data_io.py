@@ -312,6 +312,10 @@ class NIIDataSet(torch.utils.data.Dataset):
             nii_warn.f_print("Unsupported dtype %s" % (data_format))
             nii_warn.f_die("Only supports %s " % (nii_dconf.h_dtype_str))
             
+        # whether input file name in list contains part of the path
+        # this will be confirmed after reading the file list in the next step
+        self.flag_filename_with_path = False
+
         # check the validity of data list
         self.f_check_file_list()
         
@@ -796,6 +800,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         # decide whether the file name in self.m_file_list contains
         #  sub folders
         flag_recur = self.f_filename_has_folderpath()
+        self.flag_filename_with_path = flag_recur
         
         # check the list of files exist in all input/output directories
         for tmp_d, tmp_e in zip(self.m_input_dirs, self.m_input_exts):
@@ -1408,6 +1413,17 @@ class NIIDataSet(torch.utils.data.Dataset):
             e_dim = s_dim + t_dim
             file_path = nii_str_tk.f_realpath(save_dir, file_name, t_ext)
             
+            # if this file_name contains part of the path, make sure that the 
+            # parent folder has been created
+            if self.flag_filename_with_path:
+                tmp_save_dir = os.path.dirname(file_path)
+                if not os.path.isdir(tmp_save_dir):
+                    try:
+                        os.mkdir(tmp_save_dir)
+                    except OSError:
+                        nii_warn.f_die("Cannot carete {}".format(tmp_save_dir))
+            
+            # check the length and write the data
             if seq_length > 0:
                 expect_len = seq_length // t_reso
                 # confirm that the generated file length is as expected

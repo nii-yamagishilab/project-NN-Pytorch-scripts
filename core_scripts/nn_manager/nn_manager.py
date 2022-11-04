@@ -557,9 +557,21 @@ def f_inference_wrapper(args, pt_model, device, \
     # load trained model parameters from checkpoint
     nii_nn_tools.f_load_checkpoint_for_inference(checkpoint, pt_model)
     
-    # start generation
+    # decide the range of the data index to generate
+    range_genidx_start = args.inference_sample_start_index 
+    if args.inference_sample_end_index < 0:
+        range_genidx_end = len(test_data_loader)
+    else:
+        range_genidx_end = args.inference_sample_end_index
+    if range_genidx_start >= range_genidx_end:
+        mes = "--inference-sample-start-index should be smaller than"
+        mes += " --inference-sample-end-index"
+        nii_display.f_die(mes)
+        
+    # print information
     nii_display.f_print("Start inference (generation):", 'highlight')
-    
+    nii_display.f_print("Generate minibatch indexed within [{:d},{:d})".format(
+        range_genidx_start, range_genidx_end))
     if hasattr(args, 'trunc_input_length_for_inference') and \
        args.trunc_input_length_for_inference > 0:
         mes = "Generation in segment-by-segment mode (truncation length "
@@ -571,6 +583,7 @@ def f_inference_wrapper(args, pt_model, device, \
     #output_buf = []
     #filename_buf = []
     
+    # start generation
     pt_model.eval() 
     total_start_time = time.time()
     total_accumulate = 0
@@ -578,10 +591,16 @@ def f_inference_wrapper(args, pt_model, device, \
     with torch.no_grad():
         
         start_time_load = time.time()
+        
         # run generation
-        for _, (data_in, data_tar, data_info, idx_orig) in \
+        for data_idx, (data_in, data_tar, data_info, idx_orig) in \
             enumerate(test_data_loader):
 
+            # not in the range, skip
+            if data_idx < range_genidx_start or data_idx >= range_genidx_end:
+                nii_display.f_print("skip {:s}".format(str(data_info)))
+                continue 
+            
             # send data to device and convert data type
             if isinstance(data_in, torch.Tensor):
                 data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
@@ -643,7 +662,7 @@ def f_inference_wrapper(args, pt_model, device, \
                     sys.exit(1)
             
             else:
-                # compute output
+                # normal case: generate the output sequence as a whole
                 if args.model_forward_with_target:
                     # if model.forward requires (input, target) as arguments
                     # for example, for auto-encoder
@@ -663,6 +682,7 @@ def f_inference_wrapper(args, pt_model, device, \
             # average time for each sequence when batchsize > 1
             time_cost_inf = time_cost_inf / len(data_info)
             
+            # write the generated data to file
             if data_gen is None:
                 nii_display.f_print("No output saved: %s" % (str(data_info)),\
                                     'warning')
@@ -685,6 +705,7 @@ def f_inference_wrapper(args, pt_model, device, \
                                                  args.output_filename_prefix, \
                                                  seq_info)
 
+            # time to generate
             start_time_load = time.time()
             time_cost_save = (start_time_load - start_time_save)/len(data_info)
             

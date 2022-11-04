@@ -113,7 +113,11 @@ def customize_collate(batch):
             # allocate the memory based on maximum numel
             numel = max([x.numel() for x in batch_new]) * len(batch_new)
             storage = elem.storage()._new_shared(numel)
-            out = elem.new(storage)
+            # updated according to latest collate function
+            # otherwise, it raises warning
+            # pytorch/blob/master/torch/utils/data/_utils/collate.py
+            out = elem.new(storage).resize_(
+                len(batch_new), *list(batch_new[0].size()))
             #print(batch_new.shape[0], batch_new.shape[1])
         return torch.stack(batch_new, 0, out=out)
 
@@ -235,7 +239,15 @@ def customize_collate_from_batch(batch):
         if torch.utils.data.get_worker_info() is not None:
             numel = max([x.numel() for x in batch_new]) * len(batch_new)
             storage = elem.storage()._new_shared(numel)
-            out = elem.new(storage)
+            # we need to resize_ to suppress a warning
+            # this is based on 
+            # pytorch/blob/master/torch/utils/data/_utils/collate.py
+            # [batch_1, length, dim], [batch_2, length, dim] ...
+            #   batch_new[0][0].size() -> length, dim, ...
+            #   [x.shape[0] for x in batch_new] -> [batch_1, batch_2, ...]
+            out = elem.new(storage).resize_(
+                sum([x.shape[0] for x in batch_new]), 
+                *list(batch_new[0][0].size()))
 
         # here is the difference
         # concateante (batch1, length, dim1, dim2, ...) (batch2, length, ...)

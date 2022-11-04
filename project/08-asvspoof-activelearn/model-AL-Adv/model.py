@@ -530,9 +530,13 @@ class Model(torch_nn.Module):
             # feat2 (batch, feat)
             edis = torch.cdist(feat1.unsqueeze(0), feat2.unsqueeze(0))[0]
             return torch.min(edis, dim=0)[0]
+
+        # note that data_loader.dataset.__len__() returns the number of 
+        # individual samples, not the number of mini-batches
+        idx_list = np.zeros([pool_data_loader.dataset.__len__()])
+        conf_list = np.zeros([pool_data_loader.dataset.__len__()])
         # 
-        idx_list = []
-        conf_list = []
+        counter = 0
         
         # get gradients
         for data_idx, (x, y, data_info, idx_orig) in \
@@ -593,8 +597,12 @@ class Model(torch_nn.Module):
 
                 scores = _feat_dis(ad_feature_vec, or_feature_vec)
                 
-                conf_list += [x.item() for x in scores]
-                idx_list += idx_orig
+                # add the distance score) and data index to the buffer
+                conf_list[counter:counter+x.shape[0]] = np.array(
+                    [x.item() for x in scores])
+                idx_list[counter:counter+x.shape[0]] = np.array(
+                    idx_orig)
+                counter += x.shape[0]
 
         # select the best
         sorted_idx = np.argsort(conf_list)
