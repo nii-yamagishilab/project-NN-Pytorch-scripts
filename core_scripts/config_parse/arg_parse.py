@@ -236,6 +236,20 @@ def f_args_parsed(argument_input = None):
     mes = 'run model conversion script (default: False)'
     parser.add_argument('--epoch2pt', action='store_true', \
                         default=False, help=mes)    
+
+
+    mes = 'inference only on data whose minibatch index is within the range of '
+    mes = mes + '[--inference-sample-start-index, --inference-sample-end-index)'
+    mes = mes + 'default: 0, starting from the 1st data'
+    parser.add_argument('--inference-sample-start-index', type=int, default=0,
+                        help=mes)
+
+    mes = 'inference only on data whose minibatch index is within the range of '
+    mes = mes + '[--inference-sample-start-index, --inference-sample-end-index)'
+    mes = mes + 'default: -1, until the end of all data'
+    parser.add_argument('--inference-sample-end-index', type=int, default=-1,
+                        help=mes)
+    
     #######
     # options to output
     mes = 'path to save generated data (default: ./output)'

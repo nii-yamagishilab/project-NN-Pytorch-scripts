@@ -24,8 +24,11 @@ git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scrip
    All pre-trained models were moved to [Zenodo](https://doi.org/10.5281/zenodo.6349636).
 
 
-## Projects
-This repository hosts the following projects
+## Contents
+
+This repository contains a few projects and tutorials.
+
+### Project
 
 
 Folder | Project
@@ -40,6 +43,15 @@ Folder | Project
 
 See [project/README.md](project) for an overview.
 
+### Tutorials
+
+ Folder | Status | Contents 
+ --- | :-- | :-- 
+ [b1_neural_vocoder](tutorials/b1_neural_vocoder) | readable and executable | tutorials on selected neural vocoders
+ [b2_anti_spoofing](tutorials/b2_anti_spoofing) | partially finished | tutorials on [speech audio anti-spoofing](https://www.asvspoof.org/) 
+ [b3_voice_privacy](tutorials/b3_voiceprivacy_ch) | readable and executable | tutorials on [voice privacy challenge](https://www.voiceprivacychallenge.org/) baselines
+
+See [tutorials/README.md](tutorials) for an overview.
 
 ## Python environment
 
