@@ -700,7 +700,7 @@ class CyclicNoiseGen_v1(torch_nn.Module):
         """
         # pulse train
         pulse_train, sine_wav, uv, noise = self.l_pulse(f0s)
-        pure_pulse = pulse_train - noise
+        pure_pulse = pulse_train - noise * (1.0 - uv)
         
         # decayed_noise (length, dim=1)
         if (uv<1).all():
