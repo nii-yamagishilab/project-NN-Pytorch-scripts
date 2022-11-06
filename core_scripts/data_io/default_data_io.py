@@ -1514,9 +1514,28 @@ class NIIDataSet(torch.utils.data.Dataset):
         self.m_data_total_length = self.f_sum_data_length()
         return
 
-    def f_get_seq_list(self):
+    def f_get_seq_name_list(self):
+        """ return list of data of names in the dataset
+        """
         return [x.seq_tag() for x in self.m_seq_info]
     
+    def f_get_seq_info(self):
+        return [x.print_to_str() for x in self.m_seq_info]
+
+    def f_get_seq_idx_from_name(self, data_names):
+        """ return the data index given the data names
+
+        This function is not used so often.
+        """
+        data_list = self.f_get_seq_name_list()
+        try:
+            return [data_list.index(x) for x in data_names]
+        except ValueError:
+            nii_warn.f_print("Not all data names are in this dataset")
+            nii_warn.f_print("Return []")
+            return []
+
+
 class NIIDataSetLoader:
     """ NIIDataSetLoader:
     A wrapper over torch.utils.data.DataLoader and DataSet 
@@ -1712,9 +1731,16 @@ class NIIDataSetLoader:
         print(str(self.m_params))
         return
 
-    def get_seq_list(self):
-        return self.m_dataset.f_get_seq_list()
+    def get_seq_name_list(self):
+        return self.m_dataset.f_get_seq_name_list()
 
+    def get_seq_info(self):
+        return self.m_dataset.f_get_seq_info()
+    
+
+    def get_seq_idx_from_name(self, data_names):
+        return self.m_dataset.f_get_seq_idx_from_name(data_names)
+        
 
     def putitem(self, output_data, save_dir, filename_prefix, data_infor_str):
         """ Decompose the output_data from network into

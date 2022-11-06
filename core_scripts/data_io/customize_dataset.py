@@ -122,6 +122,15 @@ class ConcatDataset(torch.utils.data.Dataset):
         # for later use, to decide from which subset we draw the sample
         self.len_top = np.cumsum(self.len_buffer)
         self.len_bot = np.cumsum([0] + self.len_buffer[:-1])
+        # name <--> idx mapper (idx in the whole dataset)
+        self.name_idx_map = {}
+        for idx_u, idx_d, subset in \
+            zip(self.len_top, self.len_bot, self.datasets):
+            data_name_list = subset.f_get_seq_name_list()
+            for idx_data, data_name in enumerate(data_name_list):
+                # similar to the login in getitem, we need to add the
+                # shift idx_d for each subset
+                self.name_idx_map[data_name] = idx_data + idx_d
         # done
         return
         
@@ -201,7 +210,12 @@ class ConcatDataset(torch.utils.data.Dataset):
         # re-initialize len, len_top, and len_bot
         self.__init_sub()
         return None
-        
+
+
+    def f_get_seq_idx_from_name(self, data_names):
+        """ list_of_idx = f_get_seq_idx_from_name(data_names)
+        """
+        return [self.name_idx_map[x] for x in data_names]
 
 
 class NII_MergeDataSetLoader():
@@ -474,15 +488,38 @@ class NII_MergeDataSetLoader():
         """ 
         return sum([x.get_seq_num() for x in self.m_datasets])
 
-    def get_seq_list(self):
-        """ list = get_seq_list()
+    def get_seq_info(self):
+        """ Return the full information of each data,
+        including name, index, segmentation information
+        """
+        tmp = []
+        for dataset in self.m_datasets:
+            tmp += dataset.get_seq_info()
+        return tmp
+
+    def get_seq_name_list(self):
+        """ list = get_seq_name_list()
 
         Return a list of data sequence name
         """
         tmp = []
         for dataset in self.m_datasets:
-            tmp += dataset.get_seq_list()
+            tmp += dataset.get_seq_name_list()
         return tmp
+    
+    def get_seq_idx_from_name(self, data_names):
+        """ idx = get_seq_idx_from_name(data_names)
+        
+        Return a list of data idx corresponding to the data file names
+        """
+        # re-build data loader
+        if self.way_to_merge == 'concatenate':
+            return self.m_concate_set.f_get_seq_idx_from_name(data_names)
+        else:
+            nii_warn.f_print("Not implemented get_seq_idx_from_name")
+            nii_warn.f_die("--way-to-merge-datasets concatenate")
+            return None
+        
 
     def update_seq_len_in_sampler_sub(self, data_info):
         """
