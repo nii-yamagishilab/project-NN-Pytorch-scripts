@@ -204,6 +204,15 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--active-learning-pre-train-epoch-num', type=int, 
                         default=0, help=mes)
 
+    mes = 'Name of the cache file to store names of selected or removed data'
+    parser.add_argument('--active-learning-cache-dataname-save', type=str, 
+                        default="cache_al_data_log", help=mes)
+
+    mes = 'Path to the cache file that stores names of selected or removed data'
+    parser.add_argument('--active-learning-cache-dataname-path', type=str, 
+                        default="", help=mes)
+
+
     #######
     # options to load model
     mes = 'a trained model for inference or resume training '

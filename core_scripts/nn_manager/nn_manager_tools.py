@@ -291,7 +291,7 @@ def f_load_pretrained_model_partially(model, model_paths, model_name_prefix):
         model.load_state_dict(model_dict)
     return
 
-def f_save_epoch_name(args, epoch_idx, suffix=''):
+def f_save_epoch_name(args, epoch_idx, suffix='', prefix=''):
     """ str = f_save_epoch_name(args, epoch_idx)
     Return the name of the model file saved during training
 
@@ -304,7 +304,9 @@ def f_save_epoch_name(args, epoch_idx, suffix=''):
     Return: 
       str: name of epoch state file, str, e.g. epoch_001.pt
     """
-    tmp_name = "{}_{:03d}".format(args.save_epoch_name, epoch_idx) + suffix
+    tmp_name = args.save_epoch_name + prefix
+    tmp_name = "{}_{:03d}".format(tmp_name, epoch_idx)
+    tmp_name = tmp_name + suffix
     return nii_str_tk.f_realpath(args.save_model_dir, tmp_name, \
                                  args.save_model_ext)
 

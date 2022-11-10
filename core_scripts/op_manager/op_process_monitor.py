@@ -169,6 +169,10 @@ class Monitor():
         self.cur_epoch = epoch_idx
         return
 
+    def log_epoch(self, epoch_idx):
+        self.cur_epoch = epoch_idx
+        return
+
     def is_new_best(self):
         """
         check whether epoch is the new_best
