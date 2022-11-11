@@ -397,9 +397,9 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             args.trained_model, args.active_learning_cache_dataname_path))
         nii_display.f_die("Fail to resume training")
     #
-    # currently, we can only restat from the last epoch in each active learning
-    # cycle
-    if start_epoch > 0 and start_epoch % epoch_per_cycle != epoch_per_cycle - 1:
+    # currently, we can only restat from the 1st epoch in each active learning
+    # cycle. Note that, monitor_trn.get_epoch() returns the current epoch idx
+    if start_epoch > 0 and start_epoch % epoch_per_cycle != 0:
         mes = "The checkpoint is not the last epoch in one cycle"
         nii_display.f_print(mes)
         nii_display.f_die("Fail to resume training")
