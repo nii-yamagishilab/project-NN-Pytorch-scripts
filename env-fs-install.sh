@@ -11,7 +11,7 @@ if [ $retVal -ne 0 ]; then
     echo "Install conda environment ${ENVNAME}"
     
     # conda env
-    conda create -n ${ENVNAME} python=3.8 pip
+    conda create -n ${ENVNAME} python=3.8 pip --yes
     conda activate ${ENVNAME}
 
     # git clone fairseq
@@ -23,7 +23,9 @@ if [ $retVal -ne 0 ]; then
     pip install --editable ./
 
     # install scipy
-    conda install -c anaconda scipy
+    conda install -c anaconda scipy=1.7.1 --yes
+    # install pandas
+    pip install pandas==1.4.3
 else
     echo "Conda environment ${ENVNAME} has been installed"
 fi
