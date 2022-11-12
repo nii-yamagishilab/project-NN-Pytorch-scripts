@@ -508,6 +508,12 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # tmp_epoch_idx: index of epoch within one cycle
         tmp_start_epoch = epoch_counter % epoch_per_cycle
         for tmp_epoch_idx in range(tmp_start_epoch, epoch_per_cycle):
+            
+
+            # If the model has a member for g_epoch_idx
+            # save the index
+            if hasattr(pt_model, 'g_epoch_idx'): 
+                pt_model.g_epoch_idx = epoch_counter
 
             # training one epoch
             pt_model.train()
