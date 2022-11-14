@@ -87,7 +87,8 @@ def print_table(data_array, column_tag, row_tag,
                 color_minmax_in = 'global',
                 pad_data_column = 0,
                 pad_dummy_col = 0,
-                func_after_row = None):
+                func_after_row = None,
+                data_display_array = None):
     """
     print a latex table given the data (np.array) and tags    
     step1. table will be normalized so that values will be (0, 1.0)
@@ -152,19 +153,31 @@ def print_table(data_array, column_tag, row_tag,
     It can be directly pasted to latex file.
     However, it requires usepackage{colortbl} to show color in table cell.    
     """
+    
+    # default column and row are empty string
     if column_tag is None:
         column_tag = ["" for data in data_array[0, :]]
     if row_tag is None:
         row_tag = ["" for data in data_array]
+    
+    # 
+    if data_display_array is None:
+        data_display_array = data_array + np.nan
+        flag_data_display = False
+    else:
+        flag_data_display = True
 
+    # if padding of the data array is necessary
     if pad_data_column < 0:
         column_tag = ["" for x in range(-pad_data_column)] + column_tag
         dummy_col = np.zeros([data_array.shape[0], -pad_data_column]) + np.nan
         data_array = np.concatenate([dummy_col, data_array], axis=1)
+        data_display_array = np.concatenate([dummy_col, data_display_array], axis=1)
     elif pad_data_column > 0:
         column_tag = ["" for x in range(pad_data_column)] + column_tag
         dummy_col = np.zeros([data_array.shape[0], pad_data_column]) + np.nan
         data_array = np.concatenate([data_array, dummy_col], axis=1)
+        data_display_array = np.concatenate([data_display_array, dummy_col], axis=1)
     else:
         pass
 
@@ -230,22 +243,30 @@ def print_table(data_array, column_tag, row_tag,
         tmp_len = []
         for idx, data_row in enumerate(data_array):
             if len(print_format[0]):
-                tmp_len.append(
-                    max([len("{num:{form}}".format(num=x, 
-                                                   form=print_format[idx])) \
-                         for x in data_row]))
+                if flag_data_display:
+                    max_len = max([len(x) for x in data_display_array[idx]])
+                else:
+                    max_len = max([len("{num:{form}}".format(num=x, 
+                                                             form=print_format[idx])) \
+                                   for x in data_row])
+                
+                tmp_len.append(max_len)
             else:
                 tmp_len.append(0)
     else:
         tmp_len = []
         for idx, data_col in enumerate(data_array.T):
             if len(print_format[0]):
-                tmp_len.append(
-                    max([len("{num:{form}}".format(num=x, 
+                if flag_data_display:
+                    max_len = max([len(x) for x in data_display_array[:, idx]])
+                else:
+                    max_len = max([len("{num:{form}}".format(num=x, 
                                                    form=print_format[idx])) \
-                     for x in data_col]))
+                                   for x in data_col])
+                tmp_len.append(max_len)
             else:
                 tmp_len.append(0)
+
     col_tag_max_len = max([len(x) for x in column_tag] + tmp_len)
     
     # prepare buffer
@@ -329,6 +350,9 @@ def print_table(data_array, column_tag, row_tag,
             if not with_color_cell:
                 latex_color_cell = ''
                 
+            if flag_data_display:
+                num_str = data_display_array[row_idx, col_idx]
+
             row_content_text.append(
                 fill_cell(num_str, col_tag_max_len, col_sep))
 

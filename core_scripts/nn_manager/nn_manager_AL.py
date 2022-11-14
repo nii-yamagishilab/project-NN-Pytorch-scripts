@@ -395,6 +395,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     if start_epoch // epoch_per_cycle != start_cycle:
         nii_display.f_print("Training cycle in {:s} != that in {:s}".format(
             args.trained_model, args.active_learning_cache_dataname_path))
+        nii_display.f_print(" {:d} // {:d} != {:d}".format(
+            start_epoch, epoch_per_cycle, start_cycle))
         nii_display.f_die("Fail to resume training")
     #
     # currently, we can only restat from the 1st epoch in each active learning
@@ -606,13 +608,6 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                     nii_display.f_eprint(str(datetime.datetime.now()))
                     nii_display.f_eprint("Save {:s}".format(tmp_model_name),
                                          flush=True)
-
-            # check whether early stopping
-            if lr_scheduler.f_allow_early_stopping() and \
-               monitor_val is not None and \
-               monitor_val.should_early_stop(no_best_epoch_num):
-                flag_early_stopped = True
-                break
 
             # 
             epoch_counter += 1

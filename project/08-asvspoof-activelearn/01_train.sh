@@ -62,7 +62,7 @@ if [ "${PRETRAINED}" == "None" ];
 then
     com="python main.py --model-forward-with-file-name
 	    --num-workers 4 --epochs ${AL_EPOCH_P_CYCLE} --no-best-epochs 100
-	    --batch-size 16 --lr ${AL_LR} --not-save-each-epoch
+	    --batch-size 16 --lr ${AL_LR} 
 	    --seed ${SEED} --module-config ${CONFIG}
 	    --active-learning-cycle-num ${AL_NUMCYCLE}
 	    --active-learning-new-sample-per-cycle ${AL_NUMSAMPLE}
@@ -71,7 +71,7 @@ then
 else
     com="python main.py --model-forward-with-file-name
 	    --num-workers 4 --epochs ${AL_EPOCH_P_CYCLE} --no-best-epochs 100
-	    --batch-size 16 --lr ${AL_LR} --not-save-each-epoch
+	    --batch-size 16 --lr ${AL_LR} 
 	    --seed ${SEED} --module-config ${CONFIG}
 	    --active-learning-cycle-num ${AL_NUMCYCLE}
 	    --active-learning-new-sample-per-cycle ${AL_NUMSAMPLE}
