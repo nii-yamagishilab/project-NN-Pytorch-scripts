@@ -74,18 +74,38 @@ LA_E_9933162 -9.500082 -4.499880
 |- model-AL-NegE:              Al-NegE CM model in the paper
 |   |- model.py                CM definition
 |   |- config_AL_train_toyset  working folder when using toy 
-|                              dataset
+|      |                       dataset
+|      |= 01                   running with random seed = 01
+|         |
+|         |= trained_network_al_cycle_xxx.pt: trained network
+|         |                                   after xxx cycles
+|         |= epoch_al_cycle_xxx_epoch_yyy.pt: trained network
+|         |                                   with intermediate statistics
+|         |                                   after xxx cycles
+|         |= cache_al_data_log_xxx.txt:       cache that shows the 
+|         |                                   data selected in each cycle
+|         |= log_..._cycle_xxx_NNN:           raw output file for test set NNN
+|         |                                   after xxx active learning cycle
+|         |= log_..._cycle_xxx_NNN_err:       raw code error messages
+|         |= log_..._cycle_xxx_NNN_score.txt: scores printed in CSV format for EER
+|         |                                   computation
+|         |= log_train:                       log of model training
+|         |= log_train_err:                   code error messages during training
+|         |= NNN.dic:                         cache of data length (temporary files)
 |
-|- model-AL-Adv:
-|- model-AL-Pas:
-|- model-AL-PosE:
-|- model-AL-Rem:
+|- model-AL-Adv:               ALAdv in the paper
+|- model-AL-Pas:               ALPas in the paper
+|- model-AL-PosE:              ALPosE in the paper
+|- model-AL-Rem:               ALRem in the paper
 |
 |- seed_model:     folder to download CM pre-trained on seed 
 |                  training set
 |- SSL_pretrained: folder to download SSL model 
 |- DATA:           folder to save the toy data set
 ```
+
+Files or folders marked with = will be produced after running the demo script.
+
 
 ### Flow
 

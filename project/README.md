@@ -92,5 +92,23 @@ Project to use active learning to train the model on a large pool data set
 Xin Wang, and Junichi Yamagishi. Investigating Active-Learning-Based Training Data Selection for Speech Spoofing Countermeasure. In Proc. SLT, accepted. 2023.
 ```
 
+
+## [09-asvspoof-vocoded-trn](./09-asvspoof-vocoded-trn) Vocoded spoofed speech data for spoofing countermeasures
+
+<img src="https://pbs.twimg.com/media/FgzqiamVIAE7X9W?format=png&name=4096x4096" alt="drawing" width="600"/>
+
+This project uses vocoded spoofed data to train spoofing speech countermeasures.  Arxiv link: [https://arxiv.org/abs/2210.10570](https://arxiv.org/abs/2210.10570)
+
+* Script is available for demonsration on a toy data set
+
+* Links to vocoded datasets are available in README
+
+```
+ICASSP 2023 submission
+
+Xin Wang, and Junichi Yamagishi. Spoofed training data for speech spoofing countermeasure can be efficiently created using neural vocoders. 
+
+```
+
 ---
 That's all

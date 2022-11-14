@@ -92,11 +92,22 @@ LA_E_9933162 -9.500082 0.00012 0.00013
 |- config_auto.py:              general config for scoring 
 |                               (no need to change it)
 |
-|- model-ID-7:                 CM model with ID 7 in the paper Table 3
-|   |- model.py                CM definition
-|   |- data_augment.py         augmentation functions when loading waveforms
-|   |- config_train_toyset_ID_7 working folder when using toy 
-|                               dataset 
+|- model-ID-7:                  CM model with ID 7 in the paper Table 3
+|   |- model.py                 CM definition
+|   |- data_augment.py          augmentation functions when loading waveforms
+|   |- config_train_toyset_ID_7 working folder when using toy dataset 
+|      |= 01                    running with random seed = 01
+|         |
+|         |= trained_network.pt: trained network (best so far)
+|         |= epoch_yyy.pt:       trained network after yyy epoch
+|         |                      with intermediate statistics
+|         |= log_..._NNN:        raw output file for test set NNN
+|         |= log_..._NNN_err:    raw code error messages
+|         |= log_..._NNN_score.txt: scores printed in CSV format for EER
+|         |                         computation
+|         |= log_train:          log of model training
+|         |= log_train_err:      code error messages during training
+|         |= NNN.dic:            cache of data length (temporary files)
 |
 |- model-ID-6:
 |- model-ID-4:
@@ -109,7 +120,7 @@ LA_E_9933162 -9.500082 0.00012 0.00013
 Notes:
 1. You can compare the differences between different model.py and config*.py
 2. Models 1, 3, and 5 in Table 3 of the paper are not included. They can be easily created using model-ID-2, model-ID-4, and model-ID-6, respectively. Then, just replace the data set with the ASVspoof2019 LA data set.
-
+3. Files or folders marked with = will be produced after running the demo script.
 
 ### Flow
 

@@ -18,9 +18,9 @@ git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scrip
 * Latest updates:
    
    1. Code, databases, and resources for the paper below were added. Please check [project/09-asvspoof-vocoded-trn/](project/09-asvspoof-vocoded-trn/) for more details.
-   > Xin Wang, and Junichi Yamagishi. Spoofed training data for speech spoofing countermeasure can be efficiently created using neural vocoders. https://arxiv.org/abs/2210.10570
+      > Xin Wang, and Junichi Yamagishi. Spoofed training data for speech spoofing countermeasure can be efficiently created using neural vocoders. https://arxiv.org/abs/2210.10570
    2. Code for the paper for the paper below were added. Please check [project/08-asvspoof-activelearn](project/08-asvspoof-activelearn) for more details.
-   > Xin Wang, and Junichi Yamagishi. Investigating Active-Learning-Based Training Data Selection for Speech Spoofing Countermeasure. In Proc. SLT, accepted. 2023.
+      > Xin Wang, and Junichi Yamagishi. Investigating Active-Learning-Based Training Data Selection for Speech Spoofing Countermeasure. In Proc. SLT, accepted. 2023.
    3. Pointer to tutorials on neural vocoders were moved to [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder/README.md).
    
    4. All pre-trained models were moved to [Zenodo](https://doi.org/10.5281/zenodo.6349636).

@@ -55,7 +55,7 @@ then
     # for baseline method without data augmentation
     com="python main.py --model-forward-with-file-name 
     		--num-workers 8 --epochs 20 --no-best-epochs 10 
-		--batch-size 8 --lr 0.000001 --not-save-each-epoch 
+		--batch-size 8 --lr 0.000001
 		--sampler block_shuffle_by_length 
 		--lr-decay-factor 0.1 --lr-scheduler-type 1 
 		--lr-steplr-size 5 --seed ${SEED}
@@ -64,7 +64,7 @@ else
     # for baseline method with data augmentation and contrastive loss
     com="python main.py --model-forward-with-file-name 
                 --num-workers 8 --epochs 50 --no-best-epochs 10 
-		--batch-size 1 --lr 0.000005 --not-save-each-epoch 
+		--batch-size 1 --lr 0.000005
 		--sampler block_shuffle_by_length 
 		--lr-decay-factor 0.1 --lr-scheduler-type 1 
 		--lr-steplr-size 10 --seed ${SEED} 
