@@ -52,6 +52,10 @@ class Model(torch_nn.Module):
         #################
         ## model config
         #################        
+        # whether z-normalize the input features?
+        # the pre-trained model was trained without normalizing feat
+        self.flag_normalize_input = False
+
         # waveform sampling rate
         self.sample_rate = prj_conf.wav_samp_rate
         # up-sample rate
@@ -154,7 +158,8 @@ class Model(torch_nn.Module):
         no need to write Loss()
         """
         # normalize conditiona feature
-        #input_feat = self.normalize_input(input_feat)
+        if self.flag_normalize_input:
+            input_feat = self.normalize_input(input_feat)
         # compute 
         z_bags, neg_logp, logp_z, log_detjac = self.m_waveglow(wav, input_feat)
         return [[-logp_z, -log_detjac], [True, True]]
@@ -173,7 +178,8 @@ class Model(torch_nn.Module):
         Note: length2 will be = length1 * self.up_sample
         """ 
         #normalize input
-        #input_feat = self.normalize_input(input_feat)
+        if self.flag_normalize_input:
+            input_feat = self.normalize_input(input_feat)
         
         length = input_feat.shape[1] * self.up_sample
         noise = self.m_waveglow.get_z_noises(length, noise_std=0.6, 

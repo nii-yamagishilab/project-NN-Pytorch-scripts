@@ -77,6 +77,9 @@ bash 00_demo.sh > log_batch 2>&1 &
 | - ilpcnet: LPCNet using with a Gaussian distribution on waveform
 |            The difference is that we will predict LPC coefficients from the input
 |            Mel-spectrogram
+|
+| - HiFi-GAN: a HiFi-GAN vocoder adopted from the official implementation
+|
 ```
 
 Folder and file annotated by '=' will be produced after running the 00_demo.sh.
@@ -115,6 +118,8 @@ Reference
 * Blow: J. Serra, S. Pascual, & C. Segura (2019). Blow: a single-scale hyperconditioned flow for non-parallel raw-audio voice conversion. In Advances in Neural Information Processing Systems (NeurIPS). 2019. https://blowconversions.github.io/
 
 * iLPCNet: M.-J. Hwang, E. Song, R. Yamamoto, F. Soong, and H.-G. Kang, Improving LPCNet-based text-to-speech with linear prediction-structured mixture density network. in Proc. ICASSP, 2020, pp. 7219–7223.
+
+* HiFi-GAN: Jungil Kong, Jaehyeon Kim, Jaekyoung Bae, HiFi-GAN: Generative Adversarial Networks for Efficient and High Fidelity Speech Synthesis, Proc. NIPS. HifiGAN is based on code in from https://github.com/jik876/hifi-gan
 
 ---
 That's all

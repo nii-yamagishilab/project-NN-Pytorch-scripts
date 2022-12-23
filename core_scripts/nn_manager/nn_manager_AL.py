@@ -517,6 +517,12 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             if hasattr(pt_model, 'g_epoch_idx'): 
                 pt_model.g_epoch_idx = epoch_counter
 
+            # If the model has a member for g_epoch_idx
+            # save the index
+            # cycle index should be updated after selecting the data
+            if hasattr(pt_model, 'g_cycle_idx'): 
+                pt_model.g_cycle_idx = cycle_idx
+
             # training one epoch
             pt_model.train()
             if hasattr(pt_model, 'flag_validation'):

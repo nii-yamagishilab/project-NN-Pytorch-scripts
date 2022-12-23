@@ -25,6 +25,7 @@ git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scrip
    
    4. All pre-trained models were moved to [Zenodo](https://doi.org/10.5281/zenodo.6349636).
 
+   5. Move from pytorch-1.6 to pytoch-1.7
 
 ## Contents
 
@@ -65,8 +66,8 @@ For most of the projects, install [env.yml](./env.yml) is sufficient
 # create environment
 conda env create -f env.yml
 
-# load environment (whose name is pytorch-1.6)
-conda activate pytorch-1.6
+# load environment (whose name is pytorch-1.7)
+conda activate pytorch-1.7
 ```
 
 For projects using SSL models, use [./env-fs-install.sh](./env-fs-install.sh) to install the dependency.
