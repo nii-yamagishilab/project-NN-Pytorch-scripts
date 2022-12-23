@@ -63,7 +63,7 @@ def _data_writer(data, file_path, sr = 16000):
     if file_ext == '.wav':
         nii_wav_tk.waveFloatToPCMFile(data, file_path, sr = sr)
     elif file_ext == '.txt':
-        nii_warn.f_die("Cannot write to %s" % (file_path))
+        nii_warn.f_die("Cannot write to {:s}".format(file_path))
     else:
         nii_io_tk.f_write_raw_mat(data, file_path)
     return
@@ -260,22 +260,22 @@ class NIIDataSet(torch.utils.data.Dataset):
         # currently, only input features can have different reso,
         # and the m_input_reso must be the same for all input features
         if any([x != self.m_input_reso[0] for x in self.m_input_reso]):
-            nii_warn.f_print("input_reso: %s" % (str(self.m_input_reso)),\
+            nii_warn.f_print("input_reso {:s}".format(str(self.m_input_reso)),
                              'error')
             nii_warn.f_print("NIIDataSet not support", 'error', end='')
             nii_warn.f_die(" different input_reso")
 
         if any([x != self.m_output_reso[0] for x in self.m_output_reso]):
-            nii_warn.f_print("output_reso: %s" % (str(self.m_output_reso)),\
+            nii_warn.f_print("output_reso {:s}".format(str(self.m_output_reso)),
                              'error')
             nii_warn.f_print("NIIDataSet not support", 'error', end='')
             nii_warn.f_die(" different output_reso")
         if np.any(np.array(self.m_output_reso) < 0):
             nii_warn.f_print("NIIDataSet not support negative reso", 
                              'error', end='')
-            nii_warn.f_die(" Output reso: %s" % (str(self.m_output_reso)))
+            nii_warn.f_die(" Output reso: {:s}".format(str(self.m_output_reso)))
         if np.any(np.array(self.m_input_reso) < 0):
-            nii_warn.f_print("Input resolution: %s" % (str(self.m_input_reso)))
+            nii_warn.f_print("input_reso: {:s}".format(str(self.m_input_reso)))
             nii_warn.f_print("Data IO for unaligned input and output pairs")
             if truncate_seq is not None:
                 nii_warn.f_print("truncate is set to None", 'warning')
@@ -309,16 +309,13 @@ class NIIDataSet(torch.utils.data.Dataset):
             self.f_length_data = _data_len_reader
             self.f_write_data = lambda x, y: _data_writer(x, y, self.m_wav_sr)
         else:
-            nii_warn.f_print("Unsupported dtype %s" % (data_format))
-            nii_warn.f_die("Only supports %s " % (nii_dconf.h_dtype_str))
+            nii_warn.f_print("Unsupported dtype {:s}".format(data_format))
+            nii_warn.f_die("Only supports {:s} ".format(nii_dconf.h_dtype_str))
             
         # whether input file name in list contains part of the path
         # this will be confirmed after reading the file list in the next step
         self.flag_filename_with_path = False
 
-        # check the validity of data list
-        self.f_check_file_list()
-        
         # log down statiscs 
         #  1. length of each data utterance
         #  2. mean / std of feature feature file
@@ -337,7 +334,10 @@ class NIIDataSet(torch.utils.data.Dataset):
                                          nii_dconf.mean_std_o_file)
         self.m_data_len_path = get_name(tmp_stats_path, self.m_set_name, \
                                         nii_dconf.data_len_file)
-        
+
+        # load and check the validity of data list
+        self.f_check_file_list(self.m_data_len_path)
+                
         # initialize data length and mean /std, read prepared data stats
         flag_cal_len = self.f_init_data_len_stats(self.m_data_len_path)
         flag_cal_mean_std = self.f_init_mean_std(self.m_ms_input_path,
@@ -367,7 +367,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         if self.__len__() < 1:
             nii_warn.f_print("Fail to load any data", "error")
             nii_warn.f_print("Possible reasons: ", "error")
-            mes = "1. Old cache %s. Please delete it." % (self.m_data_len_path)
+            mes = "1. Old cache {:s}. Do rm it.".format(self.m_data_len_path)
             mes += "\n2. input_dirs, input_exts, "
             mes += "output_dirs, or output_exts incorrect."
             mes += "\n3. all data are less than minimum_len in length. "
@@ -404,7 +404,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         try:
             tmp_seq_info = self.m_seq_info[idx]
         except IndexError:
-            nii_warn.f_die("Sample %d is not in seq_info" % (idx))
+            nii_warn.f_die("Sample {:d} is not in seq_info".format(idx))
 
         # file_name
         file_name = tmp_seq_info.seq_tag()
@@ -437,7 +437,7 @@ class NIIDataSet(torch.utils.data.Dataset):
             try:
                 tmp_d = self.f_load_data(file_path, t_dim) 
             except IOError:
-                nii_warn.f_die("Cannot find %s" % (file_path))
+                nii_warn.f_die("Cannot find {:s}".format(file_path))
 
             # write data
             if t_res < 0:
@@ -449,7 +449,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                 elif tmp_d.ndim == 2:
                     in_data = tmp_d
                 else:
-                    nii_warn.f_die("Default IO cannot handle %s" % (file_path))
+                    nii_warn.f_die("IO not support {:s}".format(file_path))
             elif tmp_d.shape[0] == 1:
                 # input data has only one frame, duplicate
                 if tmp_d.ndim > 1:
@@ -457,7 +457,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                 elif t_dim == 1:
                     in_data[:,s_dim] = tmp_d
                 else:
-                    nii_warn.f_die("Dimension wrong %s" % (file_path))
+                    nii_warn.f_die("Dimension wrong {:s}".format(file_path))
             else:
                 # check
                 try:
@@ -469,7 +469,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                         # write one-dimension data
                         in_data[:,s_dim] = tmp_d[s_idx:e_idx]
                     else:
-                        nii_warn.f_die("Dimension wrong %s" % (file_path))
+                        nii_warn.f_die("Dimension wrong {:s}".format(file_path))
                 except ValueError:
                     if in_data.shape[0] != tmp_d[s_idx:e_idx].shape[0]:
                         mes = 'Expected length is {:d}.\n'.format(e_idx-s_idx)
@@ -505,7 +505,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                 try:
                     tmp_d = self.f_load_data(file_path, t_dim) 
                 except IOError:
-                    nii_warn.f_die("Cannot find %s" % (file_path))
+                    nii_warn.f_die("Cannot find {:s}".format(file_path))
 
                 if tmp_d.shape[0] == 1:
                     if tmp_d.ndim > 1:
@@ -513,7 +513,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                     elif t_dim == 1:
                         out_data[:,s_dim]=tmp_d
                     else:
-                        nii_warn.f_die("Dimension wrong %s" % (file_path))
+                        nii_warn.f_die("Dimension wrong {:s}".format(file_path))
                 else:
                     try:
 
@@ -522,7 +522,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                         elif t_dim == 1:
                             out_data[:,s_dim]=tmp_d[s_idx:e_idx]
                         else:
-                            nii_warn.f_die("Dimension wrong %s" % (file_path))
+                            nii_warn.f_die("Dim wrong {:s}".format(file_path))
                     except ValueError:
                         if out_data.shape[0] != tmp_d[s_idx:e_idx].shape[0]:
                             mes = 'Expected length is ' + str(e_idx-s_idx)
@@ -765,15 +765,30 @@ class NIIDataSet(torch.utils.data.Dataset):
         """
         return any([x.count(os.path.sep)>0 for x in self.m_file_list])
     
-    def f_check_file_list(self):
-        """ f_check_file_list():
+    def f_check_file_list(self, data_len_buf_path):
+        """ f_check_file_list(data_len_buf_path):
             Check the file list after initialization
             Make sure that the file in file_list appears in every 
             input/output feature directory. 
             If not, get a file_list in which every file is avaiable
             in every input/output directory
+
+        input
+        -----
+          data_len_buf_path:    str, path to the data length buffer
         """
-        if not isinstance(self.m_file_list, list):
+        
+        if self.m_file_list is None:
+            # get a initial file list if self.m_file_list is None
+            #
+            # if file list is not provided, we only search the directory
+            #  without recursing sub directories
+            self.m_file_list = nii_list_tools.listdir_with_ext(
+                self.m_input_dirs[0], self.m_input_exts[0])
+
+        elif not isinstance(self.m_file_list, list):
+            # if m_file_list is a string 
+            # load file list
             if isinstance(self.m_file_list, str) and \
                os.path.isfile(self.m_file_list):
                 # read the list if m_file_list is a str
@@ -783,13 +798,9 @@ class NIIDataSet(torch.utils.data.Dataset):
                 nii_warn.f_print("Cannot read {:s}".format(self.m_file_list))
                 nii_warn.f_print("Read file list from directories")
                 self.m_file_list = None
-        
-        #  get a initial file list
-        if self.m_file_list is None:
-            # if file list is not provided, we only search the directory
-            #  without recursing sub directories
-            self.m_file_list = nii_list_tools.listdir_with_ext(
-                self.m_input_dirs[0], self.m_input_exts[0])
+        else:
+            # self.m_file_list is a list
+            pass
 
         if len(self.m_file_list) < 1:
             mes = "either input data list is wrong"
@@ -802,6 +813,10 @@ class NIIDataSet(torch.utils.data.Dataset):
         flag_recur = self.f_filename_has_folderpath()
         self.flag_filename_with_path = flag_recur
         
+        # if the stats cache will be loaded, let's skip the checking process
+        if os.path.isfile(data_len_buf_path) and not self.m_ignore_cached_finfo:
+            nii_warn.f_print("Skip scanning directories")
+
         # check the list of files exist in all input/output directories
         for tmp_d, tmp_e in zip(self.m_input_dirs, self.m_input_exts):
             tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e, flag_recur)
@@ -1392,7 +1407,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         
         if not os.path.isdir(save_dir):
             try:
-                os.mkdir(save_dir)
+                os.makedirs(save_dir, exist_ok=True)
             except OSError:
                 nii_warn.f_die("Cannot carete {}".format(save_dir))
 
@@ -1419,7 +1434,7 @@ class NIIDataSet(torch.utils.data.Dataset):
                 tmp_save_dir = os.path.dirname(file_path)
                 if not os.path.isdir(tmp_save_dir):
                     try:
-                        os.mkdir(tmp_save_dir)
+                        os.makedirs(tmp_save_dir, exist_ok=True)
                     except OSError:
                         nii_warn.f_die("Cannot carete {}".format(tmp_save_dir))
             
