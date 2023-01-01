@@ -35,7 +35,7 @@ class ResNetBlock1D(torch_nn.Module):
        expansion: int, ratio for the bottleneck
     """
     def __init__(self, inplane, outplane, dilation=1, stride=1, 
-                 kernel=[1, 3, 1], expansion = 4):
+                 kernel=[1, 3, 1], expansion = 4, act_type='ReLU'):
         super(ResNetBlock1D, self).__init__()
         
         # 
@@ -51,14 +51,14 @@ class ResNetBlock1D(torch_nn.Module):
         self.conv1 = torch_nn.Sequential(
             torch_nn.Conv1d(self.ins, self.hid, kernel[0], 1, pad, dilation),
             torch_nn.BatchNorm1d(self.hid),
-            torch_nn.ReLU())
+            self._get_act(act_type))
         
         # block2 (batch, hid_dim, length) -> (batch, hid_dim, length // stride)
         pad = self._get_pad(stride, dilation, kernel[1])
         self.conv2 = torch_nn.Sequential(
             torch_nn.Conv1d(self.hid, self.hid, kernel[1], stride, pad, dl),
             torch_nn.BatchNorm1d(self.hid),
-            torch_nn.ReLU())
+            self._get_act(act_type))
 
         # block3
         pad = self._get_pad(1, dilation, kernel[2])
@@ -66,7 +66,7 @@ class ResNetBlock1D(torch_nn.Module):
             torch_nn.Conv1d(self.hid, self.outs, kernel[2], 1, pad, dl),
             torch_nn.BatchNorm1d(self.outs))
         
-        self.output_act = torch_nn.ReLU()
+        self.output_act = self._get_act(act_type)
 
         # change input dimension if necessary
         if self.ins != self.outs or stride != 1:
@@ -78,6 +78,15 @@ class ResNetBlock1D(torch_nn.Module):
             self.changeinput = torch_nn.Identity()
         return
     
+    def _get_act(self, act_type):
+        if act_type == 'LeakyReLU':
+            return torch_nn.LeakyReLU()
+        elif act_type == 'ELU':
+            return torch_nn.ELU()
+        elif act_type == 'GELU':
+            return torch_nn.GELU()
+        else:
+            return torch_nn.ReLU()
         
     def _get_pad(self, stride, dilation, kernel):
         pad = (dilation * (kernel - 1) + 1 - stride) // 2
@@ -96,11 +105,14 @@ class ResNetBlock1D(torch_nn.Module):
         output = self.output_act(output)
         return output
 
+
+
+
 class ResNet1D(torch_nn.Module):
     """
     """
     def __init__(self, inplane, outplanes, kernels, dilations, strides, ratios,
-                 block_module = ResNetBlock1D):
+                 block_module = ResNetBlock1D, act_type = 'ReLU'):
         super(ResNet1D, self).__init__()
        
         # 
@@ -111,7 +123,8 @@ class ResNet1D(torch_nn.Module):
         for indim, outdim, kernel, dilation, stride, expand in zip(
             tmp_ins, tmp_outs, kernels, dilations, strides, ratios):
             layer_list.append(
-                block_module(indim, outdim, dilation, stride, kernel, expand))
+                block_module(indim, outdim, dilation, stride, kernel, 
+                             expand, act_type))
         
         self.m_layers = torch_nn.Sequential(*layer_list)
         return
@@ -131,7 +144,7 @@ class ResNet1D(torch_nn.Module):
                                else (batch, input_dim, length) 
         """
         if length_first:
-            return self.m_layers(input_data.permute(0, 2, 1)).permute(0, 2, 1)
+            return self.m_layers(input_data.permute(0, 2, 1).contiguous()).permute(0, 2, 1).contiguous()
         else:
             return self.m_layers(input_data)
 
