@@ -42,7 +42,7 @@ Folder | Project
 [project/06-asvspoof-ood](project/06-asvspoof-ood) | Speech spoofing countermeasures  with confidence estimation
 [project/07-asvspoof-ssl](project/07-asvspoof-ssl) | Speech spoofing countermeasures with pre-trained self-supervised-learning (SSL) speech feature extractor
 [project/08-asvspoof-activelearn](project/08-asvspoof-activelearn) | Speech spoofing countermeasures in an active learning framework
-[project/09-asvspoof-vocoded-trn](project/09-asvspoof-vocoded-trn) | Speech spoofing countermeasures in an active learning framework
+[project/09-asvspoof-vocoded-trn](project/09-asvspoof-vocoded-trn) | Speech spoofing countermeasures using vocoded speech as spoofed data
 
 
 See [project/README.md](project) for an overview.

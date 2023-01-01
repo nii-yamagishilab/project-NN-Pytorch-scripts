@@ -20,9 +20,14 @@ year = {2023}
 }
 ```
 
-The ideas are not straightforward to implement. It is also complicated to prepare off-the-self scripts for all kinds of data sets.
+The ideas are not straightforward to implement. It is also complicated to prepare off-the-self scripts for all kinds of data sets. 
 
 Hence, this project demonstrates the training and scoring process using **a toy data set**.
+
+The data sets and resources used in the experiment of the paper is on [zenodo](https://zenodo.org/record/7497769/files/project-08-activelearning-data-resources.tar). Some data sets cannot be fully re-distributed by this repository, but we provide a link to the original repository. 
+
+We also provide the audio file selected by the two best AL systems. Please check the `selected_files` in the above tar package on zenodo.
+
 
 If you need to run it on your own databases, check the steps required below. Apologize if the scripts will take you much time to setup : )
 

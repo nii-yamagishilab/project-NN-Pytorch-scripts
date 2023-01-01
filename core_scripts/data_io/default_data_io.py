@@ -816,6 +816,7 @@ class NIIDataSet(torch.utils.data.Dataset):
         # if the stats cache will be loaded, let's skip the checking process
         if os.path.isfile(data_len_buf_path) and not self.m_ignore_cached_finfo:
             nii_warn.f_print("Skip scanning directories")
+            return
 
         # check the list of files exist in all input/output directories
         for tmp_d, tmp_e in zip(self.m_input_dirs, self.m_input_exts):
