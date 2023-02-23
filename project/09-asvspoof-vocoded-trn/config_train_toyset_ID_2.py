@@ -38,7 +38,7 @@ tmp = os.path.dirname(__file__) + '/../../../DATA/toy_example_vocoded'
 # for training set, baseline method directly load all bonafide and spoofed data
 trn_list = [tmp + '/scp/train.lst']
 # for development set
-val_list = [tmp + '/scp/val.lst']
+val_list = [tmp + '/scp/dev.lst']
 
 # Directories for input data
 #   We need to provide the path to the directory that saves the input data.

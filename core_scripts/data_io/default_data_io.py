@@ -797,12 +797,13 @@ class NIIDataSet(torch.utils.data.Dataset):
             else:
                 nii_warn.f_print("Cannot read {:s}".format(self.m_file_list))
                 nii_warn.f_print("Read file list from directories")
-                self.m_file_list = None
+                self.m_file_list = nii_list_tools.listdir_with_ext(
+                self.m_input_dirs[0], self.m_input_exts[0])
         else:
             # self.m_file_list is a list
             pass
 
-        if len(self.m_file_list) < 1:
+        if type(self.m_file_list) is list and len(self.m_file_list) < 1:
             mes = "either input data list is wrong"
             mes += ", or {:s} is empty".format(self.m_input_dirs[0])
             mes += "\nPlease check the folder and data list"
