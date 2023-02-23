@@ -101,7 +101,7 @@ def supcon_loss(input_feat,
       t: float, temperature
       contra_mode: str, default 'all'
          'all': use all data in class i as anchors
-         'one': use 1st data in class i as chaors
+         'one': use 1st data in class i as anchors
       length_norm: bool, default False
           if True, l2 normalize feat along the last dimension
 
@@ -243,8 +243,252 @@ class MixUpCE(torch_nn.Module):
             loss_val = gammas * self.m_loss1(logits, y1) 
             loss_val += (1-gammas) * self.m_loss2(logits, y2) 
         return loss_val.mean()
-    
 
+
+
+#####################
+# Distillation related
+#####################
+
+def kld_distill(logits_s, logits_t, temp=20):
+    """ KLD-based distillation loss
+
+    input
+    -----
+      logits_s: tensor, (batch, ..., dim), student output logits
+                where dim is #. output categories
+      logits_t: tensor, (batch, ..., dim), teacher output logits
+      temp: float, temperature, default=20
+
+    output
+    ------
+      loss: scalar
+    """
+    
+    KD_loss = torch_nn_func.kl_div(
+        torch_nn_func.log_softmax(logits_s / temp, dim = -1),
+        torch_nn_func.log_softmax(logits_t / temp, dim = -1),
+        reduction = 'batchmean',
+        log_target = True) * temp * temp
+
+    return KD_loss
+
+#####################
+# Rank consistency 
+#####################
+def rank_consistency(x, metric = None, anchor = None, diff_mat = None):
+    """loss = rank_consistency(x, metric)
+    
+    input
+    -----
+      x: tensor, (batch, D1, D2 ...)
+      metric: a function or None
+      
+              This function must be f(x1, x2) -> scalar
+              where x1 and x2 are in shape (D1, D2 ...)
+              
+              if None, negative cosine similarity for
+              x1 and x2 of shape (D1, )
+      anchor: tensor, (batch, D1, D2, ...), as anchor
+              or None
+
+              If None, one of difference vector in the
+              matrix will be selected as anchor
+    
+      diff_mat: tensor, (batch, batch, D1, D2 ...)
+                of None
+                if diff_mat is provided, x will be ignored
+    output
+    ------
+      loss: scalar, loss value
+      
+    Example
+    -------
+      >> x = torch.randn(4, 10)
+      >> x[1] = x[0] + 1.0
+      >> x[2] = x[0] + 2.0
+      >> x[3] = x[0] + 3.0
+      >> rank_consistency(x)
+      tensor(-1.)
+    """
+    
+    if diff_mat is None:
+        # (batch, batch, dim)
+        # diff_mat[i, j]  = x[j] - x[i]
+        diff_mat = x - x.unsqueeze(1)
+        
+    # batch size
+    bs = diff_mat.shape[0]
+
+    # loss to be accumulated
+    loss = 0.0
+    
+    # metric
+    if metric is None:
+        # default use negative cosine_similarity
+        metric = lambda x1, x2: -torch_nn_func.cosine_similarity(x1, x2, dim=0)
+    
+    #
+    if bs < 3:
+        return loss
+
+    # get anchor
+    if anchor is None:
+        # choose the diff_mat[1, 0] as the anchor
+        anchor_row_idx = 1
+        anchor_col_idx = 0
+        anchor = diff_mat[anchor_row_idx, anchor_col_idx]
+    else:
+        # anchor is provided externally
+        anchor_row_idx = -1
+        anchor_col_idx = -1
+
+
+    # loop over the matrix, compare the off-diagnoal elements 
+    # with the anchor
+    count = 0.0
+    for col_idx in np.arange(bs-1):
+        for row_idx in np.arange(col_idx+1, bs):
+            if col_idx == anchor_col_idx and anchor_row_idx == row_idx:
+                continue
+            loss += metric(anchor, diff_mat[row_idx, col_idx])
+            count += 1
+            
+    loss = loss / count    
+    return loss
+
+
+def rank_consistency_v2(x, metric = None, diff_mat = None):
+    """loss = rank_consistency_v2(x, metric)
+    
+    input
+    -----
+      x: tensor, (batch, D1, D2 ...)
+      metric: a function or None
+      
+              This function must be f(x1, x2) -> scalar
+              where x1 and x2 are in shape (D1, D2 ...)
+              
+              if None, negative cosine similarity for
+              x1 and x2 of shape (D1, )
+      
+      diff_mat: tensor, (batch, batch, D1, D2 ...)
+                of None
+                if diff_mat is provided, x will be ignored
+    output
+    ------
+      loss: scalar, loss value
+      
+    Example
+    -------
+      >> x = torch.randn(4, 10)
+      >> x[1] = x[0] + 1.0
+      >> x[2] = x[0] + 2.0
+      >> x[3] = x[0] + 3.0
+      >> metric = lambda x1, x2: \
+         torch_nn_func.margin_ranking_loss(x1, x2, torch.ones_like(x1), 0.1)
+      >> rank_consistencyV2(x, metric)
+      tensor(.0)
+    """
+    
+    if diff_mat is None:
+        # (batch, batch, dim)
+        # diff_mat[i, j]  = x[j] - x[i]
+        diff_mat = x - x.unsqueeze(1)
+    
+    # batch size
+    bs = diff_mat.shape[0]
+
+    # loss to be accumulated
+    loss = 0.0
+    
+    # metric
+    if metric is None:
+        # default use margin_ranking_loss
+        metric = lambda x1, x2: torch_nn_func.margin_ranking_loss(
+            x1, x2, torch.ones_like(x1), 0.1)
+    
+    #
+    if bs < 3:
+        return loss
+
+    count = 0.0
+    # loop over the matrix, column first
+    for col_idx in np.arange(bs-2):
+        for row_idx in np.arange(col_idx+2, bs):
+            # assume diff[i, j] should be diff[i-1, j]
+            loss += metric(diff_mat[row_idx-1, col_idx], 
+                           diff_mat[row_idx, col_idx])
+            count += 1
+            
+    # loop over the matrix, column first
+    for row_idx in np.arange(2, bs):
+        for col_idx in np.arange(1, row_idx):
+            # assume diff[i, j] should be diff[i, j-1]
+            loss += metric(diff_mat[row_idx, col_idx], 
+                           diff_mat[row_idx, col_idx-1])
+            count += 1
+            
+    loss = loss / count    
+    return loss
+
+
+def rank_consistency_v3(x, metric = None):
+    """loss = rank_consistency_v3(x, metric)
+    
+    input
+    -----
+      x: tensor, (batch, D1, D2 ...)
+      metric: a function or None
+      
+              This function must be f(x1, x2) -> scalar
+              where x1 and x2 are in shape (D1, D2 ...)
+              
+              if None, negative cosine similarity for
+              x1 and x2 of shape (D1, )
+
+    output
+    ------
+      loss: scalar, loss value
+      
+    Example
+    -------
+      >> x = torch.randn(4, 10)
+      >> x[1] = x[0] + 1.0
+      >> x[2] = x[0] + 2.0
+      >> x[3] = x[0] + 3.0
+      >> metric = lambda x1, x2: \
+         torch_nn_func.margin_ranking_loss(x1, x2, torch.ones_like(x1), 0.1)
+      >> rank_consistency_v3(x, metric)
+      tensor(.0)
+    """
+    
+    bs = x.shape[0]
+
+    # loss to be accumulated
+    loss = 0.0
+    
+    # metric
+    if metric is None:
+        # default use margin_ranking_loss
+        # x1 should be ranked higher
+        metric = lambda x1, x2: torch_nn_func.margin_ranking_loss(
+            x1, x2, torch.ones_like(x1), 0.1)
+    
+    #
+    if bs < 2:
+        return loss
+
+    count = 0.0
+    # loop over the rows
+    for row_idx1 in np.arange(1, bs):
+        for row_idx2 in np.arange(0, row_idx1):
+            loss += metric(x[row_idx1], 
+                           x[row_idx2])
+            count += 1
+                        
+    loss = loss / count    
+    return loss
 
 if __name__ == "__main__":
     print("loss and metric")

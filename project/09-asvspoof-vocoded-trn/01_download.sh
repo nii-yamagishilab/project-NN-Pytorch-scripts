@@ -53,4 +53,3 @@ then
     wget -q --show-progress -O ./${TAR}/xlsr_53_56k.pt https://dl.fbaipublicfiles.com/fairseq/wav2vec/xlsr_53_56k.pt 
 fi
 
-

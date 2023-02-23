@@ -1,6 +1,6 @@
 #!/bin/bash
 ########################
-# Script for confidence estimation
+# Demo script for training using vocoded data
 # 
 # Usage: bash 00_demo.sh PATH CONFIG RAND_SEED
 # where 
@@ -101,16 +101,12 @@ eval ${com}
 echo -e "\n${RED}=======================================================${NC}"
 echo -e "${RED}Step4. score the toy data set${NC}"
 
-# we will use the trained model from each cycle
-for trainedmodel in `ls ${PRJDIR}/${SUBDIR}/${trained_model}*.pt`
-do
-    trainedmodel=`echo ${trainedmodel} | xargs -I{} basename {}`
-    if [ -e $PWD/${PRJDIR}/${SUBDIR}/${trainedmodel} ];
-    then
-	com="bash ${score_script} $PWD/DATA/toy_example_vocoded/eval toy_eval_set 
-    	  	  $PWD/${PRJDIR}/${SUBDIR} $PWD/${PRJDIR}/${SUBDIR}/${trainedmodel}
-	  	  trained"
-	echo ${com}
-	eval ${com}
-    fi
-done
+trainedmodel=${trained_model}.pt
+if [ -e $PWD/${PRJDIR}/${SUBDIR}/${trainedmodel} ];
+then
+    com="bash ${score_script} $PWD/DATA/toy_example_vocoded/eval toy_eval_set 
+         $PWD/${PRJDIR}/${SUBDIR} $PWD/${PRJDIR}/${SUBDIR}/${trainedmodel}
+	 trained"
+    echo ${com}
+    eval ${com}
+fi

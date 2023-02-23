@@ -386,6 +386,22 @@ def f_model_show(pt_model, do_model_def_check=True, model_type=None):
     return
 
 
+def f_set_grad_to_none(pt_model):
+    """ f_set_grad_to_one(pt_model)
+
+    Set the grad of trainable weights to None.
+    Even if grad value is 0, the weight may change due to l1 norm, moment, 
+    or so on. It is better to explicitly set the grad of the parameter to None
+    https://discuss.pytorch.org/t/the-grad-is-zero-the-value-change/22765/2
+    """
+    for p in pt_model.parameters():
+        if p.requires_grad:
+            p.requires_grad = False
+            p.grad = None
+    return
+    
+
+
 def f_loss_check(loss_module, model_type=None):
     """ f_loss_check(pt_model)
     Check whether the loss module contains all the necessary keywords 
@@ -445,6 +461,12 @@ def f_loss_show(loss_module, do_loss_def_check=True, model_type=None):
         f_loss_check(loss_module, model_type)
     #print(loss_module)
     return
+
+
+########################
+# data buffer operations
+########################
+
 
 def f_split_data(data_in, data_tar, max_length, overlap):
     """ in_list, tar_list = f_split_data(data_in, data_tar, length, overlap)
@@ -537,8 +559,25 @@ def f_overlap_data(data_list, overlap_length):
             data_gen[:, prev_end-win_len:prev_end-win_len+tmp_len] += data_tmp
             prev_end = prev_end-win_len+tmp_len
     return data_gen[:, 0:prev_end]
+
+
+
+##############
+#
+##############
+def data2device(data_in, device, data_type):
     
-    
+    if isinstance(data_in, torch.Tensor):
+        data_ = data_in.to(device, dtype = data_type)
+    elif isinstance(data_in, list) and data_in:
+        data_ = [data2device(x, device, data_type) for x in data_in]
+    else:
+        data_ = None
+        
+    if data_ is None:
+        nii_display.f_die("[Error]: fail to cast data to device")
+
+    return data_
 
 if __name__ == "__main__":
     print("nn_manager_tools")

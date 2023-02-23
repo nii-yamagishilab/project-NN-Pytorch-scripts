@@ -259,6 +259,13 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--inference-sample-end-index', type=int, default=-1,
                         help=mes)
     
+    mes = 'inference data list. A list of file names that should '
+    mes = mes + 'be processed during the inference stage. '
+    mes = mes + 'If such a data list is provided, only data listed will '
+    mes = mes + 'be processed.'
+    parser.add_argument('--inference-data-list', type=str, default="",
+                        help=mes)
+    
     #######
     # options to output
     mes = 'path to save generated data (default: ./output)'

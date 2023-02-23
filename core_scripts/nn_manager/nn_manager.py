@@ -16,6 +16,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import core_scripts.data_io.conf as nii_dconf
+import core_scripts.data_io.seq_info as nii_seqinfo
+import core_scripts.other_tools.list_tools as nii_list_tk
 import core_scripts.other_tools.display as nii_display
 import core_scripts.other_tools.str_tools as nii_str_tk
 import core_scripts.op_manager.op_process_monitor as nii_monitor
@@ -84,12 +86,7 @@ def f_run_one_epoch(args,
         ############
         # compute output
         ############
-        if isinstance(data_in, torch.Tensor):
-            data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
-        elif isinstance(data_in, list) and data_in:
-            data_in = [x.to(device, dtype=nii_dconf.d_dtype) for x in data_in]
-        else:
-            nii_display.f_die("data_in is not a tensor or list of tensors")
+        data_in = nii_nn_tools.data2device(data_in, device, nii_dconf.d_dtype)
 
         if args.model_forward_with_target:
             # if model.forward requires (input, target) as arguments
@@ -563,6 +560,7 @@ def f_inference_wrapper(args, pt_model, device, \
         range_genidx_end = len(test_data_loader)
     else:
         range_genidx_end = args.inference_sample_end_index
+
     if range_genidx_start >= range_genidx_end:
         mes = "--inference-sample-start-index should be smaller than"
         mes += " --inference-sample-end-index"
@@ -572,12 +570,25 @@ def f_inference_wrapper(args, pt_model, device, \
     nii_display.f_print("Start inference (generation):", 'highlight')
     nii_display.f_print("Generate minibatch indexed within [{:d},{:d})".format(
         range_genidx_start, range_genidx_end))
+
+
+
+    # if a list of file to be processed is provided
+    inf_datalist_path = args.inference_data_list
+    if len(inf_datalist_path):
+        inf_datalist = nii_list_tk.read_list_from_text(inf_datalist_path)
+        mes = "And only data in {:s} is processed".format(inf_datalist_path)
+        nii_display.f_print(mes)
+    else:
+        inf_datalist = None
+
+
+    # other information
     if hasattr(args, 'trunc_input_length_for_inference') and \
        args.trunc_input_length_for_inference > 0:
         mes = "Generation in segment-by-segment mode (truncation length "
         mes += "{:d})".format(args.trunc_input_length_for_inference)
         nii_display.f_print(mes)
-
 
     # output buffer, filename buffer
     #output_buf = []
@@ -596,11 +607,31 @@ def f_inference_wrapper(args, pt_model, device, \
         for data_idx, (data_in, data_tar, data_info, idx_orig) in \
             enumerate(test_data_loader):
 
-            # not in the range, skip
-            if data_idx < range_genidx_start or data_idx >= range_genidx_end:
+            # decide whether to process this data sample or not
+            if data_idx < range_genidx_start:
+                # not in range
                 nii_display.f_print("skip {:s}".format(str(data_info)))
-                continue 
-            
+                continue
+            elif data_idx >= range_genidx_end:
+                # not in range
+                nii_display.f_print("stopped by --inference-sample-end-index")
+                break
+            else:
+                # and if the data is in the list
+                if inf_datalist is not None:
+                    
+                    # to be completed. this only works for batchsize=1
+                    seqname = nii_seqinfo.SeqInfo()
+                    seqname.parse_from_str(data_info[0])
+                    if seqname.seq_tag() in inf_datalist:
+                        pass
+                    else:
+                        nii_display.f_print("skip {:s}".format(str(data_info)))
+                        continue
+                else:
+                    pass
+
+
             # send data to device and convert data type
             if isinstance(data_in, torch.Tensor):
                 data_in = data_in.to(device, dtype=nii_dconf.d_dtype)

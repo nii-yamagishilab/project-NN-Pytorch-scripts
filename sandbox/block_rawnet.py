@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 """
-model.py
+This file contains code for RawNet2
 
-Self defined model definition.
-Usage:
+Hemlata Tak, Jose Patino, Massimiliano Todisco, Andreas Nautsch, 
+Nicholas Evans, and Anthony Larcher. End-to-End Anti-Spoofing with RawNet2. 
+In Proc. ICASSP, 6369--6373. 2020.
+
+Implementation based on RawNet in
+https://github.com/asvspoof-challenge/2021/
 
 """
 from __future__ import absolute_import
