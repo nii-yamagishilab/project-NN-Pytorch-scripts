@@ -91,6 +91,8 @@ class data_probe:
     def __init__(self):
         # a list to store all intermediate data
         self.data_buf = []
+        # a list of data name
+        self.data_names = []
         # a single array to store the data
         self.data_concated = None
         # default data convert method
@@ -101,7 +103,7 @@ class data_probe:
         self.dump_file_ext = '.pkl'
         return
 
-    def add_data(self, input_data):
+    def add_data(self, input_data, name=None):
         """ add_data(input_data)
         Add the input data to a data list. Data will be automatically
         converted by self.data_convert_method
@@ -111,6 +113,8 @@ class data_probe:
           input_data: tensor, or numpy.array        
         """
         self.data_buf.append(self.data_convert_method(input_data))
+        if name:
+            self.data_names.append(name)
         return
 
     def _merge_data(self):
@@ -127,9 +131,12 @@ class data_probe:
         """
         if add_time_tag:
             time_tag = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-            return file_path + '_' + time_tag + self.dump_file_ext
+            return file_path + '_' + time_tag + self.dump_file_ext, \
+                file_path + '_name_' + time_tag + self.dump_file_ext
         else:
-            return file_path + self.dump_file_ext
+            return file_path + self.dump_file_ext, \
+                file_path + '_name_' + self.dump_file_ext, \
+
 
     def dump(self, output_path='./debug/data_dump', add_time_tag=True):
         """ dump(output_path='./debug/data_dump')
@@ -138,9 +145,11 @@ class data_probe:
           output_path: str, path to store the dumped data
         """
         # add additional infor to output_path name
-        output_path_new = self._dump_file_path(output_path, add_time_tag)
+        output_path_new, output_file_lst = self._dump_file_path(
+            output_path, add_time_tag)
         try:
             os.mkdir(os.path.dirname(output_path_new))
+            os.mkdir(os.path.dirname(output_file_lst))
         except OSError:
             pass
 
@@ -151,6 +160,9 @@ class data_probe:
 
         self.data_dump_method(self.data_buf, output_path_new)
         print("Data dumped to {:s}".format(output_path_new))
+
+        self.data_dump_method(self.data_names, output_file_lst)
+        print("Data dumped to {:s}".format(output_file_lst))
         
         self.data_concated = None
         return

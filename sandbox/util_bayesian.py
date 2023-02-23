@@ -133,7 +133,8 @@ def compute_llr_eps_ale(logits, idx_pos=1):
     # 1. average prob over the samples to (batch, num_class)
     # 2. compute the llr
     averaged_prob = torch.mean(prob, dim=0)
-    llr = compute_logit_from_prob(averaged_prob[:, idx_pos])
+    # unsqueeze to make the shape consistent
+    llr = compute_logit_from_prob(averaged_prob[..., idx_pos]).unsqueeze(-1)
     
     # get uncertainty
     eps = compute_epstemic_uncertainty(prob)
