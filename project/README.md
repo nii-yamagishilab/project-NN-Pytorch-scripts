@@ -13,7 +13,9 @@ Projects for neural source-filter waveform models.
 
 * Tutorial on NSF models is available in [../tutorials/b1_neural_vocoder](../tutorials/b1_neural_vocoder).
 
-```
+* Note that the tutorial **chapter_a3_pretrained_vocoders.ipynb** includes pre-trained NSF models on VoxCeleb2 dev and other speech datasets [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing).
+
+```bibtex
 Xin Wang, Shinji Takaki, and Junichi Yamagishi. Neural Source-Filter Waveform Models for Statistical Parametric Speech Synthesis. IEEE/ACM Transactions on Audio, Speech, and Language Processing 28: 402–415. doi:10.1109/TASLP.2019.2956145. 2020.
 
 Xin Wang, Shinji Takaki, and Junichi Yamagishi. Neural Source-Filter-Based Waveform Model for Statistical Parametric Speech Synthesis. In Proc. ICASSP, 5916–5920. IEEE. doi:10.1109/ICASSP.2019.8682298. 2019.
@@ -32,6 +34,7 @@ Projects for other waveform models, including WaveNet vocoder, WaveGlow, Blow, a
 
 * Tutorial on NSF models is also available in [./tutorials/b1_neural_vocoder](./tutorials/b1_neural_vocoder).
 
+* Note that the tutorial **chapter_a3_pretrained_vocoders.ipynb** includes pre-trained HiFiGAN and WaveGlow models on VoxCeleb2 dev and other speech datasets [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing).
 
 ## [03-asvspoof-mega](./03-asvspoof-mega) Spoofing countermeasures on ASVspoof 2019 LA 
 
@@ -88,7 +91,7 @@ Project to use active learning to train the model on a large pool data set
 
 * Dependency, pre-trained models, and SSL models will be automatically downloaded using a simple `00_demo.sh`
 
-```
+```bibtex
 Xin Wang, and Junichi Yamagishi. Investigating Active-Learning-Based Training Data Selection for Speech Spoofing Countermeasure. In Proc. SLT, accepted. 2023.
 ```
 
@@ -101,13 +104,12 @@ This project uses vocoded spoofed data to train spoofing speech countermeasures.
 
 * Script is available for demonsration on a toy data set
 
-* Links to vocoded datasets are available in README
+* Vocoders used to create voc.v2, v3, and v4 in the paper are available in this Colab notebook [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing).  See more in README
 
-```
-ICASSP 2023 submission
+* Links to vocoded datasets are listed in README.
 
-Xin Wang, and Junichi Yamagishi. Spoofed training data for speech spoofing countermeasure can be efficiently created using neural vocoders. 
-
+```bibtex
+Xin Wang, and Junichi Yamagishi. Spoofed training data for speech spoofing countermeasure can be efficiently created using neural vocoders. Proc. ICASSP, 2023, accepted
 ```
 
 ---
