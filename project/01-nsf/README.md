@@ -11,7 +11,7 @@ Two resources to mention:
     * Reference list
 2. Detailed hands-on tutorials on NSF models available [../../tutorials/b1_neural_vocoder/README.md](../../tutorials/b1_neural_vocoder/README.md). **These tutorials are highly recommended.** There is no need to set up the environment, and the notebook can run on Google Colab!
 
-
+3. Note that the tutorial chapter **chapter_a3_pretrained_vocoders.ipynb** includes pre-trained NSF models on VoxCeleb2 dev and other speech datasets [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing).
 
 ## Models included
 

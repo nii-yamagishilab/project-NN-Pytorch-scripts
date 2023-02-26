@@ -56,7 +56,15 @@ Notes:
 
 ### 1.3 Pretrained Vocoders
 
-TO BE UPLOADED.
+Neural vocoders used to create Voc.v2, Voc.v3, and Voc.v4 are available in this notebook [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing).
+
+Please follow the instruction in the notebook and run it.  This notebook will
+1. download the pre-trained models on the Colab runtime,
+2. and do copy-synthesis (vocoding) on one sample utterance.
+
+You will find scripts to use the pre-trained models offline.
+
+If you want to train the neural vocoders, please check [project/01-nsf](../01-nsf), [project/05-nn-vocoders](../05-nn-vocoders), and the [tutorials on neural vocoders](../../tutorials/b1_neural_vocoder/).
 
 
 ## 2 Quick start

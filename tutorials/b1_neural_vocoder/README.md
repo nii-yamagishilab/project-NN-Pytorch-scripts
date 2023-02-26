@@ -28,6 +28,7 @@ All are hosted on the Google Colab platform.
 | | **Appendix** |
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1g-_rveOLSdqFtnl2IrLyHOUyW01-gN6y?usp=sharing) | **chapter_a1_Linear_prediction.ipynb** | Details on a naive implementation of Linear Prediction;
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1G8lUTlEQmKinh80OdP5NY7tflOyvVQAo?usp=sharing) | **chapter_a2_Music_NSF.ipynb** | Application of NSF to music instrumental audios.
+| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing) | **chapter_a3_pretrained_vocoders.ipynb** | Pretrained neural vocoders on a few speech datasets.
 
 
 Click `Open in Colab` will open the book. You can also download them from [Google Drive](https://drive.google.com/drive/folders/1lbIzlIWEDasNZFz9oerWAJmQC6YQIJyl?usp=sharing).

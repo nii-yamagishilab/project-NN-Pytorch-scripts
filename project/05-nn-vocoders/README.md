@@ -3,10 +3,11 @@
 
 This project is Pytorch re-implementation of a few neural waveform models.
 
-They are used in my hands-on tutorial on neural vocoders [../../tutorials/b1_neural_vocoder/README.md](../../tutorials/b1_neural_vocoder/README.md)
+* They are used in the hands-on tutorial on neural vocoders [../../tutorials/b1_neural_vocoder/README.md](../../tutorials/b1_neural_vocoder/README.md)
 
+* Note that the tutorial **chapter_a3_pretrained_vocoders.ipynb** includes pre-trained HiFiGAN and WaveGlow on VoxCeleb2 dev and other speech datasets [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing).
 
-**It is better to check the tutorials before diving into this project**
+**It is better to check the tutorials before diving into this project**.
 
 ## Quick start
 
