@@ -577,6 +577,84 @@ def tDCF_wrapper(bonafide_cm_scores, spoof_cm_scores,
     return min_tDCF, eer_cm, eer_threshold
 
 
+def tDCF_wrapper2(bonafide_score_cm, spoof_score_cm, C0, C1, C2):
+    """ mintDCF, eer = tDCF_wrapper2(bonafide_score_cm, 
+                                    spoof_score_cm, C0, C1, C2)
+    
+    compute_tDCF can be factorized into two parts: 
+    C012 computation and min t-DCF computation.
+
+    This is for min t-DCF computation, given the values of C012
+    
+    input
+    -----
+      bonafide_score_cm  np.array, score of bonafide data
+      spoof_score_cm     np.array, score of spoofed data
+      C0                 scalar, coefficient for min tDCF computation
+      C1                 scalar, coefficient for min tDCF computation
+      C2                 scalar, coefficient for min tDCF computation
+    
+    output
+    ------
+      eer                scalar, value of EER
+      mintDCF            scalar, value of min tDCF
+
+    For C0, C1, C2, see Appendix Eqs.(1-2) in evaluation plan [1],
+    or Eqs.(10-11) in [2]
+
+    References:
+
+      [1] T. Kinnunen, H. Delgado, N. Evans,K.-A. Lee, V. Vestman, 
+          A. Nautsch, M. Todisco, X. Wang, M. Sahidullah, J. Yamagishi, 
+          and D.-A. Reynolds, "Tandem Assessment of Spoofing Countermeasures
+          and Automatic Speaker Verification: Fundamentals," IEEE/ACM Transaction on
+          Audio, Speech and Language Processing (TASLP).
+
+      [2] ASVspoof 2019 challenge evaluation plan
+          https://www.asvspoof.org/asvspoof2019/asvspoof2019_evaluation_plan.pdf
+
+    """
+    # Sanity check of scores
+    combined_scores = np.concatenate((bonafide_score_cm, spoof_score_cm))
+    if np.isnan(combined_scores).any() or np.isinf(combined_scores).any():
+        sys.exit('ERROR: Your scores contain nan or inf.')
+
+    # Sanity check that inputs are scores and not decisions
+    n_uniq = np.unique(combined_scores).size
+    if n_uniq < 3:
+        sys.exit('ERROR: You should provide soft CM scores - not binary decisions')
+
+    # Obtain miss and false alarm rates of CM
+    Pmiss_cm, Pfa_cm, CM_thresholds = compute_det_curve(
+        bonafide_score_cm, spoof_score_cm)
+    
+    # =====
+    # tDCF
+    # =====
+    if np.isnan(C0) or np.isnan(C1) or np.isnan(C2): 
+        # this is a case where 
+        mintDCF = np.nan
+    else:
+        # tDCF values
+        tDCF = C0 + C1 * Pmiss_cm + C2 * Pfa_cm
+        # Obtain default t-DCF
+        tDCF_default = C0 + np.minimum(C1, C2)
+        # Normalized t-DCF
+        tDCF_norm = tDCF / tDCF_default
+        # min t-DCF
+        mintDCF = tDCF_norm[tDCF_norm.argmin()]
+
+    # ====
+    # EER
+    # ====
+    abs_diffs = np.abs(Pmiss_cm - Pfa_cm)
+    min_index = np.argmin(abs_diffs)
+    eer = np.mean((Pmiss_cm[min_index], Pfa_cm[min_index]))
+
+    return mintDCF, eer
+
+
+
 def ASVspoof2019_evaluate(bonafide_cm_scores, bonafide_cm_file_names,
                           spoof_cm_scores, spoof_cm_file_names, verbose=False,
                           protocol_alternative=None):

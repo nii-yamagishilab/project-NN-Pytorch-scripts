@@ -73,8 +73,9 @@ def _data_len_reader(file_path):
     """
     file_name, file_ext = os.path.splitext(file_path)
     if file_ext == '.wav':
-        sr, data = nii_wav_tk.waveReadAsFloat(file_path)
-        length = data.shape[0]
+        #sr, data = nii_wav_tk.waveReadAsFloat(file_path)
+        #length = data.shape[0]
+        length = nii_wav_tk.readWaveLength(file_path)
     elif file_ext == '.flac':
         sr, data = nii_wav_tk.flacReadAsFloat(file_path)
         length = data.shape[0]
@@ -206,9 +207,11 @@ class NIIDataSet(torch.utils.data.Dataset):
         if global_arg is not None:
             self.m_ignore_length_invalid = global_arg.ignore_length_invalid_data
             self.m_ignore_cached_finfo = global_arg.ignore_cached_file_infor
+            self.m_force_skip_scanning = global_arg.force_skip_datadir_scanning
         else:
             self.m_ignore_length_invalid = False
             self.m_ignore_cached_finfo = False
+            self.m_force_skip_scanning = False
 
         # check augmentation funcctions
         if input_augment_funcs:
@@ -474,9 +477,9 @@ class NIIDataSet(torch.utils.data.Dataset):
                     if in_data.shape[0] != tmp_d[s_idx:e_idx].shape[0]:
                         mes = 'Expected length is {:d}.\n'.format(e_idx-s_idx)
                         mes += "Loaded length "+str(tmp_d[s_idx:e_idx].shape[0])
-                        mes += 'This may be due to an incompatible cache *.dic.'
-                        mes += '\nPlease check the length in *.dic\n'
-                        mes += 'Please delete it if the cached length is wrong.'
+                        mes += '\nThis may be due to an incompatible cache *.dic.'
+                        mes += '\nPlease check the length in *.dic'
+                        mes += '\nPlease delete it if the cached length is wrong.'
                         nii_warn.f_print(mes)
                         nii_warn.f_die("fail to load {:s}".format(file_name))
                     else:
@@ -820,26 +823,31 @@ class NIIDataSet(torch.utils.data.Dataset):
             return
 
         # check the list of files exist in all input/output directories
-        for tmp_d, tmp_e in zip(self.m_input_dirs, self.m_input_exts):
-            tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e, flag_recur)
-            tmp_new_list = nii_list_tools.common_members(tmp_list, 
-                                                         self.m_file_list)
-            if len(tmp_new_list) < 1:
-                nii_warn.f_print("Possible error when scanning:", 'error')
-                nii_warn.f_print(" {:s} for {:s}".format(tmp_d, tmp_e), 'error')
-                nii_warn.f_print('Some file names to be scanned:', 'error')
-                nii_warn.f_print(' ' + ' '.join(self.m_file_list[0:10]),'error')
-                if self.m_file_list[0].endswith(tmp_e):
-                    nii_warn.f_print('Names should not have {:s}'.format(tmp_e))
-                if os.path.isfile(self.m_file_list[0]):
-                    mes = "The above name seems not to be the data name. "
-                    mes += "It seems to be a file path. "
-                    mes += "\nPlease check test_list, trn_list, val_list."
-                    nii_warn.f_print(mes, 'error')
-                self.m_file_list = tmp_new_list
-                break
-            else:
-                self.m_file_list = tmp_new_list
+        if not self.m_force_skip_scanning:
+            for tmp_d, tmp_e in zip(self.m_input_dirs, self.m_input_exts):
+                # read a file list from the input directory
+                tmp_list = nii_list_tools.listdir_with_ext(
+                    tmp_d, tmp_e, flag_recur)
+                # get the common set of the existing files and those in list
+                tmp_new_list = nii_list_tools.common_members(
+                    tmp_list, self.m_file_list)
+            
+                if len(tmp_new_list) < 1:
+                    nii_warn.f_print("Possible error when scanning:", 'error')
+                    nii_warn.f_print(" {:s} for {:s}".format(tmp_d, tmp_e), 'error')
+                    nii_warn.f_print('Some file names to be scanned:', 'error')
+                    nii_warn.f_print(' ' + ' '.join(self.m_file_list[0:10]),'error')
+                    if self.m_file_list[0].endswith(tmp_e):
+                        nii_warn.f_print('Names should not have {:s}'.format(tmp_e))
+                    if os.path.isfile(self.m_file_list[0]):
+                        mes = "The above name seems not to be the data name. "
+                        mes += "It seems to be a file path. "
+                        mes += "\nPlease check test_list, trn_list, val_list."
+                        nii_warn.f_print(mes, 'error')
+                    self.m_file_list = tmp_new_list
+                    break
+                else:
+                    self.m_file_list = tmp_new_list
 
         if len(self.m_file_list) < 1:
             nii_warn.f_print("\nNo input features found after scanning",'error')
@@ -853,7 +861,7 @@ class NIIDataSet(torch.utils.data.Dataset):
             nii_warn.f_die("Failed to read input features")
             
         # check output files if necessary
-        if self.m_output_dirs:
+        if self.m_output_dirs and not self.m_force_skip_scanning:
             for tmp_d, tmp_e in zip(self.m_output_dirs, \
                                     self.m_output_exts):
                 tmp_list = nii_list_tools.listdir_with_ext(tmp_d, tmp_e, 

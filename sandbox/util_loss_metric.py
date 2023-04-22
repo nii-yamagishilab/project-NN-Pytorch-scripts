@@ -462,7 +462,7 @@ def rank_consistency_v3(x, metric = None):
       >> rank_consistency_v3(x, metric)
       tensor(.0)
     """
-    
+    # batch size
     bs = x.shape[0]
 
     # loss to be accumulated

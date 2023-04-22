@@ -7,6 +7,8 @@ This project is Pytorch re-implementation of a few neural waveform models.
 
 * Note that the tutorial **chapter_a3_pretrained_vocoders.ipynb** includes pre-trained HiFiGAN and WaveGlow on VoxCeleb2 dev and other speech datasets [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing).
 
+* The code to extract the input Mel-spectrogram and F0 are included in the above tutorial and notebooks as well. This folder assumes that the input Mel-spectrogram and F0 have been prepared in advance. 
+
 **It is better to check the tutorials before diving into this project**.
 
 ## Quick start

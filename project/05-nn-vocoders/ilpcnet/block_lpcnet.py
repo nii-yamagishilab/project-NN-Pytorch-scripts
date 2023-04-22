@@ -621,7 +621,8 @@ class LPCNetV1(torch_nn.Module):
         ------
           output: tensor in int64, quantized pitch
         """
-        return torch.clamp((pitch_value - 33) // 2, 0, 256).to(torch.int64)
+        return torch.clamp((pitch_value - 33) // 2, 0, 
+                           self.m_pitch_cat-1).to(torch.int64)
 
     
     def forward(self, cond_feat, cond_feat_normed, 
