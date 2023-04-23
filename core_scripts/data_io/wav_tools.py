@@ -17,6 +17,7 @@ from __future__ import absolute_import
 import os
 import sys
 import numpy as np
+import wave
 import scipy.io.wavfile
 try:
     import soundfile
@@ -206,6 +207,20 @@ def flacReadAsFloat(wavFileIn):
     return sr, x
 
 
+def readWaveLength(wavFileIn):
+    """ length = readWaveLength(wavFileIn)
+    Read the length of the waveform
+
+    Input: 
+             waveFile, str, path to the input waveform
+    Return: 
+             length, int, length of waveform
+    """
+    with wave.open(wavFileIn, 'rb') as file_ptr:
+        wavlength = file_ptr.getnframes()
+    return wavlength
+
+
 def buffering(x, n, p=0, opt=None):
     """buffering(x, n, p=0, opt=None)
     input
@@ -277,14 +292,16 @@ def silence_handler(wav, sr, fl=320, fs=80,
                     shortest_len_in_ms=50,
                     flag_output=0, 
                     flag_norm_amp=True,
-                    flag_only_startend_sil=False):
+                    flag_only_startend_sil = False,
+                    opt_silence_handler = -1):
     """silence_handler(wav, sr, fl=320, fs=80,
                     max_thres_below=30, 
                     min_thres=-55, 
                     shortest_len_in_ms=50,
                     flag_output=0, 
                     flag_norm_amp=True,
-                    flag_only_startend_sil=False)
+                    flag_only_startend_sil = False,
+                    opt_silence_handler = 1)
     
     Based on the Speech activity detector mentioned in Sec5.1 of
     Tomi Kinnunen, and Haizhou Li. 
@@ -311,9 +328,15 @@ def silence_handler(wav, sr, fl=320, fs=80,
           segment less than this length is treated as speech
       flag_norm_amp: bool, whether normalize the waveform amplitude
           based on window function (default True)
-      flag_only_startend_sil: bool, whether only consider silence in 
+      flag_only_startend_sil (obsolete): bool, whether only consider silence in 
           the begining and end. If False, silence within the utterance
           will be marked / removed (default False)
+
+      opt_silence_handler:  int, option to silence trim handler
+          0: equivalent to flag_only_startend_sil = False
+          1: equivalent to flag_only_startend_sil = True
+          2: remove only silence between words
+         -1: not use this option, but follow flag_only_startend_sil
 
     output
     ------
@@ -373,9 +396,26 @@ def silence_handler(wav, sr, fl=320, fs=80,
     # remove short nonsil segments
     frame_process_all = ignore_short_seg(frame_process_sil, seg_len_thres)    
     frame_tag = frame_process_all
+    
 
-    # if only consder silence in the front and end
-    if flag_only_startend_sil:
+    if opt_silence_handler < 0:
+        # if only consder silence in the front and end
+        if flag_only_startend_sil:
+            tmp_nonzero = np.flatnonzero(frame_tag)
+        
+            # start of the first nonsil segment
+            #start_nonsil = np.asarray(frame_tag == 1).nonzero()[0]
+            if np.any(tmp_nonzero):
+                start_nonsil = np.flatnonzero(frame_tag)[0]
+                # end of the last nonsil segment
+                end_nonsil = np.flatnonzero(frame_tag)[-1]
+                # all segments between are switched to nonsil
+                frame_tag[start_nonsil:end_nonsil] = 1
+            else:
+                # no non-silence data, just let it pass
+                pass
+    elif opt_silence_handler == 1:
+        # if only consder silence in the front and end
         tmp_nonzero = np.flatnonzero(frame_tag)
         
         # start of the first nonsil segment
@@ -389,7 +429,24 @@ def silence_handler(wav, sr, fl=320, fs=80,
         else:
             # no non-silence data, just let it pass
             pass
-            
+    elif opt_silence_handler == 2:
+        # if only consder silence in the front and end
+        tmp_nonzero = np.flatnonzero(frame_tag)
+        
+        # start of the first nonsil segment
+        #start_nonsil = np.asarray(frame_tag == 1).nonzero()[0]
+        if np.any(tmp_nonzero):
+            start_nonsil = np.flatnonzero(frame_tag)[0]
+            # end of the last nonsil segment
+            end_nonsil = np.flatnonzero(frame_tag)[-1]
+            # all segments between are switched to nonsil
+            frame_tag[:start_nonsil] = 1
+            frame_tag[end_nonsil:] = 1
+        else:
+            # no non-silence data, just let it pass
+            pass
+    else:
+        pass
         
 
     # separate non-speech and speech segments

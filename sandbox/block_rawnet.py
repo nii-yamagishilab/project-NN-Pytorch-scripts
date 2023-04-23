@@ -380,12 +380,18 @@ class RawNet(torch_nn.Module):
           
         Score here refers to 
         """
+        # we should not use logsoftmax if we will use CrossEntropyLoss
+        flag_logsoftmax = False
+
         if inference:
             # no softmax
             return self.m_output(emb)
-        else:
+        elif flag_logsoftmax:
             # Logsoftmax for training loss
+            # this is used when the training criterion is NLLoss
             return self.logsoftmax(self.m_output(emb))
+        else:
+            return self.m_output(emb)
     
     def forward(self, x):
         """

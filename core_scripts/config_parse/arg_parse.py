@@ -152,6 +152,11 @@ def f_args_parsed(argument_input = None):
     mes = "External directory to store cache file dic"
     parser.add_argument('--path-cache-file', type=str, default="", help=mes)
 
+    mes = "Skip scanning data directories (by default False)"
+    parser.add_argument('--force-skip-datadir-scanning', 
+                        action='store_true', default=False, help=mes)
+    
+    
     ######
     # options to save model / checkpoint
     parser.add_argument('--save-model-dir', type=str, \
