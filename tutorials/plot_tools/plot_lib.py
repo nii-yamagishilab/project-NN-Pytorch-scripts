@@ -687,7 +687,7 @@ def plot_spec(data, fig, axis, config_dic):
         fl =  320
     if "fft_bins" in tmp_dic:
         fn = tmp_dic["fft_bins"] 
-        fn.pop("fft_bins")
+        tmp_dic.pop("fft_bins")
     else:
         fn = 1024
     

@@ -209,10 +209,9 @@ def plot_API(data, plot_func, split_mode='single',
         gs = GridSpec(nrows, ncols, figure=fig, wspace=wspace, hspace=hspace)
         
         # buffers
-        xlim_bag = [np.inf, -np.inf]
-        ylim_bag = [np.inf, -np.inf]
         axis_bags = []
-        
+        row_idx_bags = []
+        col_idx_bags = []
         # plot    
         for idx, data_entry in enumerate(data):     
             
@@ -224,6 +223,9 @@ def plot_API(data, plot_func, split_mode='single',
                 col_idx = idx // nrows
             
             axis = fig.add_subplot(gs[row_idx, col_idx])
+            row_idx_bags.append(row_idx)
+            col_idx_bags.append(col_idx)
+
             tmp_config = process_config_dic(config_dic, idx)
             fig, axis = plot_func(data_entry, fig, axis, tmp_config)
             util_options(fig, axis, tmp_config)
@@ -231,10 +233,6 @@ def plot_API(data, plot_func, split_mode='single',
                 print(str(tmp_config))
             
             axis_bags.append(axis)
-            xlim_bag = [min(xlim_bag[0], axis.get_xlim()[0]),
-                        max(xlim_bag[1], axis.get_xlim()[1])]
-            ylim_bag = [min(ylim_bag[0], axis.get_ylim()[0]),
-                        max(ylim_bag[1], axis.get_ylim()[1])]
             
             if "sharey" in config_dic and config_dic["sharey"]:
                 if col_idx > 0:
@@ -245,11 +243,20 @@ def plot_API(data, plot_func, split_mode='single',
                     axis.set_xticks([])
                     axis.set_xlabel("")
                     
-        for axis in axis_bags:
+        for axis, row_id, col_id in zip(axis_bags, row_idx_bags, col_idx_bags):
             if "sharex" in config_dic and config_dic["sharex"]:
-                axis.set_xlim(xlim_bag)
+                xmin = min([x.get_xlim()[0] for x, y in \
+                            zip(axis_bags, col_idx_bags) if y == col_id])
+                xmax = max([x.get_xlim()[1] for x, y in \
+                            zip(axis_bags, col_idx_bags) if y == col_id])
+                axis.set_xlim([xmin, xmax])
             if "sharey" in config_dic and config_dic["sharey"]:
-                axis.set_ylim(ylim_bag)
+                ymin = min([x.get_ylim()[0] for x, y in \
+                            zip(axis_bags, row_idx_bags) if y == row_id])
+                ymax = max([x.get_ylim()[1] for x, y in \
+                            zip(axis_bags, row_idx_bags) if y == row_id])
+                axis.set_ylim([ymin, ymax])                
+                
     else:
         print("Unknown split_mode {:s}".format(split_mode))
         axis = None
@@ -311,9 +318,10 @@ def plot_API2(data_list, plot_funcs, grid_configs,
     gs = GridSpec(nrows, ncols, figure=fig, wspace=wspace, hspace=hspace)
 
     # buffers
-    xlim_bag = [np.inf, -np.inf]
-    ylim_bag = [np.inf, -np.inf]
     axis_bags = []
+    row_idx_bags = []
+    col_idx_bags = []
+    
     axis_dic = {}
 
     def sublabel(pos_a, pos_b, pos_c, pos_d):
@@ -351,10 +359,8 @@ def plot_API2(data_list, plot_funcs, grid_configs,
                 print(str(tmp_config))
 
         axis_bags.append(axis)
-        xlim_bag = [min(xlim_bag[0], axis.get_xlim()[0]),
-                    max(xlim_bag[1], axis.get_xlim()[1])]
-        ylim_bag = [min(ylim_bag[0], axis.get_ylim()[0]),
-                    max(ylim_bag[1], axis.get_ylim()[1])]
+        row_idx_bags.append(grid_config[0][0])
+        col_idx_bags.append(grid_config[1][0])
 
         if "sharey" in config_dic and config_dic["sharey"]:
             if grid_config[1][0] > 0:
@@ -365,12 +371,20 @@ def plot_API2(data_list, plot_funcs, grid_configs,
                 axis.set_xticks([])
                 axis.set_xlabel("")
 
-    for axis in axis_bags:
+    for axis, row_id, col_id in zip(axis_bags, row_idx_bags, col_idx_bags):
         if "sharex" in config_dic and config_dic["sharex"]:
-            axis.set_xlim(xlim_bag)
+            xmin = min([x.get_xlim()[0] for x, y in \
+                        zip(axis_bags, col_idx_bags) if y == col_id])
+            xmax = max([x.get_xlim()[1] for x, y in \
+                        zip(axis_bags, col_idx_bags) if y == col_id])
+            axis.set_xlim([xmin, xmax])
         if "sharey" in config_dic and config_dic["sharey"]:
-            axis.set_ylim(ylim_bag)
-            
+            ymin = min([x.get_ylim()[0] for x, y in \
+                        zip(axis_bags, row_idx_bags) if y == row_id])
+            ymax = max([x.get_ylim()[1] for x, y in \
+                        zip(axis_bags, row_idx_bags) if y == row_id])
+            axis.set_ylim([ymin, ymax])                
+        
 
     return fig, axis_bags
 

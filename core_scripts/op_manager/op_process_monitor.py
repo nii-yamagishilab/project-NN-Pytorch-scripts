@@ -114,9 +114,19 @@ class Monitor():
     def get_time(self, epoch):
         return np.sum(self.time_mat[epoch, :])
     
-    def get_loss(self, epoch):
+    def get_loss(self, epoch, factor = 1.0):
+        """ loss = get_loss(epoch, factor):
+        
+        input: epoch, int, the epoch index
+        input: factor, float, default 1.0, a factor to change the loss
+               this can be used for example when mini-batch-num is used.
+               loss_mat stores infor for all the samples, but only will
+               receive loss when mini-batch-num is used
+
+        output: loss, float
+        """
         # return a array
-        return np.mean(self.loss_mat[epoch, :], axis=0)
+        return np.mean(self.loss_mat[epoch, :], axis=0) * factor
 
     def get_loss_for_learning_stopping(self, epoch_idx):
         # get_loss return the loss for displaying, not all the loss

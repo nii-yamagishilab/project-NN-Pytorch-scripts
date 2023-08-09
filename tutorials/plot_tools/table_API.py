@@ -162,7 +162,7 @@ def print_table(data_array, column_tag, row_tag,
     
     # 
     if data_display_array is None:
-        data_display_array = data_array + np.nan
+        data_display_array = np.zeros_like(data_array) + np.nan
         flag_data_display = False
     else:
         flag_data_display = True

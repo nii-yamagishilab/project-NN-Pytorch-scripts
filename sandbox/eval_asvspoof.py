@@ -155,7 +155,22 @@ def obtain_asv_error_rates(tar_asv, non_asv, spoof_asv, asv_threshold):
 
 
 def compute_det_curve(target_scores, nontarget_scores):
+    """ 
+    frr, far, thr = compute_det_curve(target_scores, nontarget_scores)
+    
+    input
+    -----
+      target_scores:    np.array, target trial scores
+      nontarget_scores: np.array, nontarget trial scores 
 
+    output
+    ------
+      frr:   np.array, FRR, (#N, ), where #N is total number of scores + 1
+      far:   np.array, FAR, (#N, ), where #N is total number of scores + 1
+      thr:   np.array, threshold, (#N, )
+    
+    """
+    
     n_scores = target_scores.size + nontarget_scores.size
     all_scores = np.concatenate((target_scores, nontarget_scores))
     labels = np.concatenate((np.ones(target_scores.size), 
@@ -181,13 +196,132 @@ def compute_det_curve(target_scores, nontarget_scores):
     return frr, far, thresholds
 
 
+
+def compute_det_curve_sets(pos_scores, neg_scores, w=None):
+    """ 
+    frr, far, thr = compute_det_curve_sets(pos_scores, neg_scores, w=None)
+    
+    Compute pooled FAR and FRR over sets of positive and negative scores.
+    This function assumes scores are drawn from mixtures of distributions.
+    FRR: \sum_i weight[i] 1/N_p_i \sum_j \delta(score_p_ij < thre)
+    FAR: \sum_i weight[i] 1/N_n_i \sum_j \delta(score_n_ij > thre)
+    
+    It is not simply pooled all the scores and compute FRR and FAR.
+    The latter way will be biased towards the data set with many scores.
+    
+    input
+    -----
+      pos_scores: list of (np.array), pos_scores[i] is positive sample 
+                  scores in i-th sets
+      neg_scores: list of (np.array), neg_scores[i] is negitive sample 
+                  scores in i-th sets. len(neg_scores) = len(pos_scores)
+      w:          np.array, (#L, ), where #L = len(pos_scores)
+                  default, None, equal mixture weight for each set
+    output
+    ------
+      frr:   np.array, FRR, (#N, ), where #N is total number of scores + 1
+      far:   np.array, FAR, (#N, ), where #N is total number of scores + 1
+      thr:   np.array, threshold, (#N, )
+    
+    compute_det_curve_sets([array1], [array2]) should return the same
+    results to compute_det_curve(array1, array2)
+    """
+    # number of sets of scores
+    num_subsets = len(pos_scores)
+    assert num_subsets == len(neg_scores), 'Unequal number of sets'
+
+    # get the number of scores in each sub set
+    num_scores = [x.size + y.size for x, y in zip(pos_scores, neg_scores)]
+
+    # concatenate all the scores
+    all_scores = [np.concatenate([x,y]) for x,y in zip(pos_scores, neg_scores)]
+    all_scores = np.concatenate(all_scores, axis=0)
+    # concatenate all the labels
+    all_labels = [np.concatenate([np.ones(x.size) * (idx+1), 
+                                  np.ones(y.size) * (idx+1) * -1]) \
+                  for idx, (x,y) in enumerate(zip(pos_scores, neg_scores))]
+    all_labels = np.concatenate(all_labels, axis=0)
+
+    # sort all the scores and labels
+    indices = np.argsort(all_scores, kind='mergesort')
+    all_labels = all_labels[indices]
+
+    # temporary buffer
+    tmp_scores = np.zeros_like(all_scores)
+    tmp_labels = np.zeros_like(all_labels)
+    # output buffer
+    far = np.zeros([num_subsets, all_scores.size])
+    frr = np.zeros([num_subsets, all_scores.size])
+
+    for idx in np.arange(num_subsets):
+        pos_indices = all_labels == (idx + 1)
+        neg_indices = all_labels == ((idx + 1) * -1)
+
+        # set all scores corresponding to current subset to 1.0
+        # we count how many scores belong to this subset
+        tmp_scores[pos_indices] = 1.0
+        tmp_scores[neg_indices] = 1.0
+        num_count = np.cumsum(tmp_scores)
+
+        # count the positive for current subset
+        tmp_labels[pos_indices] = 1.0
+        tar_trial_sums = np.cumsum(tmp_labels)
+        # count the negative for current subset
+        non_trial_sums = (neg_scores[idx].size - (num_count - tar_trial_sums))
+
+        # compute far and frr
+        tmp_frr = tar_trial_sums / pos_scores[idx].size
+        tmp_far = non_trial_sums / neg_scores[idx].size
+
+        # save
+        far[idx] = tmp_far
+        frr[idx] = tmp_frr
+
+        # 
+        tmp_scores = tmp_scores * 0.0
+        tmp_labels = tmp_labels * 0.0
+
+    far = np.concatenate([np.ones([num_subsets, 1]), far], axis=1)
+    frr = np.concatenate([np.zeros([num_subsets, 1]), frr], axis=1)
+
+    # averaging
+    if w is None:
+        pooled_far = far.mean(axis=0)
+        pooled_frr = frr.mean(axis=0)
+    else:
+        pooled_far = np.sum(far * np.expand_dims(w, axis=1), axis=0)
+        pooled_frr = np.sum(frr * np.expand_dims(w, axis=1), axis=0)
+    pooled_thr = np.concatenate((np.atleast_1d(all_scores[indices[0]] - 0.001),
+                                 all_scores[indices]))
+    return pooled_frr, pooled_far, pooled_thr
+
 def compute_eer(target_scores, nontarget_scores):
-    """ Returns equal error rate (EER) and the corresponding threshold. """
-    frr, far, thresholds = compute_det_curve(target_scores, nontarget_scores)
+    """
+    eer, eer_threshold = compute_eer(target_scores, nontarget_scores)
+    
+    input
+    -----
+      target_scores:    np.array, or list of np.array, target trial scores
+      nontarget_scores: np.array, or list of np.array, nontarget trial scores 
+
+    output
+    ------
+      eer:            float, EER 
+      eer_threshold:  float, threshold corresponding to EER
+    
+    """
+    if type(target_scores) is list and type(nontarget_scores) is list:
+        frr, far, thr = compute_det_curve_sets(target_scores, nontarget_scores)
+    else:
+        frr, far, thr = compute_det_curve(target_scores, nontarget_scores)
+    
+    # find the operation point for EER
     abs_diffs = np.abs(frr - far)
     min_index = np.argmin(abs_diffs)
-    eer = np.mean((frr[min_index], far[min_index]))
-    return eer, thresholds[min_index]
+
+    # compute EER
+    eer = np.mean((frr[min_index], far[min_index]))    
+    return eer, thr[min_index]
 
 def compute_tDCF_legacy(
         bonafide_score_cm, spoof_score_cm, 
@@ -654,6 +788,66 @@ def tDCF_wrapper2(bonafide_score_cm, spoof_score_cm, C0, C1, C2):
     return mintDCF, eer
 
 
+
+def logit(p):
+    """logit function.
+    This is a one-to-one mapping from probability to log-odds.
+    i.e. it maps the interval (0,1) to the real line.
+    The inverse function is given by SIGMOID.
+
+    log_odds = logit(p) = log(p/(1-p))
+
+    :param p: the inumpyut value
+
+    :return: logit(inumpyut)
+    """
+    p = np.array(p)
+    lp = np.zeros(p.shape)
+    f0 = p == 0
+    f1 = p == 1
+    f = (p > 0) & (p < 1)
+
+    if lp.shape == ():
+        if f:
+            lp = np.log(p / (1 - p))
+        elif f0:
+            lp = -np.inf
+        elif f1:
+            lp = np.inf
+    else:
+        lp[f] = np.log(p[f] / (1 - p[f]))
+        lp[f0] = -np.inf
+        lp[f1] = np.inf
+    return lp
+
+
+def sigmoid(log_odds):
+    """SIGMOID: Inverse of the logit function.
+    This is a one-to-one mapping from log odds to probability.
+    i.e. it maps the real line to the interval (0,1).
+
+    p = sigmoid(log_odds)
+
+    :param log_odds: the inumpyut value
+
+    :return: sigmoid(inumpyut)
+    """
+    p = 1 / (1 + np.exp(-log_odds))
+    return p
+
+
+def compute_cllr(tar_llrs, nontar_llrs):
+    log2 = np.log(2)
+
+    tar_posterior = sigmoid(tar_llrs)
+    non_posterior = sigmoid(-nontar_llrs)
+    if any(tar_posterior == 0) or any(non_posterior == 0):
+        return np.inf
+
+    c1 = (-np.log(tar_posterior)).mean() / log2
+    c2 = (-np.log(non_posterior)).mean() / log2
+    c = (c1 + c2) / 2
+    return c
 
 def ASVspoof2019_evaluate(bonafide_cm_scores, bonafide_cm_file_names,
                           spoof_cm_scores, spoof_cm_file_names, verbose=False,
