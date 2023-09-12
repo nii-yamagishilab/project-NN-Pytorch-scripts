@@ -70,7 +70,7 @@ cd ../
 #####
 # step 2 download 
 bash 01_download.sh
-#bash 01_download_pretrained.sh
+bash 01_download_pretrained.sh
 
 #####
 # step 3 inference using trained model

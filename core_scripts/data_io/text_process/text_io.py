@@ -120,27 +120,6 @@ def eos_index(flag_lang='EN'):
     return 0
 
 
-def textloader(file_path, flag_lang='EN', g2p_tool=None):
-    """ Load text and return the sybmol sequences
-    input
-    -----
-      file_path: string, absolute path to the text file
-      flag_lang: string, 'EN' by default, the language option to process text
-    
-    output
-    ------
-      output: np.array of shape (L), where L is the number of chars 
-    """
-    # load lines and chop '\n', join into one line
-    text_buffer = [nii_str_tk.string_chop(x) for x in open(file_path, 'r')]
-    text_buffer = ' '.join(text_buffer)
-
-    # convert to indices
-    if g2p_tool is None:
-        return text2code(text_buffer, flag_lang)
-    else:
-        return g2p2code(text_buffer, flag_lang)
-    
 
 def g2p2code(text, flag_lang='EN'):
     """ Load text, do g2p, produce the indices
@@ -181,6 +160,35 @@ def g2p2code(text, flag_lang='EN'):
 
     return code_seq
 
+def rawtextloader(file_path):
+    # load lines and chop '\n', join into one line
+    text_buffer = [nii_str_tk.string_chop(x) for x in open(file_path, 'r')]
+    text_buffer = ' '.join(text_buffer)
+    return text_buffer
+
+def textloader(file_path, flag_lang='EN', g2p_tool=None):
+    """ Load text and return the sybmol sequences
+    input
+    -----
+      file_path: string, absolute path to the text file
+      flag_lang: string, 'EN' by default, the language option to process text
+                         if None, return text 
+    
+    output
+    ------
+      output: np.array of shape (L), where L is the number of chars / phonemes
+    """
+    text_buffer = rawtextloader(file_path)
+
+    if flag_lang is None:
+        return text_buffer
+    else:
+        # convert to indices
+        if g2p_tool is None:
+            return text2code(text_buffer, flag_lang)
+        else:
+            return g2p2code(text_buffer, flag_lang)
+    
 
 if __name__ == "__main__":
     print("Definition of text2code tools")

@@ -240,18 +240,22 @@ def f_run_one_epoch(args,
         # Note that if we re-start trainining with this intermediate model,
         #  the data will start from the 1st sample, not the one where we stopped
         if args.save_model_every_n_minibatches > 0 \
-           and (data_idx+1) % args.save_model_every_n_minibatches == 0 \
            and optimizer is not None and data_idx > 0:
-            cp_names = nii_nn_manage_conf.CheckPointKey()
-            tmp_model_name = nii_nn_tools.f_save_epoch_name(
-                args, epoch_idx, '_{:05d}'.format(data_idx+1))
-            # save
-            tmp_dic = {
-                cp_names.state_dict : pt_model.state_dict(),
-                cp_names.optimizer : optimizer.state_dict()
-            }
-            if not args.not_save_anything:
-                torch.save(tmp_dic, tmp_model_name)
+            
+            # accumulated number of steps
+            tmp_idx = data_idx + epoch_idx * len(data_loader)
+            
+            if (tmp_idx+1) % args.save_model_every_n_minibatches == 0:
+                cp_names = nii_nn_manage_conf.CheckPointKey()
+                tmp_model_name = nii_nn_tools.f_save_epoch_name(
+                    args, epoch_idx, '_{:05d}'.format(tmp_idx+1))
+                # save
+                tmp_dic = {
+                    cp_names.state_dict : pt_model.state_dict(),
+                    cp_names.optimizer : optimizer.state_dict()
+                }
+                if not args.not_save_anything:
+                    torch.save(tmp_dic, tmp_model_name)
         
         # If debug mode is used, only run a specified number of mini-batches
         if args.debug_batch_num > 0 and data_idx >= (args.debug_batch_num - 1):

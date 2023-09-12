@@ -51,7 +51,22 @@ def _data_reader(file_path, dim, flag_lang, g2p_tool):
             nii_warn.f_die("But {:s} has {:d} channel(s)".format(
                 file_path, data.shape[-1]))
     elif file_ext == '.txt':
-        data = nii_text_tk.textloader(file_path, flag_lang, g2p_tool)
+        if flag_lang:
+            # load raw text as codes
+            data = nii_text_tk.textloader(file_path, flag_lang, g2p_tool)
+        else:
+            # load raw text input as a string
+            data = nii_text_tk.rawtextloader(file_path)
+
+    elif file_ext.endswith('.npy'):
+        data = np.load(file_path)
+        if data.shape[1] == dim:
+            pass
+        elif data.shape[0] == dim:
+            data = data.T
+        else:
+            nii_warn.f_die("Fail to load {:s} with {:d} dims".format(
+                file_path, dim))
     else:
         data = nii_io_tk.f_read_raw_mat(file_path, dim)
     return data
@@ -83,6 +98,8 @@ def _data_len_reader(file_path):
         # txt, no need to account length
         # note that this is for tts task
         length = 0
+    elif file_ext.endswith('.npy'):
+        length = np.load(file_path).size
     else:
         length = nii_io_tk.f_read_raw_mat_length(file_path)
     return length
