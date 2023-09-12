@@ -55,7 +55,17 @@ class merge_loader():
         #  index for dataset 3: index += dataset_1 + dataset_2.get_seq_num()
         self.m_idx_shift = np.cumsum([0] + 
                                      [x.get_seq_num() for x in self.m_datasets])
+        # total number of data
+        self.m_data_num = np.sum([x.get_seq_num() for x in self.m_datasets])
         return
+
+    def get_datasize(self):
+        # return the total number of data 
+        return self.m_data_num
+
+    def get_dataset(self):
+        # return the datasets
+        return self.m_datasets
 
     def adjust_utt_idx(self, data_tuple, dataset_idx):
         """ adjust_utt_idx(data_tutple, dataset_idx)

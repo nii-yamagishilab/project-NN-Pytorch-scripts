@@ -55,7 +55,8 @@ def stft_wrapper(x, fft_n, frame_shift, frame_length, window,
     """
     # there are better ways, but for convenience
     if torch.__version__.split('.')[1].isnumeric() and \
-       int(torch.__version__.split('.')[1]) < 7:
+       int(torch.__version__.split('.')[1]) < 7 and \
+       int(torch.__version__.split('.')[0]) < 2:
         #  torch 1.6.*
         return torch.stft(x, fft_n, frame_shift, frame_length, 
                           window=window, onesided=True, pad_mode=pad_mode)
@@ -71,7 +72,8 @@ def istft_wrapper(x, fft_n, frame_shift, frame_length, window,
     
     # there are better ways, but for convenience
     if torch.__version__.split('.')[1].isnumeric() and \
-       int(torch.__version__.split('.')[1]) < 7:
+       int(torch.__version__.split('.')[1]) < 7 and \
+       int(torch.__version__.split('.')[0]) < 2:
         #  torch 1.6.*
         return torch.istft(x, fft_n, frame_shift, frame_length, 
                            window=window, onesided=True, pad_mode=pad_mode)

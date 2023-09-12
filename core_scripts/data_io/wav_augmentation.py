@@ -91,8 +91,11 @@ def wav_rand_sil_trim(wav,
       wav: np.array, (length, 1)
       sr: int, waveform sampling rate
       random_trim_sil: bool, randomly trim silence (default False)
+                       if False, waveform will be trimmed exactly based on the
+                       output from silence detector (i.e., VAD). 
+
       random_trim_nosil: bool, randomly trim no-silence segments
-      
+                       currently not implemented
     output
     ------
       output:  np.array, (length, 1)
@@ -229,13 +232,17 @@ def batch_pad_for_multiview(input_data_batch_, wav_samp_rate, length,
     def _ad_length(x, length, repeat_pad):
         # adjust the length of the input x
         if length > x.shape[0]:
+            # if x is shorted than required length
             if repeat_pad:
+                # repeat input and pad
                 rt = int(length / x.shape[0]) + 1
                 tmp = np.tile(x, (rt, 1))[0:length]
             else:
+                # not repeat, simply pad 0
                 tmp = np.zeros([length, 1])
                 tmp[0:x.shape[0]] = x
         else:
+            # if x is longer 
             tmp = x[0:length]
         return tmp
     # use the first data in the list
@@ -245,25 +252,26 @@ def batch_pad_for_multiview(input_data_batch_, wav_samp_rate, length,
 
     # 
     new_len = input_data_batch[0].shape[0]    
+
     if repeat_pad is False:
-        
-        # if we simply trim longer sentence but not pad shorter sentence
         if new_len < length:
+            # data is shorter than required length, do nothing
             start_len = 0
             end_len = new_len
-
-        elif random_trim_nosil:
-            start_len = int(np.random.rand() * (new_len - length))
-            end_len = start_len + length
-
         else:
-            start_len = 0
-            end_len = length
+            # data is longer than required length
+            if random_trim_nosil:
+                start_len = int(np.random.rand() * (new_len - length))
+                end_len = start_len + length
+            else:
+                start_len = 0
+                end_len = length
         input_data_batch_ = input_data_batch
 
     else:
         
         if new_len < length:
+            # data is shorter than required length, repeat and pad
             start_len = 0
             end_len = length
             rt = int(length / new_len) + 1
@@ -286,6 +294,41 @@ def batch_pad_for_multiview(input_data_batch_, wav_samp_rate, length,
 ##################
 # Frequency domain
 ##################
+
+def wav_freq_pass_fixed(input_data, wav_samp_rate, start_b, end_b):
+    """ output = wav_freq_pass_fixed(input_data, wav_samp_rate, start_b, end_b)
+    
+    Pass the frequency range (fixed frequency band)
+    
+    input
+    -----
+      input_data: np.array, (length, 1)
+      wav_samp_rate: int, waveform sampling rate
+      start_b: float
+      end_b: float
+
+    output
+    ------
+      output:  np.array, (length, 1)
+    """
+    # order of the filder, fixed to be 10
+    # change it to a random number later
+    filter_order = 10
+    
+    if start_b < 0.01:
+        sos = signal.butter(filter_order, end_b, 'lowpass', output='sos')
+    elif end_b > 0.99:
+        sos = signal.butter(filter_order, start_b, 'highpass',output='sos')
+    else:
+        sos = signal.butter(
+            filter_order, [start_b, end_b], 'bandpass', output='sos')
+        
+    filtered = signal.sosfilt(sos, input_data[:, 0])
+
+    # change dimension
+    output = np.expand_dims(filtered, axis=1)
+
+    return output
 
 
 def wav_freq_mask_fixed(input_data, wav_samp_rate, start_b, end_b):
@@ -371,7 +414,7 @@ def wav_codec(input_dat, wav_samp_rate):
     """
     tmpdir = '/tmp/xwtemp'
     if not os.path.isdir(tmpdir):
-        os.mkdir(tmpdir)
+        os.makedirs(tmpdir, exist_ok=True)
     randomname = "{:s}/{:010d}".format(tmpdir, np.random.randint(100000))
     while os.path.isfile(randomname + '.empty'):
         randomname = "{:s}/{:010d}".format(tmpdir, np.random.randint(100000))

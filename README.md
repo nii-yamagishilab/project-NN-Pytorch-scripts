@@ -16,6 +16,8 @@ git clone --depth 1 https://github.com/nii-yamagishilab/project-NN-Pytorch-scrip
 ```
 
 * Latest updates:
+   1. Code, databases, and resources for paper below were added. Please check [project/10-asvspoof-vocoded-trn-ssl/](project/10-asvspoof-vocoded-trn-ssl/)
+   > Xin Wang, and Junichi Yamagishi. Can Large-scale vocoded spoofed data improve speech spoofing countermeasure with a self-supervised front end?. Submitted
    1. Neural vocoders pretrained on VoxCeleb2 dev and other datasets are available in tutorial notebook **chapter_a3.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing)
    2. Code, databases, and resources for the paper below were added. Please check [project/09-asvspoof-vocoded-trn/](project/09-asvspoof-vocoded-trn/) for more details.
       > Xin Wang, and Junichi Yamagishi. Spoofed training data for speech spoofing countermeasure can be efficiently created using neural vocoders. Proc. ICASSP 2023, accepted. https://arxiv.org/abs/2210.10570

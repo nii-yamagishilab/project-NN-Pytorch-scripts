@@ -240,21 +240,37 @@ def f_run_one_epoch(args,
         # Note that if we re-start trainining with this intermediate model,
         #  the data will start from the 1st sample, not the one where we stopped
         if args.save_model_every_n_minibatches > 0 \
-           and (data_idx+1) % args.save_model_every_n_minibatches == 0 \
            and optimizer is not None and data_idx > 0:
-            cp_names = nii_nn_manage_conf.CheckPointKey()
-            tmp_model_name = nii_nn_tools.f_save_epoch_name(
-                args, epoch_idx, '_{:05d}'.format(data_idx+1))
-            # save
-            tmp_dic = {
-                cp_names.state_dict : pt_model.state_dict(),
-                cp_names.optimizer : optimizer.state_dict()
-            }
-            torch.save(tmp_dic, tmp_model_name)
+            
+            # accumulated number of steps
+            tmp_idx = data_idx + epoch_idx * len(data_loader)
+            
+            if (tmp_idx+1) % args.save_model_every_n_minibatches == 0:
+                cp_names = nii_nn_manage_conf.CheckPointKey()
+                tmp_model_name = nii_nn_tools.f_save_epoch_name(
+                    args, epoch_idx, '_{:05d}'.format(tmp_idx+1))
+                # save
+                tmp_dic = {
+                    cp_names.state_dict : pt_model.state_dict(),
+                    cp_names.optimizer : optimizer.state_dict()
+                }
+                if not args.not_save_anything:
+                    torch.save(tmp_dic, tmp_model_name)
         
         # If debug mode is used, only run a specified number of mini-batches
         if args.debug_batch_num > 0 and data_idx >= (args.debug_batch_num - 1):
             nii_display.f_print("Debug mode is on. This epoch is finished")
+            break
+
+        # Save as option above, but we don't show the messages
+        if args.minibatch_num_train > 0 \
+           and data_idx >= (args.minibatch_num_train - 1) and optimizer:
+            # minibatch number for training
+            break
+        
+        if args.minibatch_num_val > 0 \
+           and data_idx >= (args.minibatch_num_val - 1) and optimizer is None:
+            # minibatch number for validation
             break
         
         # other procedures
@@ -421,7 +437,20 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                         epoch_idx, optimizer, normtarget_f, \
                         train_dataset_wrapper)
         time_trn = monitor_trn.get_time(epoch_idx)
-        loss_trn = monitor_trn.get_loss(epoch_idx)
+        if args.minibatch_num_train > 0:
+            if hasattr(train_data_loader, 'get_datasize'):
+                # sampled evenly from multiple sub datasets
+                num_datasets = len(train_data_loader.get_dataset())
+                loss_fac = train_data_loader.get_datasize()
+                loss_fac = loss_fac / args.minibatch_num_train / num_datasets
+            else:
+                # from one dataset ( concatenated or single)
+                loss_fac = len(train_data_loader.dataset)
+                loss_fac = loss_fac / args.minibatch_num_train
+        else:
+            loss_fac = 1.0
+        loss_trn = monitor_trn.get_loss(epoch_idx, loss_fac)
+
         
         # if necessary, do validataion 
         if val_dataset_wrapper is not None:
@@ -445,7 +474,19 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                                 epoch_idx, None, normtarget_f, \
                                 val_dataset_wrapper)
             time_val = monitor_val.get_time(epoch_idx)
-            loss_val = monitor_val.get_loss(epoch_idx)
+            if args.minibatch_num_val > 0:
+                if hasattr(val_data_loader, 'get_datasize'):
+                    # sampled evenly from multiple sub datasets
+                    num_datasets = len(val_data_loader.get_dataset())
+                    loss_fac = val_data_loader.get_datasize()
+                    loss_fac = loss_fac / args.minibatch_num_val / num_datasets
+                else:
+                    # from one dataset ( concatenated or single)
+                    loss_fac = len(val_data_loader.dataset) 
+                    loss_fac = loss_fac / args.minibatch_num_val
+            else:
+                loss_fac = 1.0
+            loss_val = monitor_val.get_loss(epoch_idx, loss_fac)
             
             # update lr rate scheduler if necessary
             if lr_scheduler.f_valid():
@@ -471,7 +512,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # save the best model
         if flag_new_best or args.force_save_lite_trained_network_per_epoch:
             tmp_best_name = nii_nn_tools.f_save_trained_name(args)
-            torch.save(pt_model.state_dict(), tmp_best_name)
+            if not args.not_save_anything:
+                torch.save(pt_model.state_dict(), tmp_best_name)
             
         # save intermediate model if necessary
         if not args.not_save_each_epoch:
@@ -496,7 +538,8 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                 cp_names.vallog : tmp_val_log,
                 cp_names.lr_scheduler : lr_scheduler_state
             }
-            torch.save(tmp_dic, tmp_model_name)
+            if not args.not_save_anything:
+                torch.save(tmp_dic, tmp_model_name)
             if args.verbose == 1:
                 nii_display.f_eprint(str(datetime.datetime.now()))
                 nii_display.f_eprint("Save {:s}".format(tmp_model_name),
@@ -525,8 +568,12 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         nii_display.f_print("Training finished by early stopping")
     else:
         nii_display.f_print("Training finished")
-    nii_display.f_print("Model is saved to", end = '')
-    nii_display.f_print("{}".format(nii_nn_tools.f_save_trained_name(args)))
+
+    if not args.not_save_anything:
+        nii_display.f_print("Model is saved to", end = '')
+        nii_display.f_print("{}".format(nii_nn_tools.f_save_trained_name(args)))
+    else:
+        nii_display.f_print("Not save anything as --not-save-anything is on")
     return
 
 

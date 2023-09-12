@@ -2,18 +2,15 @@
 """
 Blocks for attention mechanism
 
-Implementation is based on https://github.com/soobinseo/Transformer-TTS.git,
-but code is re-facotrized:
+Implementation inspired by https://github.com/soobinseo/Transformer-TTS.git,
+Code is re-facotrized and test against the original repo.
 
-DotScaledAttention and MultiheadAttention are separated.
-The former is the core attention softmax(QK^T/sqrt(d))V, 
-with optional mask to mask dummy query and dummy key-value 
-that zero-padded due to the varied sequence length in batch
-
-The former further includes the mask due to causal dependency
-between output and input
-
-The latter does split-> transform -> DotScaledAtt -> concat -> transform
+DotScaledAttention, MultiheadAttention, MultiheadAttentionWrapper are separated
+1. DotScaledAttention: the core attention softmax(QK^T/sqrt(d))V. Masks on 
+   attention matrix and output sequence can be provided as optional input
+2. MultiheadAttention: it splits data into multiple tensors and calls the former
+3. MultiheadAttentionWrapper: wrapper over multiheadAttention with 
+   additional operations such aslinear transformation and normalization ...
  
 """
 from __future__ import absolute_import
@@ -43,46 +40,51 @@ class DotScaledAttention(torch_nn.Module):
     K: (batch, length2, dimension)
     V: (batch, length2, dimension2)
     
-    k_mask: (batch, length1)
+    k_mask: (batch, length1, length2)
     q_mask: (batch, length1)
     
     Example:
         l_m1 = DotScaledAttention()
 
-        q_data = torch.rand([5, 100, 64])
-        k_data2 = torch.rand([5, 40, 64])
-        v_data3 = torch.rand([5, 40, 32])
+        q_data = t.rand([5, 100, 64])
+        k_data2 = t.rand([5, 40, 64])
+        v_data3 = t.rand([5, 40, 32])
 
-        q_mask = torch.ones([5, 100])
+        q_mask = t.ones([5, 100])
         q_mask[0, -4:] = 0
         q_mask[1, -5:] = 0
         q_mask_bin = q_mask.eq(0)
-        k_mask = torch.ones([5, 40])
-        k_mask[0, -4:] = 0
-        k_mask[1, -5:] = 0
+
+        k_mask = t.ones([5, 100, 40])
+        k_mask[0, :, -4:] = 0
+        k_mask[1, :, -5:] = 0
         k_mask_bin = k_mask.eq(0)
 
         o1, a1 = l_m1(q_data, k_data2, v_data3, q_mask_bin, k_mask_bin)
         
-        # causal
-        l_m1 = DotScaledAttention(True)
-        data = torch.rand([5, 100, 64])
-        q_mask = torch.ones([5, 100])
-        q_mask_bin = q_mask.eq(0)
-        o1, a1 = l_m1(data, data, data, q_mask_bin, q_mask_bin)
-        o1[0, 1] - a1[0, 1, 0] * data[0, 0] - a1[0, 1, 1] * data[0, 1]
+    Note: user should provide a k_mask for causal attention
     """
-    def __init__(self, flag_causal=False, dropout=None):
+    def __init__(self, attn_dropout=0.0):
+        """attention_module = DotScaledAttention(attn_dropout=0.0)
+
+        args
+        ----
+          attn_dropout: float, dropout rate on attention matrix
+
+        """
         super(DotScaledAttention, self).__init__()
-        self.flag_causal = flag_causal
-        if dropout is not None:
-            self.m_drop = torch_nn.Dropout(p=dropout)
+
+        # dropout on attention weights
+        if attn_dropout > .0:
+            self.m_attn_dropout = torch_nn.Dropout(p=attn_dropout)
         else:
-            self.m_drop = None
+            self.m_attn_dropout = torch_nn.Identity()
+            
         return
     
     def forward(self, Q, K, V, q_mask=None, k_mask=None):
         """O = DotScaledAttention(Q, K, V, q_mask=None, k_mask=None)
+
         O = q_mask * softmax( (Q K^\top / \sqrt(d)) k_mask ) V
         
         input:
@@ -91,7 +93,7 @@ class DotScaledAttention(torch_nn.Module):
           K: tensor, (batch, length2, dimension)
           V: tensor, (batch, length2, dimension2)
     
-          k_mask: None or tensor, (batch, length2)
+          k_mask: None or tensor, (batch, length1, length2)
           q_mask: None or tensor, (batch, length1)
         
         output
@@ -99,85 +101,60 @@ class DotScaledAttention(torch_nn.Module):
           O: tensor, (batch, length1, dimension2)
           attn: tensor, (batch, length1, length2), attention matrix
           
-        k_mask[i] is a mask for the i-th key/value, k_mask[i, j]==True
-          indicates that K[i][j] and V[i][j] should be masked. 
-          attention[i][:, j] should be zero
+        k_mask[i] is a mask for the i-th data in the batch, 
+          if k_mask[i, j, k]==True, attention[i, j, k] should be zero
+
         q_mask[i] is a mask for the i-the query, q_mask[i, j]==True
-          indicates that output O[i][j] should be masked
+          indicates that output O[i][j, ...] should be masked
         """
         bsize = Q.shape[0]
         feat_dim = Q.shape[-1]
         q_len = Q.shape[1]
         k_len = K.shape[1]
         
+        assert K.shape[-1] == Q.shape[-1], "Q and K differ in feat dimension"
+        assert K.shape[1] == V.shape[1], "K and V differ in length"
+
         # Q K^\top
         # attn has shape (length1, length2)
-        attn = torch.bmm(Q, K.transpose(1, 2)) / np.sqrt(feat_dim)
-        
-        # apply k_mask to mask dummy key/value (by setting attn to 0)
-        if k_mask is not None:
-            # (batch, length2) -> (batch, length1, length2) by duplicating
-            mask_tmp = k_mask.unsqueeze(1).repeat(1, q_len, 1)
-            
-            # if causal dependency, add diagonal mask
-            #  mask_tmp[:, i, >i] should be True
-            if self.flag_causal and q_len == k_len:
-                # length2 must be == length1
-                # create upper triagle (length1, length1)
-                tria_tmp = torch.triu(torch.ones_like(mask_tmp[0]), diagonal=1)
-                # repeat to batch
-                tria_tmp = tria_tmp.unsqueeze(0).repeat(bsize, 1, 1).gt(0)
-                # overlap the upper-triangle matrix with the k_mask
-                mask_tmp = torch.bitwise_or(mask_tmp, tria_tmp)
-            
-        elif self.flag_causal and q_len == k_len:
-            # even if no need to mask dummy input, it is necessary to
-            # mask for causal self-attention
-            mask_tmp = torch.triu(torch.ones([k_len, k_len]), diagonal=1)
-            # repeat to batch
-            mask_tmp = mask_tmp.unsqueeze(0).repeat(bsize, 1, 1).gt(0)
-            mask_tmp = mask_tmp.to(device=Q.device)
-        else:
-            # no k_mask provided, neither is k_mask provided
-            mask_tmp = None
-        
+        attn = torch.bmm(Q, K.transpose(1, 2)) / np.sqrt(feat_dim)        
         
         # mask the attn matrix if necessary
-        if mask_tmp != None:
-            attn = attn.masked_fill(mask_tmp, -2 ** 32 +1)
-        
+        if k_mask != None:
+            attn = attn.masked_fill(k_mask, -2 ** 32 +1)
             
         # softmax, over length2 of the (batch, length1, length2)
         attn = torch_nn_func.softmax(attn, dim=-1)
         
         # apply q_mask
         if q_mask is not None:
-            # (batch, length1, 1) -> (batch, length1, length2)
-            mask_tmp = q_mask.unsqueeze(-1).repeat(1, 1, k_len)
+            assert q_mask.ndim == 2 or q_mask.ndim == 3, \
+                "q_mask should have 2 or 3 dimensions"
+            if q_mask.ndim == 2:
+                # (batch, length1) -> (batch, length1, length2)
+                mask_tmp = q_mask.unsqueeze(-1).repeat(1, 1, k_len)
+            else:
+                mask_tmp = q_mask
+                
             # mask query (row) that should be dummy
             attn = attn.masked_fill(mask_tmp, 0)
         
-        # apply dropout is necessary
-        if self.m_drop is not None:
-            attn = self.m_drop(attn)
-
-        # o = attn * V
-        O = torch.bmm(attn, V)
+        # o = dropout(attn) * V
+        O = torch.bmm(self.m_attn_dropout(attn), V)
         return O, attn
-
 
 
 
 class MultiheadAttention(torch_nn.Module):
     """Multihead Attention in Transformer
     
-    V, K, Q -> linear -> split -> DotScaledAttention -> concate -> linear
+    V, K, Q -> linear -> split -> DotScaledAttention -> concate -> linear ->
     
     Q: (batch, lengthQ, feat_dimK)
     K: (batch, lengthK, feat_dimK)
     V: (batch, lengthK, feat_dimV)
     
-    k_mask: (batch, lengthK)
+    k_mask: (batch, lengthK, lengthQ)
     q_mask: (batch, lengthQ)
     
     Example:
@@ -189,51 +166,45 @@ class MultiheadAttention(torch_nn.Module):
       q_mask[0, -4:] = 0
       q_mask[1, -5:] = 0
       q_mask_bin = q_mask.eq(0)
-      k_mask = torch.ones([5, 40])
-      k_mask[0, -4:] = 0
-      k_mask[1, -5:] = 0
+
+      k_mask = torch.ones([5, 100, 40])
+      k_mask[0, :, -4:] = 0
+      k_mask[1, :, -5:] = 0
       k_mask_bin = k_mask.eq(0)
       
       l_m = MultiheadAttention(64, 32, 4)
       
       data_out = l_m.forward(v_data3, k_data2, q_data, k_mask_bin, q_mask_bin)
+
     """
-    def __init__(self, feat_dim_k, feat_dim_v, num_head=4, 
-                 flag_cat_q=True, flag_causal=False, dropout=None,
-                 with_bias=False, flag_norm_before=False):
-        """MultiheadAttention(num_head=4, flag_cat_q=True)
+    def __init__(self, 
+                 feat_dim_k, 
+                 feat_dim_v, 
+                 num_head=4, 
+                 attn_dp = 0.0,
+                 flag_cat_q = True):
+        """MultiheadAttention(feat_dim_k, feat_dim_v, num_head=4, attn_dp= 0.0)
         
         Args
         ----
-          feat_dim_k: int, feat_dimension of Query and Key
-          feat_dim_v: int, feat_dimension of Value
-          num_head: int, number of heads
-          flag_cat_q: bool, if true, concate(query, attention's output)
-          flag_causal: bool, causal dependency in self-attention
-          with_bias: bool, bias in feedforward layer for multi-head splitting?
-                     (default False)
-          dropout: float or None, dropout rate on attention matrix
-                     (default None)
-          flag_norm_before: bool, whether do layer normalize before attention
-                     (default False). If true, the input q, k, and v should
-                     be layerer normed before given to forward()
-
-        When flag_causal is True, Q, K, V must have same temporal length
+          feat_dim_k:    int, feat_dimension of Query and Key
+          feat_dim_v:    int, feat_dimension of Value
+          num_head:      int, number of heads
+          attn_dp:       float, dropout on attention matrix
+          flag_cat_q:    bool, concat query and output before linear output?
+                         see https://github.com/soobinseo/Transformer-TTS.git
         """
         super(MultiheadAttention, self).__init__()
         
-        # log information
-        self.flag_causal = flag_causal
         self.num_head = num_head
         
-        # feedforward layers
         if feat_dim_k % self.num_head > 0 or feat_dim_v % self.num_head > 0:
             print("feat_dim_k cannot be divided by num_head")
             sys.exit(1)
         
-        self.m_q_fc = torch_nn.Linear(feat_dim_k, feat_dim_k, bias=with_bias)
-        self.m_k_fc = torch_nn.Linear(feat_dim_k, feat_dim_k, bias=with_bias)
-        self.m_v_fc = torch_nn.Linear(feat_dim_v, feat_dim_v, bias=with_bias)
+        self.m_q_fc = torch_nn.Linear(feat_dim_k, feat_dim_k, bias=False)
+        self.m_k_fc = torch_nn.Linear(feat_dim_k, feat_dim_k, bias=False)
+        self.m_v_fc = torch_nn.Linear(feat_dim_v, feat_dim_v, bias=False)
         
         torch_nn.init.xavier_uniform_(
             self.m_q_fc.weight, gain=torch_nn.init.calculate_gain('linear'))
@@ -242,37 +213,23 @@ class MultiheadAttention(torch_nn.Module):
         torch_nn.init.xavier_uniform_(
             self.m_v_fc.weight, gain=torch_nn.init.calculate_gain('linear'))
         
-        # core attention 
-        self.m_attn = DotScaledAttention(self.flag_causal, dropout)
+        self.m_attn = DotScaledAttention(attn_dp)
         
-        # dropout
-        if dropout is not None:
-            self.m_drop = torch_nn.Dropout(p=dropout)
-        else:
-            self.m_drop = None
-        
-        # output linear layer
+        # output layer
         self.flag_cat_q = flag_cat_q
+
         if self.flag_cat_q:
-            self.m_output = torch_nn.Linear(feat_dim_k+feat_dim_v, feat_dim_v)
+            self.m_output = torch_nn.Linear(feat_dim_k + feat_dim_v, feat_dim_v)
         else:
             self.m_output = torch_nn.Linear(feat_dim_v, feat_dim_v)
+
         torch_nn.init.xavier_uniform_(
             self.m_output.weight, gain=torch_nn.init.calculate_gain('linear'))
-        
-        # 
-        self.m_layernorm = torch_nn.LayerNorm(feat_dim_v)
-        self.flag_norm_before = flag_norm_before
 
-        if feat_dim_k != feat_dim_v:
-            print("Warning: query/key and value differ in feature dimensions.")
-            print("Residual connection will not be used")
-        
-        
         return
         
-    def forward(self, value, key, query, k_mask=None, q_mask=None):
-        """O, attn = MultiheadAttention(value, key, query, k_mask, q_mask)
+    def forward(self, query, key, value, q_mask=None, k_mask=None):
+        """O, attn = MultiheadAttention(query, key, value, q_mask, k_mask)
         
         input:
         ------
@@ -281,27 +238,25 @@ class MultiheadAttention(torch_nn.Module):
           V: (batch, lengthK, feat_dimV)
 
     
-          k_mask: None or tensor, (batch, length2)
-          q_mask: None or tensor, (batch, length1)
+          k_mask: None or tensor, (batch, lengthQ, lengthK)
+          q_mask: None or tensor, (batch, lengthQ)
         
         output
         ------
-          O: tensor, (batch, length1, dimension2)
-          attn: tensor, (batch, length1, length2), attention matrix
+          O: tensor, (batch, lengthQ, ...)
+          attn: tensor, (batch * head, lengthQ, lengthK), attention matrix
           
-        k_mask[i] is a mask for the i-th key/value, k_mask[i, j]==True
-          indicates that K[i][j] and V[i][j] should be masked. 
-          attention[i][:, j] should be zero
+        k_mask[i] is a mask for the i-th key/value, k_mask[i, j, k]==True
+          indicates that K[i][j, ...] and V[i][k, ...] should be ignored. 
+          attention[i][j, k] should be zero
+
         q_mask[i] is a mask for the i-the query, q_mask[i, j]==True
-          indicates that output O[i][j] should be masked
+          indicates that output O[i][j, ...] should be masked
         """
+
         bsize = value.size(0)
         k_len = key.size(1)
         q_len = query.size(1)
-        
-        if self.flag_causal and k_len != q_len:
-            print("Causal Attention, Q,V,K must have same length in time")
-            sys.exit(1)
             
         # transform and split the input Q, K, V
         def _trans_split(data_mat, trans_func, head):
@@ -323,25 +278,17 @@ class MultiheadAttention(torch_nn.Module):
         query_mul = _trans_split(query, self.m_q_fc, self.num_head)
         
         # duplicate masks to multi heads
-        if q_mask is not None:
-            q_mask_tmp = q_mask.repeat(self.num_head, 1)
-        else:
-            q_mask_tmp = None
+        qm = q_mask.repeat(self.num_head, 1) if q_mask is not None else None
+        km = k_mask.repeat(self.num_head, 1, 1) if k_mask is not None else None
 
-        if k_mask is not None:
-            k_mask_tmp = k_mask.repeat(self.num_head, 1)
-        else:
-            k_mask_tmp = None
-
-        
         # attention and sum
-        o_mul, attn = self.m_attn(query_mul, key_mul, value_mul, 
-                                  q_mask_tmp, k_mask_tmp)
+        o_mul, attn = self.m_attn(query_mul, key_mul, value_mul, qm, km)
         
         # recover it back
         # ( num_head * batch, lengthQ, feat_dimV / num_head) ->
         # ( num_head, batch, lengthQ, feat_dimV / num_head) ->
         o_mul = o_mul.view(self.num_head, bsize, q_len, -1)
+
         # -> ( batch, lengthQ, feat_dimV) 
         o_mat = o_mul.permute(1, 2, 0, 3).contiguous().view(bsize, q_len, -1)
         
@@ -350,22 +297,90 @@ class MultiheadAttention(torch_nn.Module):
             # (batch, lengthQ, feat_dimQ + feat_dimV)
             o_mat = torch.cat([o_mat, query], dim=-1)
         
-        # linear
+        # linear output
         o_mat = self.m_output(o_mat)
         
-        # dropout
-        if self.m_drop:
-            o_mat = self.m_drop(o_mat)
-
-        # residual & layer norm
-        if o_mat.shape[-1] == query.shape[-1]:
-            o_mat = o_mat + query
-
-        # layer normalize after 
-        if not self.flag_norm_before:
-            o_mat = self.m_layernorm(o_mat)
-
         return o_mat, attn
+
+
+class MultiHeadAttWrapper(MultiheadAttention):
+    """ MultiHeadAttWrapper
+    Wrapper around multiHeadAttention, with layer normalization 
+    and residual output. The residual and layernorm are considered
+    as additional operations
+    
+    input -> MultiHeadAttention -> residual -> layernorm
+    
+    Same usage as MultiheadAttention.
+
+    """
+    def __init__(self, 
+                 feat_dim_k, feat_dim_v, 
+                 num_head=4, 
+                 attn_dropout = 0.0, 
+                 flag_cat_q = True, 
+                 flag_layernorm_out = True, 
+                 flag_residual = True):
+        """MultiHeadAttWrapper()
+        
+        Args
+        ----
+          feat_dim:     int, feat_dimension
+          num_head:     int, number of heads
+          attn_dropout: float, attention dropout in Multihead attention
+
+          flag_cat_q: bool, if true, concate(query, attention's output)
+          flag_causal: bool, causal dependency in self-attention
+          feat_dropout: dropout on feature after self-attention
+        """
+        super(MultiHeadAttWrapper, self).__init__(
+            feat_dim_k, feat_dim_v, num_head, attn_dropout, flag_cat_q)
+                
+        # output layer norm
+        self.flag_layernorm_out = flag_layernorm_out
+
+        if self.flag_layernorm_out:
+            self.m_layernorm = torch_nn.LayerNorm(feat_dim_v)
+
+        # use residual connection?
+        self.flag_residual = flag_residual
+
+        return
+        
+    def forward(self, query, key, value, q_mask = None, k_mask = None):
+        """O, attn = SelfMultiheadAttention(feat, mask)
+        
+        input:
+        ------
+          Q: (batch, lengthQ, feat_dimK)
+          K: (batch, lengthK, feat_dimK)
+          V: (batch, lengthK, feat_dimV)
+
+    
+          k_mask: None or tensor, (batch, lengthQ, lengthK)
+          q_mask: None or tensor, (batch, lengthQ)
+        
+        output
+        ------
+          O: tensor, (batch, lengthQ, feat_dim)
+          attn: tensor, (batch * head, lengthQ, lengthK), attention matrix
+          
+        """        
+            
+        # call multi-head attention
+        o_mat, attn = super(MultiHeadAttWrapper, self).forward(
+            query, key, value, q_mask, k_mask)
+
+        # residual
+        if self.flag_residual:
+            o_mat = query + o_mat
+        
+        # layernorm
+        if self.flag_layernorm_out:
+            o_mat = self.m_layernorm(o_mat)
+        
+        return o_mat, attn
+
 
 
 # ====================
@@ -373,7 +388,8 @@ class MultiheadAttention(torch_nn.Module):
 # ====================
 
 def position_encoding(n_pos, n_dim, padding_idx=None):
-    """Position encoding in Transformer
+    """data = position_encoding(n_pos, n_dim, padding_idx)
+    Position encoding in Transformer
     
     input: 
     ------
@@ -408,80 +424,130 @@ def position_encoding(n_pos, n_dim, padding_idx=None):
     # remove the dummy positioning encoding
     if padding_idx is not None:
         sin_tab[padding_idx] = 0
+
     return sin_tab
 
-class FeedforwardBlock(torch_nn.Module):
-    """Feedforward block in Transformer 
+# ========
+# Guided Attention mask
+# ========
+
+def GuidedAttentionPenelty(olen, ilen, sigma):
+    """p_matrix = GuidedAttentionPenelty(olen, ilen, sigma)
+    
+    From paper 
+    Tachibana, Hideyuki, Katsuya Uenoyama, and Shunsuke Aihara. 
+    Efficiently trainable text-to-speech system based on deep 
+    convolutional networks with guided attention. Proc. ICASSP 2018.
+    https://arxiv.org/pdf/1710.08969.pdf
+    
+    W_{nt} = 1 − exp{−(n/N − t/T)^2 /(2g^2)}
+    
+    input
+    -----
+      ilen:   int, input sequence length
+      olen:   int, output sequence length
+      sigma:  float, smoothing parameter
+      
+    output
+    ------
+      p_matrix:   tensor, penelty matrix, (olen, ilen)
     """
-    def __init__(self, feat_dim):
-        super(FeedforwardBlock, self).__init__()
-        
-        self.m_block = torch_nn.Sequential(
-            torch_nn.Linear(feat_dim, feat_dim * 4),
-            torch_nn.ReLU(),
-            torch_nn.Linear(feat_dim * 4, feat_dim)
-            #torch_nn.Dropout(p=0.1)
-        )
-        self.m_layernorm = torch_nn.LayerNorm(feat_dim)
-        
-        # initialization
-        torch_nn.init.xavier_uniform_(
-            self.m_block[0].weight, gain=torch_nn.init.calculate_gain('relu'))
-        torch_nn.init.xavier_uniform_(
-            self.m_block[2].weight, gain=torch_nn.init.calculate_gain('linear'))
-        return
+    try:
+        grid_o, grid_i = torch.meshgrid(torch.arange(olen), torch.arange(ilen), 
+                                        indexing='ij')
+    except TypeError:
+        grid_o, grid_i = torch.meshgrid(torch.arange(olen), torch.arange(ilen))
 
-    def forward(self, feat):
-        """ out = FeedforwardBlock(feat)
-        
-        input
-        -----
-          feat: tensor, (batch, length, feat_dim)
-          
-        output
-        ------
-          output: tensor, (batch, length, feat_dim)
-        """
-        return self.m_layernorm(self.m_block(feat) + feat)
+    p_matrix = -((grid_o / olen - grid_i / ilen) ** 2) / (2 * (sigma ** 2))
+    p_matrix = 1.0 - torch.exp(p_matrix)
+    return p_matrix
 
 
-class FeedforwardBlockv2(torch_nn.Module):
-    """Feedforward block in Transformer 
+def GuidedAttentionPeneltyBatch(olens, ilens, sigma=0.4):
+    """p_matrices = GuidedAttentionPeneltyBatch(olens, ilens)
+    Batch version of GuidedAttentionPenelty
+    
+    input
+    -----
+      ilen:   list of int, input sequence length
+      olen:   list of int, output sequence length
+      sigma:  float, smoothing parameter
+      
+    output
+    ------
+      p_matrices: tensor, penelty matrix, (len(olens), max(olens), max(ilens))
+      
+    Example
+    -------
+      GuidedAttentionPeneltyBatch([6, 5], [3, 5], 0.4)
+      tensor([[[0.0000, 0.2934, 0.7506, 0.0000, 0.0000],
+         [0.0831, 0.0831, 0.5422, 0.0000, 0.0000],
+         [0.2934, 0.0000, 0.2934, 0.0000, 0.0000],
+         [0.5422, 0.0831, 0.0831, 0.0000, 0.0000],
+         [0.7506, 0.2934, 0.0000, 0.0000, 0.0000],
+         [0.8858, 0.5422, 0.0831, 0.0000, 0.0000]],
+
+        [[0.0000, 0.1175, 0.3935, 0.6753, 0.8647],
+         [0.1175, 0.0000, 0.1175, 0.3935, 0.6753],
+         [0.3935, 0.1175, 0.0000, 0.1175, 0.3935],
+         [0.6753, 0.3935, 0.1175, 0.0000, 0.1175],
+         [0.8647, 0.6753, 0.3935, 0.1175, 0.0000],
+         [0.0000, 0.0000, 0.0000, 0.0000, 0.0000]]])
     """
-    def __init__(self, feat_dim, dropout=0.0, flag_norm_before=False):
-        super(FeedforwardBlockv2, self).__init__()
-        
-        self.m_block = torch_nn.Sequential(
-            torch_nn.Linear(feat_dim, feat_dim * 4),
-            torch_nn.ReLU(),
-            torch_nn.Dropout(p=dropout),
-            torch_nn.Linear(feat_dim * 4, feat_dim)
-        )
-        self.flag_norm_before = flag_norm_before
-        self.m_layernorm = torch_nn.LayerNorm(feat_dim)
-        
-        # initialization
-        torch_nn.init.xavier_uniform_(
-            self.m_block[0].weight, gain=torch_nn.init.calculate_gain('relu'))
-        torch_nn.init.xavier_uniform_(
-            self.m_block[-1].weight, gain=torch_nn.init.calculate_gain('linear'))
-        return
+    assert len(ilens) == len(olens), "len(ilens) != len(olens)"
+    num_batch = len(ilens)
+    pmats = torch.zeros([num_batch, max(olens), max(ilens)])
+    for idx, olen, ilen in zip(range(num_batch), olens, ilens):
+        pmats[idx, :olen, :ilen] = GuidedAttentionPenelty(olen, ilen, sigma)
+    return pmats
 
-    def forward(self, feat):
-        """ out = FeedforwardBlock(feat)
-        
-        input
-        -----
-          feat: tensor, (batch, length, feat_dim)
-          
-        output
-        ------
-          output: tensor, (batch, length, feat_dim)
-        """
-        if not self.flag_norm_before:
-            return self.m_layernorm(self.m_block(feat) + feat)
-        else:
-            return self.m_block(feat) + feat
+
+
+def GuidedAttentionMask(olens, ilens):
+    """masks = GuidedAttentionMask(olens, ilens)
+    Generating masks. Attention matrix corresponding to padded zero should
+    not be computed in the GuidedAttention Loss, then they should be masked.
+    Note that, masks in Encoder and Decoder are computed in different ways.
+    
+    input
+    -----
+      ilen:   list of int, input sequence length
+      olen:   list of int, output sequence length
+      sigma:  float, smoothing parameter
+      
+    output
+    ------
+      masks: tensor, mask matrices, (len(olens), max(olens), max(ilens))
+      
+    Example
+    -------
+      GuidedAttentionMask([6, 5], [3, 5])
+      tensor([[[ True,  True,  True, False, False],
+         [ True,  True,  True, False, False],
+         [ True,  True,  True, False, False],
+         [ True,  True,  True, False, False],
+         [ True,  True,  True, False, False],
+         [ True,  True,  True, False, False]],
+
+        [[ True,  True,  True,  True,  True],
+         [ True,  True,  True,  True,  True],
+         [ True,  True,  True,  True,  True],
+         [ True,  True,  True,  True,  True],
+         [ True,  True,  True,  True,  True],
+         [False, False, False, False, False]]])
+    
+      It should be used like this:
+      loss_all = attention_matrices * GuidedAttentionPeneltyBatch
+      loss_mean = torch_mean(loss_all.masked_select(GuidedAttentionMask))
+    """
+    assert len(ilens) == len(olens), "len(ilens) != len(olens)"
+    num_batch = len(ilens)
+    
+    masks = torch.zeros([num_batch, max(olens), max(ilens)])
+    for idx, olen, ilen in zip(range(num_batch), olens, ilens):
+        masks[idx, :olen, :ilen] += 1.0
+
+    return masks.gt(0.0)
 
 
 if __name__ == "__main__":

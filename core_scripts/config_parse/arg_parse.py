@@ -167,6 +167,10 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--not-save-each-epoch', action='store_true', \
                         default=False, help=mes)
 
+    mes = 'do not save anything (default: False)'
+    parser.add_argument('--not-save-anything', action='store_true', \
+                        default=False, help=mes)
+
     mes = 'name prefix of saved model (default: epoch)'
     parser.add_argument('--save-epoch-name', type=str, default="epoch", \
                         help=mes)
@@ -300,6 +304,14 @@ def f_args_parsed(argument_input = None):
     parser.add_argument('--verbose', type=int, default=1,
                         help=mes)
 
+
+    mes = 'use a specified number of mini-batches per epoch in training'
+    mes += ' (default: 0, not used)'
+    parser.add_argument('--minibatch-num-train', type=int, default=0, help=mes)
+
+    mes = 'use a specified number of mini-batches per epoch in validation'
+    mes += ' (default: 0, not used)'
+    parser.add_argument('--minibatch-num-val', type=int, default=0, help=mes)
 
     #######
     # options for debug mode

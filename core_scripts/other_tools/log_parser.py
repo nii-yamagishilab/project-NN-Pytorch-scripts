@@ -8,15 +8,89 @@ tools to parse log_train and log_err
 from __future__ import absolute_import
 from __future__ import print_function
 
-import numpy as np
 import os
 import re
 import sys
+import numpy as np
+import scipy
+try:
+    import pandas as pd
+except ImportError:
+    print("Log_parser requires pandas")
+    print("Many functions cannot be used without pandas")
+
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
 __copyright__ = "Copyright 2020, Xin Wang"
 
+
+# ====
+# utilities
+# ====
+
+# filtering the error curve
+def smooth_geo(data, factor = 0.1, tap = 10):
+    taps = np.arange(tap)
+    b_coef = np.power(factor, taps) * (1-factor)
+    return scipy.signal.lfilter(
+        b_coef, [1], np.concatenate([np.ones([tap]) * data[0], data]))[tap:]
+
+def smooth_ave(data, tap = 100):
+    # check freq-response
+    # w, h = scipy.signal.freqz(b_coef)
+    # plot_API.plot_API(20 * np.log10(abs(h)), plot_lib.plot_signal, 'single')
+    b_coef = np.ones([tap]) * 1/tap
+    return scipy.signal.lfilter(
+        b_coef, [1], np.concatenate([np.ones([tap]) * data[0], data]))[tap:]
+
+# === 
+# APIs
+# ===
+
+def f_read_log_err_pd(file_path, cell_losses = None):
+    """ pd = f_read_log_err_pd(file_path)
+
+    Automatically parse the log_err file, where each line has format like:
+    10753,LJ045-0082,0,9216,0, 22/12100, Time: 0.190877s, Loss: 85.994621, ... 
+
+    input:  file_path,     str, path to the log file
+    input:  num_of_losses, int or None, number of Loss cells in the log
+                           if None, it will be estimated from 1st line of log
+    output: pd, pandas.Frame
+    """
+    def _load_number_of_losses(file_path):
+        with open(file_path, 'r') as file_ptr:
+            for line in file_ptr:
+                cells = line.rstrip().split(',')
+                num_of_loss = [x for x in cells if x.count("Loss:")]
+                break
+            return len(num_of_loss)
+    def _convert_loss(cell_value):
+        if cell_value.count('Loss:'):
+            return float(cell_value.split(':')[-1])
+        else:
+            return np.nan
+
+    if cell_losses is None:
+        num_of_losses = _load_number_of_losses(file_path)
+        cell_losses = ['loss-{:d}'.format(x) for x in range(num_of_losses)]
+    
+    # names for csv parsing
+    names = ['id', 'trial', 'seg_idx', 'length', 'start_pos', 'order', 'time']
+    names = names + cell_losses
+
+    # convert Loss: yyy to yyy in float number
+    converters = {x: _convert_loss for x in cell_losses}
+
+    # parse the log
+    return pd.read_csv(file_path, sep=',', 
+                       names = names, converters = converters)
+            
+
+# ========
+# Old APIs for parsing training logs
+# ========
 def f_read_log_err(file_path):
     """
     each line looks like 
@@ -95,6 +169,7 @@ def f_read_log_err_old(file_path, train_num, val_num):
 
 def pass_number(input_str):
     return np.array([float(x) for x in input_str.split()]).sum()
+
 
 def f_read_log_train(file_path, sep='/'):
     """ 

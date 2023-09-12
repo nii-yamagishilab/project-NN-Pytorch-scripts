@@ -49,8 +49,8 @@ score_script=02_score.sh
 # Configurations fixed
 ##
 main_script=main.py
-condafile=$PWD/../../env-fs-install.sh
-envfile=$PWD/../../env-fs.sh
+condafile=$PWD/../../env-s3prl-install.sh
+envfile=$PWD/../../env-s3prl.sh
 trained_model=trained_network
 
 #####
@@ -69,14 +69,16 @@ cd ../
 
 #####
 # step 2 download 
+echo -e "\n${RED}=======================================================${NC}"
+echo -e "${RED}Step2. download pre-trained models${NC}"
+
 bash 01_download.sh
-bash 01_download_pretrained.sh
+bash 01_download_pretrained_cm.sh ${PRJDIR}
 
 #####
 # step 3 inference using trained model
 echo -e "\n${RED}=======================================================${NC}"
 echo -e "${RED}Step3. score the toy data set using models trained by Xin${NC}"
-
 
 trainedmodel=${trained_model}.pt
 if [ -e ${PRJDIR}/${trainedmodel} ];
@@ -89,5 +91,8 @@ then
 	      trained"
     echo ${com}
     eval ${com}
+else
+    echo "Model not found ${PRJDIR}/${trainedmodel}"
+
 fi
 
