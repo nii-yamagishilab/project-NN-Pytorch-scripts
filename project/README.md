@@ -112,5 +112,14 @@ This project uses vocoded spoofed data to train spoofing speech countermeasures.
 Xin Wang, and Junichi Yamagishi. Spoofed training data for speech spoofing countermeasure can be efficiently created using neural vocoders. Proc. ICASSP, 2023, accepted
 ```
 
+## [10-asvspoof-vocoded-trn](./10-asvspoof-vocoded-trn) Vocoded spoofed speech data for SSL and spoofing countermeasure
+
+This project is for paper 
+
+```bibtex
+Xin Wang, and Junichi Yamagishi. Can Large-scale vocoded spoofed data improve speech spoofing countermeasure with a self-supervised front end? 2024.
+```
+
+
 ---
 That's all
