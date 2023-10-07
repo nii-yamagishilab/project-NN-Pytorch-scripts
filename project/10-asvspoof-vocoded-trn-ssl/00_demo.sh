@@ -4,7 +4,7 @@
 # 
 # Usage: bash 00_demo.sh PATH CONFIG RAND_SEED
 # where 
-#   PATH can be model-B1
+#   PATH can be model-ID-B1
 #        or other model-* folders
 #   CONFIG can be config_train_toyset_paired
 #       if you prepare other config, you can use them as well

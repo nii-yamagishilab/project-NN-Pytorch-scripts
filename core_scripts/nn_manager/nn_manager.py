@@ -577,7 +577,7 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
     return
 
 
-def f_inference_wrapper(args, pt_model, device, \
+def f_inference_wrapper(args, pt_model, device, 
                         test_dataset_wrapper, checkpoint):
     """ Wrapper for inference
     """
@@ -617,8 +617,6 @@ def f_inference_wrapper(args, pt_model, device, \
     nii_display.f_print("Start inference (generation):", 'highlight')
     nii_display.f_print("Generate minibatch indexed within [{:d},{:d})".format(
         range_genidx_start, range_genidx_end))
-
-
 
     # if a list of file to be processed is provided
     inf_datalist_path = args.inference_data_list
@@ -678,7 +676,6 @@ def f_inference_wrapper(args, pt_model, device, \
                 else:
                     pass
 
-
             # send data to device and convert data type
             if isinstance(data_in, torch.Tensor):
                 data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
@@ -705,7 +702,6 @@ def f_inference_wrapper(args, pt_model, device, \
                 infer_func = pt_model.inference
             else:
                 infer_func = pt_model.forward
-
             
             if hasattr(args, 'trunc_input_length_for_inference') and \
                args.trunc_input_length_for_inference > 0:
@@ -774,7 +770,7 @@ def f_inference_wrapper(args, pt_model, device, \
                     mes = "Output data is not torch.tensor. Please check "
                     mes += "model.forward or model.inference"
                     nii_display.f_die(mes)
-                
+
                 # save output (in case batchsize > 1, )
                 for idx, seq_info in enumerate(data_info):
                     #nii_display.f_print(seq_info)
