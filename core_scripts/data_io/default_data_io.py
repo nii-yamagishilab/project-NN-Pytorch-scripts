@@ -130,7 +130,8 @@ class NIIDataSet(torch.utils.data.Dataset):
                  dset_config = None, \
                  input_augment_funcs = None, \
                  output_augment_funcs = None,
-                 inoutput_augment_func = None):
+                 inoutput_augment_func = None,
+                 output_invtrans_funcs = None):
         """
         args
         ----
@@ -171,6 +172,8 @@ class NIIDataSet(torch.utils.data.Dataset):
                                 default None
           inoutput_augment_func: a single data augmentation function, 
                                 default None
+          output_invtrans_funcs: list of inverse transformations to process 
+                                 generated data during inference. default None
 
         """
         # initialization
@@ -249,6 +252,11 @@ class NIIDataSet(torch.utils.data.Dataset):
             self.m_inouaug_func = inoutput_augment_func
         else:
             self.m_inouaug_func = None
+
+        if output_invtrans_funcs:
+            self.m_output_invtrans_funcs = output_invtrans_funcs
+        else:
+            self.m_output_invtrans_funcs = []
 
         # dimensions
         self.m_input_all_dim = sum(self.m_input_dims)
@@ -1410,7 +1418,8 @@ class NIIDataSet(torch.utils.data.Dataset):
         
     def f_putitem(self, output_data, save_dir, filename_prefix, data_infor_str):
         """ 
-        """
+        """ 
+
         # Change the dimension to (length, dim)
         if output_data.ndim == 3 and output_data.shape[0] == 1:
             # When input data is (batchsize=1, length, dim)
@@ -1423,6 +1432,15 @@ class NIIDataSet(torch.utils.data.Dataset):
             nii_warn.f_print("Format is not (batch, len, dim)", "error")
             nii_warn.f_die("Please use batch_size = 1 in generation")
 
+        ###
+        # before saving output data, we do (inverse) transformation
+        ###
+        if self.m_output_invtrans_funcs:
+            # apply all the output transformation on the generated data
+            output_tmp = [x(output_data) for x in self.m_output_invtrans_funcs]
+            # concatenate by the last dimension
+            output_data = np.concatenate(output_tmp, axis=-1)
+           
         # Save output
         if output_data.shape[1] != self.m_output_all_dim:
             nii_warn.f_print("Output data dim != expected dim", "error")
@@ -1604,7 +1622,8 @@ class NIIDataSetLoader:
                  dset_config = None,
                  input_augment_funcs = None,
                  output_augment_funcs = None,
-                 inoutput_augment_func = None):
+                 inoutput_augment_func = None,
+                 output_invtrans_funcs = None):
         """
         NIIDataSetLoader(
                data_set_name,
@@ -1623,7 +1642,8 @@ class NIIDataSetLoader:
                dset_config = None,
                input_augment_funcs = None,
                output_augment_funcs = None,
-               inoutput_augment_func = None):
+               inoutput_augment_func = None,
+               output_invtrans_funcs = None):
         Args
         ----
             data_set_name: a string to name this dataset
@@ -1670,6 +1690,9 @@ class NIIDataSetLoader:
                       default None
             inoutput_augment_func: a single data augmentation function
                       default None
+            output_invtrans_funcs: list of functions for inverse transformation
+                      of output features during inference. d
+                      efault None
         Methods
         -------
             get_loader(): return a torch.util.data.DataLoader
@@ -1696,7 +1719,8 @@ class NIIDataSetLoader:
                                     dset_config, \
                                     input_augment_funcs,
                                     output_augment_funcs,
-                                    inoutput_augment_func)
+                                    inoutput_augment_func,
+                                    output_invtrans_funcs)
         
         # create torch.util.data.DataLoader
         if params is None:

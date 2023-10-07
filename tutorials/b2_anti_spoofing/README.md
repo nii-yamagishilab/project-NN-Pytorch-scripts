@@ -2,11 +2,13 @@
 
 Here are the tutorial notebooks on speech anti-spoofing.
 
-It is unfinished, but the following notebooks are available:
+Chapter 1 and 2 were the materials used in the Interspeech 2023 tutorial.
 
 
 | Chapter | Contents |
 | --- | :-- |
+| chapter 1  Toy example | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19amdsNeLZ0O6Ch-jDuIm9Z4pXeO_rF40?usp=sharing) Please check First session
+| chapter 2  Graph attention network CM | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19amdsNeLZ0O6Ch-jDuIm9Z4pXeO_rF40?usp=sharing) Please check Second session
 | [chapter_a0_EER](./chapter_a0_EER.ipynb) | Detailed tutorial on equal error rate (EER)
 | [chapter_a1_stats_test](./chapter_a1_stats_test.ipynb) |  Detailed tutorial on statistical analysis on EER
 

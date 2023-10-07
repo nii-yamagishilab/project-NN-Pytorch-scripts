@@ -254,7 +254,8 @@ class NII_MergeDataSetLoader():
                  dset_config = None,
                  input_augment_funcs = None,
                  output_augment_funcs = None,
-                 inoutput_augment_func = None):
+                 inoutput_augment_func = None,
+                 output_invtrans_funcs = None):
         """ Signature is similar to default_io.NIIDataSetLoader.
         file_list, input_dirs, and output_dirs are different.
         One additional optional argument is way_to_merge.
@@ -308,6 +309,9 @@ class NII_MergeDataSetLoader():
                                  default None
             inoutput_augment_func: a single data augmentation function
                                  default None
+            output_invtrans_funcs: list of functions for inverse transformation
+                      of output features during inference. d
+                      efault None
         Methods
         -------
             get_loader(): return a torch.util.data.DataLoader
@@ -353,9 +357,15 @@ class NII_MergeDataSetLoader():
         for sub_input_dirs, sub_output_dirs, sub_file_list, tmp_name in \
             zip(list_input_dirs, list_output_dirs, list_file_list, tmp_dnames):
             
+            # augmentation (transformation) function for input
             inaug = input_augment_funcs[cnt] if input_augment_funcs else None
+            
+            # augmentation (transformation) function for output 
             ouaug = output_augment_funcs[cnt] if output_augment_funcs else None
-
+            
+            # inverse transformation for output data during inference
+            oinf = output_invtrans_funcs[cnt] if output_invtrans_funcs else None
+            
             lst_dset.append(
                 nii_default_dset.NIIDataSetLoader(
                     tmp_name, sub_file_list, \
@@ -366,7 +376,7 @@ class NII_MergeDataSetLoader():
                     stats_path, data_format, params, truncate_seq, min_seq_len,\
                     save_mean_std, wav_samp_rate, flag_lang, \
                     global_arg, dset_config, inaug, ouaug,\
-                    inoutput_augment_func))
+                    inoutput_augment_func, oinf))
             cnt += 1
 
         # list of the datasets
