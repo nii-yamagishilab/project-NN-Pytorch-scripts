@@ -2,8 +2,11 @@
 
 Here are the tutorial notebooks on speech anti-spoofing.
 
-Chapter 1 and 2 were the materials used in the Interspeech 2023 tutorial.
+Chapter 1 and 2 were the materials used in the [Interspeech 2023 tutorial](https://github.com/Jungjee/INTERSPEECH2023_T6/).
 
+```bibtex
+Jun Jee Wong, Hye jin Shim, Hemlata Tak, Xin Wang, Advances in audio anti-spoofing and deepfake detection using graph neural networks and self-supervised learning. Interspeech tutorial, 2023
+```
 
 | Chapter | Contents |
 | --- | :-- |
