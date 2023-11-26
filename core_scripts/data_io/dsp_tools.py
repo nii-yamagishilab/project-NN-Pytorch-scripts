@@ -152,6 +152,12 @@ class Melspec(object):
         A = np.fmax(np.absolute(Y), self.eps)
         return A
 
+    def _spec_amp_to_db(self, A):
+        return 20.0 * np.log10(A)
+
+    def _spec_db_to_amp(self, A):
+        return np.power(10.0, A / 20.0)
+    
     def _logmelfbspec(self, A):
         M = np.log(np.dot(A, self.melfb.T))
         return M
@@ -163,13 +169,16 @@ class Melspec(object):
         else:
             return X
 
+    def _stft_amp(self, X):
+        return self._amplitude(self._rfft(self._anawindow(self._frame(X))))
+
     def analyze(self, X):
         """Mel = analysze(X)
         input: X, np.array, waveform data, (length, )
         output: Mel, np.array, melspec., (frame_length, melfb_size)
         """
         X = self._preprocess(X)
-        M = self._amplitude(self._rfft(self._anawindow(self._frame(X))))
+        M = self._stft_amp(X)
         M = self._logmelfbspec(M)
         return M
 

@@ -361,11 +361,16 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # no way to call normtarget_f after pt_model is in DataParallel
         normtarget_f = pt_model.normalize_target
         pt_model = nn.DataParallel(pt_model)
-    else:
+    elif not args.no_cuda:
         nii_display.f_print("\nUse single GPU: %s\n" % \
                             (torch.cuda.get_device_name(device)))
         flag_multi_device = False
         normtarget_f = None
+    else:
+        nii_display.f_print("\nUse CPU: %s\n")
+        flag_multi_device = False
+        normtarget_f = None
+        
     pt_model.to(device, dtype=nii_dconf.d_dtype)
 
     # print the network
