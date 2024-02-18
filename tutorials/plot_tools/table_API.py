@@ -196,7 +196,8 @@ def print_table(data_array, column_tag, row_tag,
 
 
     # color configuration
-    color_func = cm.get_cmap(colormap)
+    #color_func = cm.get_cmap(colormap)
+    color_func = matplotlib.colormaps[colormap]
     #data_idx = return_valid_number_idx(data_array)    
     #value_min = np.min(data_array[data_idx])
     #value_max = np.max(data_array[data_idx])
