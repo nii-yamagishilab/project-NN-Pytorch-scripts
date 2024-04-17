@@ -41,6 +41,10 @@ def f_args_parsed(argument_input = None):
 
     mes = 'module of auxiliary model definition (in case this is needed)'
     parser.add_argument('--module-model-aux', type=str, default="", help=mes)
+
+    mes = 'module of datasets (default datasets)'
+    parser.add_argument('--module-dataset', type=str, default="datasets", 
+                        help=mes)
     
     ######
     # Training settings    
@@ -384,6 +388,29 @@ def f_args_parsed(argument_input = None):
     else:
         return parser.parse_args()
 
+
+
+########
+# other utils
+########
+
+def overwrite_args(args, config_dic):
+    """overwrite_args(args, config_dic)
+    
+    I want to use speechbrain data io. However, some options 
+    for speechbrain are in yaml config. I need to load them
+    and overwrite the args
+
+    input
+    -----
+      args:       argparse
+      config_dic: dic, configuration dictionary
+    """
+    if 'batch_size' in config_dic:
+        args.batch_size = config_dic['batch_size']
+    if 'num_workers' in config_dic:
+        args.num_workers = config_dic['num_workers']
+    return
 
 if __name__ == "__main__":
     pass

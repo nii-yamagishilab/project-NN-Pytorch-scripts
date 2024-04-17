@@ -30,8 +30,185 @@ __copyright__ = "Copyright 2020, Xin Wang"
 
 #############################################################
 
+def f_run_one_epoch_GAN_sb(
+        args, pt_model_G, pt_model_D, \
+        loss_wrapper, \
+        device, monitor,  \
+        data_loader, epoch_idx, 
+        optimizer_G = None, optimizer_D = None, \
+        target_norm_method = None):
+    """
+    f_run_one_epoch_GAN_sb is based on f_run_one_epoch_GAN but
+    tailored for speeechbrain dataloader
+    
+    """
+    # timer
+    start_time = time.time()
+        
+    # loop over samples
+    for data_idx, batch in enumerate(data_loader):
+
+        # get the data information
+        data_info = batch.seq_info
+        # get the data idx
+        idx_orig = batch.orig_id
+        
+        #data_in = data_in.to(device, dtype=nii_dconf.d_dtype)
+        #if isinstance(data_tar, torch.Tensor):
+        #    data_tar = data_tar.to(device, dtype=nii_dconf.d_dtype)
+        #else:
+        #    nii_display.f_die("target data is required")
+        batch = batch.to(device)
+
+        #############
+        # prepare
+        #############        
+        # send data to device
+        if optimizer_G is not None:
+            optimizer_G.zero_grad()
+        if optimizer_D is not None:
+            optimizer_D.zero_grad()
+                    
+        ############################
+        # 1. Generate the sample
+        ############################
+        # everything should be wrapped in batch
+        data_gen = pt_model_G(batch)
+
+        ############################
+        # 2. update discrminator
+        ############################
+        pt_model_D.zero_grad()
+        if optimizer_D is not None:
+            optimizer_D.zero_grad()
+
+        # compute discriminator loss
+        if hasattr(pt_model_D, 'loss_for_D'):
+            errD = pt_model_D.loss_for_D(data_gen.detach(), batch)
+        else:
+            # for compatiblity 
+            # get the discrminator's outputs for real and fake data
+            # data_gen.detach() is required
+            #  https://github.com/pytorch/examples/issues/116
+            #  https://stackoverflow.com/questions/46774641/
+            d_out_fake = pt_model_D(data_gen.detach(), batch)
+            d_out_real = pt_model_D(batch, batch)
+
+            errD_real = loss_wrapper.compute_gan_D_real(d_out_real)
+            errD_fake = loss_wrapper.compute_gan_D_fake(d_out_fake)
+            errD = errD_real + errD_fake
+
+        # update discriminator weight
+        if optimizer_D is not None:
+            errD.backward()
+            optimizer_D.step()
+            
+        ############################
+        # 3. update generator 
+        ############################
+        pt_model_G.zero_grad()
+        if optimizer_G is not None:
+            optimizer_G.zero_grad()
+
+        # compute the loss for generator
+        if hasattr(pt_model_D, 'loss_for_G'):
+            errG = pt_model_D.loss_for_G(data_gen, batch)
+            if hasattr(pt_model_G, 'loss_aux'):
+                errG += pt_model_G.loss_aux(data_gen, batch)
+        else:
+            # get the discrminator's outputs again
+            d_out_fake_for_G = pt_model_D(data_gen, batch)
+            d_out_real_for_G = pt_model_D(None, batch)
+
+            # for compatibility
+            errG_gan = loss_wrapper.compute_gan_G(d_out_fake_for_G)
+
+            # if defined, calculate auxilliart loss
+            if hasattr(loss_wrapper, "compute_aux"):
+                errG_aux = loss_wrapper.compute_aux(data_gen, batch)
+            else:
+                errG_aux = torch.zeros_like(errG_gan)
+            
+            # if defined, calculate feat-matching loss
+            if hasattr(loss_wrapper, "compute_feat_match"):
+                errG_feat = loss_wrapper.compute_feat_match(
+                    d_out_real, d_out_fake_for_G)
+            else:
+                errG_feat = torch.zeros_like(errG_gan)
+
+            # sum loss for generator
+            errG = errG_gan + errG_aux + errG_feat
+
+        if optimizer_G is not None:
+            errG.backward()
+            optimizer_G.step()
+
+        # construct the loss for logging and early stopping 
+        # only use errG_aux for early-stopping
+        #loss_computed = [
+        #    [errG_aux, errD_real, errD_fake, errG_gan, errG_feat],
+        #    [True, False, False, False, False]]
+        loss_computed = [[errG, errD], [True, True]]
+
+        # to handle cases where there are multiple loss functions
+        _, loss_vals, loss_flags = nii_nn_tools.f_process_loss(loss_computed)
+                    
+        # save the training process information to the monitor
+        end_time = time.time()
+        batchsize = len(batch)
+        for idx, data_seq_info in enumerate(data_info):
+            # loss_value is supposed to be the average loss value
+            # over samples in the the batch, thus, just loss_value
+            # rather loss_value / batchsize
+            monitor.log_loss(loss_vals, loss_flags, \
+                             (end_time-start_time) / batchsize, \
+                             data_seq_info, idx_orig.numpy()[idx], \
+                             epoch_idx)
+            # print infor for one sentence
+            if args.verbose == 1:
+                # here we use args.batch_size because len(data_info)
+                # may be < args.batch_size. 
+                monitor.print_error_for_batch(
+                    data_idx * args.batch_size + idx,
+                    idx_orig.numpy()[idx], 
+                    epoch_idx)
+            # 
+        # start the timer for a new batch
+        start_time = time.time()
+        
+        # Save intermediate model for every n mini-batches (optional).
+        # Note that if we re-start trainining with this intermediate model,
+        #  the data will start from the 1st sample, not the one where we stopped
+        if args.save_model_every_n_minibatches > 0 \
+           and (data_idx+1) % args.save_model_every_n_minibatches == 0 \
+           and optimizer is not None and data_idx > 0:
+            cp_names = nii_nn_manage_conf.CheckPointKey()
+
+            for pt_model, optimizer, model_tag in \
+                zip([pt_model_G, pt_model_D], [optimizer_G, optimizer_D], 
+                    model_tags):
+
+                tmp_model_name = nii_nn_tools.f_save_epoch_name(
+                    args, epoch_idx, 
+                    '_{:05d}_{:s}'.format(data_idx+1, model_tag))
+                # save
+                tmp_dic = {
+                    cp_names.state_dict : pt_model.state_dict(),
+                    cp_names.optimizer : optimizer.state_dict(),
+                }
+                torch.save(tmp_dic, tmp_model_name)
+        
+        # If debug mode is used, only run a specified number of mini-batches
+        if args.debug_batch_num > 0 and data_idx >= (args.debug_batch_num - 1):
+            nii_display.f_print("Debug mode is on. This epoch is finished")
+            break
+
+    # lopp done
+    return
+
+
 def f_run_one_epoch_GAN(
-        args, pt_model_G, pt_model_D, 
+        args, pt_model_G, pt_model_D, \
         loss_wrapper, \
         device, monitor,  \
         data_loader, epoch_idx, 
@@ -561,11 +738,16 @@ def f_train_wrapper_GAN(
     start_epoch = monitor_trn.get_epoch()
     epoch_num = monitor_trn.get_max_epoch()
 
-    # select one wrapper, based on the flag in loss definition
-    if hasattr(loss_wrapper, "flag_wgan") and loss_wrapper.flag_wgan:
-        f_wrapper_gan_one_epoch = f_run_one_epoch_WGAN
+    # choose the proper function to go over one epoch
+    if hasattr(train_dataset_wrapper, 'db_type') \
+       and train_dataset_wrapper.db_type == 'speechbrain':
+        f_wrapper_gan_one_epoch = f_run_one_epoch_GAN_sb
     else:
-        f_wrapper_gan_one_epoch = f_run_one_epoch_GAN
+        # select one wrapper, based on the flag in loss definition
+        if hasattr(loss_wrapper, "flag_wgan") and loss_wrapper.flag_wgan:
+            f_wrapper_gan_one_epoch = f_run_one_epoch_WGAN
+        else:
+            f_wrapper_gan_one_epoch = f_run_one_epoch_GAN
 
     # print
     _ = nii_op_display_tk.print_log_head()
