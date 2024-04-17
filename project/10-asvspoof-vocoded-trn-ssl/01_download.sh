@@ -46,6 +46,7 @@ cd ..
 link_set=https://zenodo.org/record/8336949/files/wav2vec_ft2_vox_vocoded.pt
 set_name=wav2vec_ft2_vox_vocoded.pt
 
+
 cd SSL_pretrained
 
 echo -e "\n${RED}=======================================================${NC}"
@@ -63,3 +64,13 @@ then
 fi
 
 cd ..
+
+
+# XLSR-53 Large
+# W2V-XLSR 
+if [ ! -e xlsr_53_56k.pt ]; 
+then
+    echo -e "${RED}Download SSL model${NC}"
+    wget -q --show-progress -O xlsr_53_56k.pt https://dl.fbaipublicfiles.com/fairseq/wav2vec/xlsr_53_56k.pt 
+fi
+
