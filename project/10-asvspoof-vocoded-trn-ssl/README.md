@@ -10,6 +10,8 @@ This project demonstrates the training and scoring process using **a toy vocoded
 
 Apologize for inconvenience for the troublesome setting and onerous manual work. 
 
+Slides: https://tonywangx.github.io/slide.html#apr-2024
+
 ## 1. Vocoded VoxCeleb2
 
 The vocoded Voxceleb2 dataset cannot be re-distributed due to restriction of the license and privacy issue.  However, pre-trained vocoders and scripts to do copy-synthesis can be found in this in this notebook [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xObWejhqcdSxFAjfWI7sudwPPMoCx-vA?usp=sharing).
