@@ -789,65 +789,9 @@ def tDCF_wrapper2(bonafide_score_cm, spoof_score_cm, C0, C1, C2):
 
 
 
-def logit(p):
-    """logit function.
-    This is a one-to-one mapping from probability to log-odds.
-    i.e. it maps the interval (0,1) to the real line.
-    The inverse function is given by SIGMOID.
-
-    log_odds = logit(p) = log(p/(1-p))
-
-    :param p: the inumpyut value
-
-    :return: logit(inumpyut)
-    """
-    p = np.array(p)
-    lp = np.zeros(p.shape)
-    f0 = p == 0
-    f1 = p == 1
-    f = (p > 0) & (p < 1)
-
-    if lp.shape == ():
-        if f:
-            lp = np.log(p / (1 - p))
-        elif f0:
-            lp = -np.inf
-        elif f1:
-            lp = np.inf
-    else:
-        lp[f] = np.log(p[f] / (1 - p[f]))
-        lp[f0] = -np.inf
-        lp[f1] = np.inf
-    return lp
-
-
-def sigmoid(log_odds):
-    """SIGMOID: Inverse of the logit function.
-    This is a one-to-one mapping from log odds to probability.
-    i.e. it maps the real line to the interval (0,1).
-
-    p = sigmoid(log_odds)
-
-    :param log_odds: the inumpyut value
-
-    :return: sigmoid(inumpyut)
-    """
-    p = 1 / (1 + np.exp(-log_odds))
-    return p
-
-
 def compute_cllr(tar_llrs, nontar_llrs):
-    log2 = np.log(2)
-
-    tar_posterior = sigmoid(tar_llrs)
-    non_posterior = sigmoid(-nontar_llrs)
-    if any(tar_posterior == 0) or any(non_posterior == 0):
-        return np.inf
-
-    c1 = (-np.log(tar_posterior)).mean() / log2
-    c2 = (-np.log(non_posterior)).mean() / log2
-    c = (c1 + c2) / 2
-    return c
+    print("Please use eval_biometric_cllr.compute_cllr")
+    return np.nan
 
 def ASVspoof2019_evaluate(bonafide_cm_scores, bonafide_cm_file_names,
                           spoof_cm_scores, spoof_cm_file_names, verbose=False,

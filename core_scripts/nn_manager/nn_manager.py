@@ -31,6 +31,190 @@ __copyright__ = "Copyright 2021, Xin Wang"
 
 #############################################################
 
+def f_run_one_epoch_sb(args,
+                       pt_model, loss_wrapper, \
+                       device, monitor,  \
+                       data_loader, epoch_idx, optimizer = None, \
+                       target_norm_method = None, 
+                       data_set_wrapper = None):
+    """
+    f_run_one_epoch_sb is based on f_run_one_epoch_sb but tailored for
+    speechbrain dataloader
+    """
+    # timer
+    start_time = time.time()
+        
+    # loop over samples
+    for data_idx, batch in enumerate(data_loader):
+
+        #############
+        # prepare
+        #############
+        # idx_orig is the original idx in the dataset
+        # which can be different from data_idx when shuffle = True
+        #idx_orig = idx_orig.numpy()[0]
+        #data_seq_info = data_info[0]
+
+        # get the data information
+        data_info = batch.seq_info
+        # get the data idx
+        idx_orig = batch.orig_id
+        
+        
+        # send data to device
+        if optimizer is not None:
+            if args.size_accumulate_grad > 1:
+                # if accumulate-gradient is on, only zero out grad here 
+                if data_idx % args.size_accumulate_grad == 0:
+                    optimizer.zero_grad()
+            else:
+                # zero grad is gradient accumulation is not used
+                optimizer.zero_grad()
+
+        ############
+        # compute output
+        ############
+        # put data to device
+        batch = batch.to(device, nii_dconf.d_dtype)
+
+        # compute
+        data_gen = pt_model(batch)
+        
+        #####################
+        # compute loss and do back propagate
+        #####################
+        
+        # Two cases
+        # 1. if loss is defined as pt_model.loss, then let the users do
+        #    normalization inside the pt_mode.loss
+        # 2. if loss_wrapper is defined as a class independent from model
+        #    there is no way to normalize the data inside the loss_wrapper
+        #    because the normalization weight is saved in pt_model
+
+        if hasattr(pt_model, 'loss'):
+            # case 1, pt_model.loss is available
+            loss_computed = pt_model.loss(data_gen, batch)
+        else:
+            loss_computed = loss_wrapper.compute(data_gen, batch)
+
+        loss_values = [0]
+        # To handle cases where there are multiple loss functions
+        # when loss_comptued is [[loss_1, loss_2, ...],[flag_1, flag_2,.]]
+        #   loss: sum of [loss_1, loss_2, ...], for backward()
+        #   loss_values: [loss_1.item(), loss_2.item() ..], for logging
+        #   loss_flags: [True/False, ...], for logging, 
+        #               whether loss_n is used for early stopping
+        # when loss_computed is loss
+        #   loss: loss
+        #   los_vals: [loss.item()]
+        #   loss_flags: [True]
+        loss, loss_values, loss_flags = nii_nn_tools.f_process_loss(
+            loss_computed)
+
+        # Back-propgation using the summed loss
+        if optimizer is not None and loss.requires_grad:
+
+            if args.size_accumulate_grad > 1:
+                # if gradient accumulation is on
+
+                # adjust loss based on the number of batches accumulated
+                loss = loss / args.size_accumulate_grad
+                loss.backward()
+
+                # do updating only after specified number of mini-batches
+                if (data_idx + 1) % args.size_accumulate_grad == 0:
+                    # apply gradient clip 
+                    if args.grad_clip_norm > 0:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            pt_model.parameters(), args.grad_clip_norm)
+                
+                    # update parameters
+                    optimizer.step()
+            else:
+                # else
+                # backward propagation
+                loss.backward()
+
+                # apply gradient clip 
+                if args.grad_clip_norm > 0:
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        pt_model.parameters(), args.grad_clip_norm)
+                
+                # update parameters
+                optimizer.step()
+            
+        # save the training process information to the monitor
+        end_time = time.time()
+        batchsize = len(data_info)
+        for idx, data_seq_info in enumerate(data_info):
+            # loss_value is supposed to be the average loss value
+            # over samples in the the batch, thus, just loss_value
+            # rather loss_value / batchsize
+            monitor.log_loss(loss_values, loss_flags, \
+                             (end_time-start_time) / batchsize, \
+                             data_seq_info, idx_orig.numpy()[idx], \
+                             epoch_idx)
+            # print infor for one sentence
+            if args.verbose == 1:
+                # here we use args.batch_size because len(data_info)
+                # may be < args.batch_size. 
+                monitor.print_error_for_batch(
+                    data_idx * args.batch_size + idx,\
+                    idx_orig.numpy()[idx], \
+                    epoch_idx)
+            # 
+        # start the timer for a new batch
+        start_time = time.time()
+        
+        
+        # Save intermediate model for every n mini-batches (optional).
+        # Note that if we re-start trainining with this intermediate model,
+        #  the data will start from the 1st sample, not the one where we stopped
+        if args.save_model_every_n_minibatches > 0 \
+           and optimizer is not None and data_idx > 0:
+            
+            # accumulated number of steps
+            tmp_idx = data_idx + epoch_idx * len(data_loader)
+            
+            if (tmp_idx+1) % args.save_model_every_n_minibatches == 0:
+                cp_names = nii_nn_manage_conf.CheckPointKey()
+                tmp_model_name = nii_nn_tools.f_save_epoch_name(
+                    args, epoch_idx, '_{:05d}'.format(tmp_idx+1))
+                # save
+                tmp_dic = {
+                    cp_names.state_dict : pt_model.state_dict(),
+                    cp_names.optimizer : optimizer.state_dict()
+                }
+                if not args.not_save_anything:
+                    torch.save(tmp_dic, tmp_model_name)
+        
+        # If debug mode is used, only run a specified number of mini-batches
+        if args.debug_batch_num > 0 and data_idx >= (args.debug_batch_num - 1):
+            nii_display.f_print("Debug mode is on. This epoch is finished")
+            break
+
+        # Save as option above, but we don't show the messages
+        if args.minibatch_num_train > 0 \
+           and data_idx >= (args.minibatch_num_train - 1) and optimizer:
+            # minibatch number for training
+            break
+        
+        if args.minibatch_num_val > 0 \
+           and data_idx >= (args.minibatch_num_val - 1) and optimizer is None:
+            # minibatch number for validation
+            break
+        
+        # other procedures
+        if data_set_wrapper and args.force_update_seq_length:
+            # update data length for sampler
+            # when using multi-thread (workers > 0), the information updated
+            # in each subthread will not be reflected here.
+            # we need to do this update manually
+            data_set_wrapper.update_seq_len_in_sampler_sub(data_info)
+
+    # loop done
+    return
+
 def f_run_one_epoch(args,
                     pt_model, loss_wrapper, \
                     device, monitor,  \
@@ -361,11 +545,16 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         # no way to call normtarget_f after pt_model is in DataParallel
         normtarget_f = pt_model.normalize_target
         pt_model = nn.DataParallel(pt_model)
-    else:
+    elif not args.no_cuda:
         nii_display.f_print("\nUse single GPU: %s\n" % \
                             (torch.cuda.get_device_name(device)))
         flag_multi_device = False
         normtarget_f = None
+    else:
+        nii_display.f_print("\nUse CPU: %s\n")
+        flag_multi_device = False
+        normtarget_f = None
+        
     pt_model.to(device, dtype=nii_dconf.d_dtype)
 
     # print the network
@@ -395,6 +584,16 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
         nii_nn_tools.f_load_pretrained_model_partially(
             pt_model, pt_model.g_pretrained_model_path, 
             pt_model.g_pretrained_model_prefix)
+        
+    ######################
+    ### Select the API
+    ######################
+    if hasattr(train_dataset_wrapper, 'db_type') \
+       and train_dataset_wrapper.db_type == 'speechbrain':
+        # if the dataloader is based on speechbrain
+        f_wrapper_one_epoch = f_run_one_epoch_sb
+    else:
+        f_wrapper_one_epoch = f_run_one_epoch
         
     ######################
     ### Start training
@@ -432,11 +631,14 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
             pt_model.g_epoch_idx = epoch_idx
             
         # run one epoch
-        f_run_one_epoch(args, pt_model, loss_wrapper, device, \
-                        monitor_trn, train_data_loader, \
-                        epoch_idx, optimizer, normtarget_f, \
-                        train_dataset_wrapper)
+        f_wrapper_one_epoch(
+            args, pt_model, loss_wrapper, device, \
+            monitor_trn, train_data_loader, \
+            epoch_idx, optimizer, normtarget_f, \
+            train_dataset_wrapper)
         time_trn = monitor_trn.get_time(epoch_idx)
+
+        # if a specified number of mini-batch is executed in each epoch
         if args.minibatch_num_train > 0:
             if hasattr(train_data_loader, 'get_datasize'):
                 # sampled evenly from multiple sub datasets
@@ -468,12 +670,14 @@ def f_train_wrapper(args, pt_model, loss_wrapper, device, \
                 pt_model.flag_validation = True
 
             with torch.no_grad():
-                f_run_one_epoch(args, pt_model, loss_wrapper, \
-                                device, \
-                                monitor_val, val_data_loader, \
-                                epoch_idx, None, normtarget_f, \
-                                val_dataset_wrapper)
+                f_wrapper_one_epoch(
+                    args, pt_model, loss_wrapper, \
+                    device, \
+                    monitor_val, val_data_loader, \
+                    epoch_idx, None, normtarget_f, \
+                    val_dataset_wrapper)
             time_val = monitor_val.get_time(epoch_idx)
+
             if args.minibatch_num_val > 0:
                 if hasattr(val_data_loader, 'get_datasize'):
                     # sampled evenly from multiple sub datasets
@@ -749,6 +953,194 @@ def f_inference_wrapper(args, pt_model, device,
                         data_gen = infer_func(data_in, data_info)
                     else:
                         data_gen = infer_func(data_in)
+            
+            # log time for debugging
+            start_time_save = time.time()
+            time_cost_inf = start_time_save - start_time_inf
+            # average time for each sequence when batchsize > 1
+            time_cost_inf = time_cost_inf / len(data_info)
+            
+            # write the generated data to file
+            if data_gen is None:
+                nii_display.f_print("No output saved: %s" % (str(data_info)),\
+                                    'warning')
+            else:
+                #output_buf.append(data_gen)
+                #filename_buf.append(data_info)
+                try:
+                    data_gen = pt_model.denormalize_output(data_gen)
+                    data_gen_np = data_gen.to("cpu").numpy()
+                except AttributeError:
+                    mes = "Output data is not torch.tensor. Please check "
+                    mes += "model.forward or model.inference"
+                    nii_display.f_die(mes)
+
+                # save output (in case batchsize > 1, )
+                for idx, seq_info in enumerate(data_info):
+                    #nii_display.f_print(seq_info)
+                    test_dataset_wrapper.putitem(data_gen_np[idx:idx+1],\
+                                                 args.output_dir, \
+                                                 args.output_filename_prefix, \
+                                                 seq_info)
+
+            # time to generate
+            start_time_load = time.time()
+            time_cost_save = (start_time_load - start_time_save)/len(data_info)
+            
+            # print information
+            time_cost = time_cost_load + time_cost_inf + time_cost_save
+            for idx, seq_info in enumerate(data_info):
+                if args.verbose == 2:
+                    print("{:s} {:f} {:f} {:f}".format(
+                        seq_info,time_cost_load, time_cost_inf, time_cost_save))
+                sample_account += 1
+                _ = nii_op_display_tk.print_gen_info(
+                    seq_info, time_cost, sample_account)
+                
+            # log time for debugging
+            total_accumulate += time_cost * len(data_info)
+            #
+
+        total_time = time.time() - total_start_time
+        nii_display.f_print("Inference time cost: {:f}s".format(total_time))
+        #nii_display.f_print("{:f}".format(total_accumulate))
+        
+        # done for
+    # done with
+    nii_display.f_print("Output data has been saved to %s" % (args.output_dir))
+    
+    # finish up if necessary
+    if hasattr(pt_model, "finish_up_inference"):
+        pt_model.finish_up_inference()
+
+    # done
+    return
+
+
+def f_inference_wrapper_sb(
+        args, pt_model, device, 
+        test_dataset_wrapper, checkpoint):
+    """ Wrapper for inference using speechbrain data loader
+    """
+
+    # prepare dataloader
+    test_data_loader = test_dataset_wrapper.get_loader()
+    test_seq_num = test_dataset_wrapper.get_seq_num()
+    test_dataset_wrapper.print_info()
+    
+    # cuda device
+    if torch.cuda.device_count() > 1 and args.multi_gpu_data_parallel:
+        nii_display.f_print(
+            "DataParallel for inference is not implemented", 'warning')
+    nii_display.f_print("\nUse single GPU: %s\n" % \
+                        (torch.cuda.get_device_name(device)))
+
+    # print the network
+    pt_model.to(device, dtype=nii_dconf.d_dtype)
+    nii_nn_tools.f_model_show(pt_model)
+    
+    # load trained model parameters from checkpoint
+    nii_nn_tools.f_load_checkpoint_for_inference(checkpoint, pt_model)
+    
+    # decide the range of the data index to generate
+    range_genidx_start = args.inference_sample_start_index 
+    if args.inference_sample_end_index < 0:
+        range_genidx_end = test_seq_num
+    else:
+        range_genidx_end = args.inference_sample_end_index
+
+    if range_genidx_start >= range_genidx_end:
+        mes = "--inference-sample-start-index should be smaller than"
+        mes += " --inference-sample-end-index"
+        nii_display.f_die(mes)
+        
+    # print information
+    nii_display.f_print("Start inference (generation):", 'highlight')
+    nii_display.f_print("Generate minibatch indexed within [{:d},{:d})".format(
+        range_genidx_start, range_genidx_end))
+
+    # if a list of file to be processed is provided
+    inf_datalist_path = args.inference_data_list
+    if len(inf_datalist_path):
+        inf_datalist = nii_list_tk.read_list_from_text(inf_datalist_path)
+        mes = "And only data in {:s} is processed".format(inf_datalist_path)
+        nii_display.f_print(mes)
+    else:
+        inf_datalist = None
+
+
+    # other information
+    if hasattr(args, 'trunc_input_length_for_inference') and \
+       args.trunc_input_length_for_inference > 0:
+        mes = "Generation in segment-by-segment mode (truncation length "
+        mes += "{:d})".format(args.trunc_input_length_for_inference)
+        nii_display.f_print(mes)
+
+    # output buffer, filename buffer
+    #output_buf = []
+    #filename_buf = []
+    
+    # start generation
+    pt_model.eval() 
+    total_start_time = time.time()
+    total_accumulate = 0
+    sample_account = 0
+    with torch.no_grad():
+        
+        start_time_load = time.time()
+        
+        # run generation
+        for data_idx, batch in enumerate(test_data_loader):
+
+            # get the data information
+            data_info = batch.seq_info
+            # get the data idx
+            idx_orig = batch.orig_id
+            # put to device
+            batch = batch.to(device, nii_dconf.d_dtype)
+
+            # decide whether to process this data sample or not
+            if data_idx < range_genidx_start:
+                # not in range
+                nii_display.f_print("skip {:s}".format(str(data_info)))
+                continue
+            elif data_idx >= range_genidx_end:
+                # not in range
+                nii_display.f_print("stopped by --inference-sample-end-index")
+                break
+            else:
+                # and if the data is in the list
+                if inf_datalist is not None:
+                    
+                    # to be completed. this only works for batchsize=1
+                    seqname = nii_seqinfo.SeqInfo()
+                    seqname.parse_from_str(data_info[0])
+                    if seqname.seq_tag() in inf_datalist:
+                        pass
+                    else:
+                        nii_display.f_print("skip {:s}".format(str(data_info)))
+                        continue
+                else:
+                    pass
+            
+            
+            # load down time for debugging
+            start_time_inf = time.time()
+            time_cost_load = (start_time_inf - start_time_load)/len(data_info)
+            
+            # in case the model defines inference function explicitly
+            if hasattr(pt_model, "inference"):
+                infer_func = pt_model.inference
+            else:
+                infer_func = pt_model.forward
+            
+            if hasattr(args, 'trunc_input_length_for_inference') and \
+               args.trunc_input_length_for_inference > 0:
+                print("Not implemented")
+                sys.exit(1)
+            else:
+                # normal case: generate the output sequence as a whole
+                data_gen = infer_func(batch)
             
             # log time for debugging
             start_time_save = time.time()

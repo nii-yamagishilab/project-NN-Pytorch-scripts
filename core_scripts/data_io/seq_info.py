@@ -45,7 +45,7 @@ class SeqInfo():
         # from which time step does this data sequence starts 
         self.start_pos = int(start_pos)
         # other information
-        self.info_id = info_id
+        self.info_id = int(info_id)
 
         # add one slot for updating sequence information, 
         # this is only used for sampler shuffling

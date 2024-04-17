@@ -35,7 +35,9 @@ def listdir_with_ext_flat(file_dir, file_ext=None):
             file_list = [os.path.splitext(x)[0] for x in os.listdir(file_dir) \
                         if not x.startswith('.')]
         else:
-            file_list = [os.path.splitext(x)[0] for x in os.listdir(file_dir) \
+            #file_list = [os.path.splitext(x)[0] for x in os.listdir(file_dir) \
+            #             if not x.startswith('.') and x.endswith(file_ext)]
+            file_list = [x.replace(file_ext, '') for x in os.listdir(file_dir) \
                          if not x.startswith('.') and x.endswith(file_ext)]
         return file_list
     except OSError:
@@ -63,7 +65,7 @@ def listdir_with_ext_recur(file_dir, file_ext=None, recursive=True):
         # concatenate lists may be slow for large data set
         # change it in the future
         if file_ext:
-            file_list += [os.path.splitext(os.path.join(tmp_path, x))[0] \
+            file_list += [os.path.join(tmp_path, x).replace(file_ext, '') \
                           for x in files if x.endswith(file_ext)]    
         else:
             file_list += [os.path.splitext(os.path.join(tmp_path, x))[0] \
