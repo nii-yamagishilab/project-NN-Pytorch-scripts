@@ -206,6 +206,18 @@ def flacReadAsFloat(wavFileIn):
         exit(1)
     return sr, x
 
+def flacWriteFromFloat(wavFileData, savepath, sr=16000):
+    """flacWriteFromFloat(wavFileData, savepath):
+    """
+    if 'soundfile' in sys.modules:
+        soundfile.write(savepath, wavFileData, sr)
+    else:
+        print("soundfile is not installed.")
+        print("Due to practical reason, soundfile is not included in env.yml")
+        print("To install soundfile with support to flac, try:")
+        print(" conda install libsndfile=1.0.31 -c conda-forge")
+        print(" conda install pysoundfile -c conda-forge")
+    return
 
 def readWaveLength(wavFileIn):
     """ length = readWaveLength(wavFileIn)

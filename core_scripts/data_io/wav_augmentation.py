@@ -411,6 +411,11 @@ def wav_codec(input_dat, wav_samp_rate):
     """ A wrapper to use pyDub and ffmpeg
     
     This requires pyDub and ffmpeg installed. 
+
+    input: input_dat, np.array (N, 1)
+    input: wav_samp_rate, int, sampling rate
+    
+    output: augmented_data, np.array (N, 1)
     """
     tmpdir = '/tmp/xwtemp'
     if not os.path.isdir(tmpdir):
