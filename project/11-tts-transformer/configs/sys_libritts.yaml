@@ -1,0 +1,152 @@
+# ################################
+# Model: Transformer LibriTTS
+# Authors: Xin Wang
+# ################################
+
+# Basic parameters
+seed: 1986
+__set_seed: !apply:torch.manual_seed [!ref <seed>]
+output_folder: !ref results/libri_tts_<seed>
+save_folder: !ref <output_folder>/save
+config_folder: configs
+# path to text log files
+train_log: !ref <output_folder>/train_log.txt
+eval_log: !ref <output_folder>/eval_log.txt
+# tensorboard
+train_tb: !ref <output_folder>/tensorboard
+# dump analysis features in analysis loop of main.py
+analysis_dump_folder: !ref <output_folder>/analysis
+analysis_dump_eval_folder: !ref <output_folder>/analysis_eval
+
+# Data files
+data_folder: /gs/bs/tgh-25IAC/ud03523/WORK/project-tts/transformer/sbproject/DATA/libritts
+path_train_csv: !ref <data_folder>/train-clean-100_dur.csv
+path_dev_csv: !ref <data_folder>/dev-clean_dur.csv
+path_eval_csv: !ref <data_folder>/dev-clean_dur.csv
+
+path_audio_root: /gs/bs/tgh-25IAC/ud03523/DATA/LibriTTS/LibriTTS
+path_text_root:  !ref <path_audio_root>
+
+path_audio_save: !ref <save_folder>/generated
+txt_ext: .normalized.txt
+
+#
+split_ratio: [90, 10]
+skip_prep: False
+ckpt_interval_minutes: 15 # save checkpoint every N min
+
+# pick checkpoint by loss?
+#pick_checkpoint: loss
+# how many files to dump during validation (for debugging)
+valid_dump_num: 5
+# start dump after how many epochs?
+valid_dump_after_epoch: 200
+# fine-tune stop-token 
+stoptoken_epochs: 50
+
+# Training parameters
+number_of_epochs: 1000
+batch_size: 16
+lr: 0.0001
+base_lr: 0.0001
+sample_rate: 24000
+tar_sample_rate: 24000
+shuffle: True
+random_chunk: True
+max_frame_len: 1024
+
+
+# STFT configuration
+spec_config:
+    n_fft: 2048
+    n_spec: 1025
+    frame_length: 1200
+    frame_shift: 600
+    preemphasis: 0.97
+    n_mels: 80
+    ref_db: 20
+    max_db: 100
+    save_path: ../tmp_feat_24k
+
+# Data loading options
+num_workers: 4
+
+# Dynamic Batching parameters
+max_batch_length: 320
+num_buckets: 10
+batch_ordering: random
+
+dynamic_batch_sampler_train:
+   max_batch_length: !ref <max_batch_length>
+   num_buckets: !ref <num_buckets>
+   shuffle: !ref <shuffle>
+   batch_ordering: !ref <batch_ordering>
+
+dataloader_options:
+    #batch_size: !ref <batch_size>
+    #shuffle: !ref <shuffle>
+    num_workers: !ref <num_workers>
+    collate_fn: !name:tools.util_torch.PaddedBatch_customize    
+
+dataloader_dev_options:
+    batch_size: !ref <batch_size>
+    shuffle: False
+    num_workers: !ref <num_workers>
+    collate_fn: !name:tools.util_torch.PaddedBatch_customize
+
+dataloader_eval_options:
+    batch_size: 1
+    shuffle: False
+    num_workers: !ref <num_workers>
+    collate_fn: !name:tools.util_torch.PaddedBatch_customize
+
+# Functions
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+max_grad_norm: 1.0
+
+#lr_annealing: !new:speechbrain.nnet.schedulers.LinearScheduler
+#    initial_value: !ref <lr>
+#    final_value: !ref <base_lr>
+#    epoch_count: !ref <number_of_epochs>
+
+# Logging + checkpoints
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+eval_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <eval_log>
+
+train_tensorboard_logger: !new:speechbrain.utils.train_logger.TensorboardLogger
+    save_dir: !ref <train_tb>
+
+error_stats: !name:speechbrain.utils.metric_stats.MetricStats
+    metric: !name:speechbrain.nnet.losses.classification_error
+        reduction: batch
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+
+# model configuration
+model_config:
+    transformer_config:
+        num_symbol: 149
+        dummy_symbol: 0
+        max_length: !ref <max_frame_len>
+        emb_dim: 512
+        cond_dim: 512
+        out_dim: 80
+        spk_emb: !ref <model_config[spkemb_config][output_dim]>
+        dec_prenet_dp: 0.5
+    postnet_config:
+        input_dim: 80
+        output_dim: 1025
+    spkemb_config:
+        on: True
+        name: ecapa_tdnn
+        output_dim: 192
+        input_sr: !ref <sample_rate>
+        max_wav_dur: 10

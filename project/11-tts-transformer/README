@@ -1,0 +1,8 @@
+PROJECT in progress for TTS using Transformer.
+./submodules are adopted from ../../sandbox
+./tools are partially duplicated with ../../core_scripts
+
+This project is to be made independent -- only needs speechbrain
+
+For data IO, follow speechbrain style and prepare the csv files.
+Data will be loaded from path_audio_root and path_text_root from configs/*yaml

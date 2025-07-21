@@ -1,0 +1,135 @@
+# ################################
+# Model: Transformer ljspeech with speaker emb (for test)
+# Authors: Xin Wang
+# ################################
+
+# Basic parameters
+seed: 1986
+__set_seed: !apply:torch.manual_seed [!ref <seed>]
+output_folder: !ref results/<seed>
+save_folder: !ref <output_folder>/save
+config_folder: configs
+# path to text log files
+train_log: !ref <output_folder>/train_log.txt
+eval_log: !ref <output_folder>/eval_log.txt
+# tensorboard
+train_tb: !ref <output_folder>/tensorboard
+# dump analysis features in analysis loop of main.py
+analysis_dump_folder: !ref <output_folder>/analysis
+analysis_dump_eval_folder: !ref <output_folder>/analysis_eval
+
+# Data files
+data_folder: /gs/bs/tgh-25IAC/ud03523/WORK/project-tts/transformer/sbproject/DATA/ljspeech
+path_train_csv: !ref <data_folder>/train_sorted.csv
+path_dev_csv: !ref <data_folder>/dev.csv
+path_eval_csv: !ref <data_folder>/eval.csv
+
+path_audio_root: !ref <data_folder>/LJspeech/wavs
+path_text_root:  !ref <data_folder>/LJspeech/txt
+
+path_audio_save: !ref <save_folder>/generated
+
+#
+split_ratio: [90, 10]
+skip_prep: False
+ckpt_interval_minutes: 15 # save checkpoint every N min
+
+# pick checkpoint by loss?
+#pick_checkpoint: loss
+# how many files to dump during validation (for debugging)
+valid_dump_num: 1
+# start dump after how many epochs?
+valid_dump_after_epoch: 200
+# fine-tune stop-token 
+stoptoken_epochs: 50
+
+# Training parameters
+number_of_epochs: 1000
+batch_size: 32
+lr: 0.0001
+base_lr: 0.0001
+sample_rate: 22050
+tar_sample_rate: 22050
+shuffle: True
+random_chunk: True
+max_frame_len: 1024
+
+spec_config:
+    n_fft: 2048
+    n_spec: 1025
+    frame_length: 800
+    frame_shift: 200
+    preemphasis: 0.97
+    n_mels: 80
+    ref_db: 20
+    max_db: 100
+    save_path: ../tmp_feat
+
+# Data loading options
+num_workers: 4
+
+dataloader_options:
+    batch_size: !ref <batch_size>
+    shuffle: !ref <shuffle>
+    num_workers: !ref <num_workers>
+    collate_fn: !name:tools.util_torch.PaddedBatch_customize    
+
+dataloader_dev_options:
+    batch_size: !ref <batch_size>
+    shuffle: False
+    num_workers: !ref <num_workers>
+    collate_fn: !name:tools.util_torch.PaddedBatch_customize
+
+dataloader_eval_options:
+    batch_size: 1
+    shuffle: False
+    num_workers: !ref <num_workers>
+    collate_fn: !name:tools.util_torch.PaddedBatch_customize
+
+# Functions
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+max_grad_norm: 1.0
+
+#lr_annealing: !new:speechbrain.nnet.schedulers.LinearScheduler
+#    initial_value: !ref <lr>
+#    final_value: !ref <base_lr>
+#    epoch_count: !ref <number_of_epochs>
+
+# Logging + checkpoints
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+eval_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <eval_log>
+
+train_tensorboard_logger: !new:speechbrain.utils.train_logger.TensorboardLogger
+    save_dir: !ref <train_tb>
+
+error_stats: !name:speechbrain.utils.metric_stats.MetricStats
+    metric: !name:speechbrain.nnet.losses.classification_error
+        reduction: batch
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+
+# model configuration
+model_config:
+    transformer_config:
+        num_symbol: 149
+        dummy_symbol: 0
+        max_length: !ref <max_frame_len>
+        emb_dim: 512
+        cond_dim: 512
+        out_dim: 80
+        spk_emb: !ref <model_config[spkemb_config][output_dim]>
+    postnet_config:
+        input_dim: 80
+        output_dim: 1025
+    spkemb_config:
+        name: ecapa_tdnn
+        output_dim: 192
+        input_sr: !ref <tar_sample_rate>
