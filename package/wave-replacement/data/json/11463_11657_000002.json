@@ -1,0 +1,350 @@
+{
+    "segments": [
+        {
+            "start": 0.858,
+            "end": 13.129,
+            "text": " Your hands were like paws then, your face blue and bleak, but now I'm bewitched by your delicate cheek, and your little gloves fit as on any lady.",
+            "words": [
+                {
+                    "word": "Your",
+                    "start": 0.858,
+                    "end": 1.018,
+                    "score": 0.708
+                },
+                {
+                    "word": "hands",
+                    "start": 1.059,
+                    "end": 1.319,
+                    "score": 0.623
+                },
+                {
+                    "word": "were",
+                    "start": 1.359,
+                    "end": 1.5,
+                    "score": 0.896
+                },
+                {
+                    "word": "like",
+                    "start": 1.56,
+                    "end": 1.76,
+                    "score": 0.834
+                },
+                {
+                    "word": "paws",
+                    "start": 1.881,
+                    "end": 2.282,
+                    "score": 0.938
+                },
+                {
+                    "word": "then,",
+                    "start": 2.342,
+                    "end": 2.582,
+                    "score": 0.966
+                },
+                {
+                    "word": "your",
+                    "start": 2.622,
+                    "end": 3.284,
+                    "score": 0.912
+                },
+                {
+                    "word": "face",
+                    "start": 3.324,
+                    "end": 3.745,
+                    "score": 0.834
+                },
+                {
+                    "word": "blue",
+                    "start": 3.866,
+                    "end": 4.206,
+                    "score": 0.733
+                },
+                {
+                    "word": "and",
+                    "start": 4.327,
+                    "end": 4.407,
+                    "score": 0.719
+                },
+                {
+                    "word": "bleak,",
+                    "start": 4.447,
+                    "end": 4.988,
+                    "score": 0.802
+                },
+                {
+                    "word": "but",
+                    "start": 5.871,
+                    "end": 5.991,
+                    "score": 0.921
+                },
+                {
+                    "word": "now",
+                    "start": 6.051,
+                    "end": 6.232,
+                    "score": 0.995
+                },
+                {
+                    "word": "I'm",
+                    "start": 6.352,
+                    "end": 6.512,
+                    "score": 0.876
+                },
+                {
+                    "word": "bewitched",
+                    "start": 6.572,
+                    "end": 7.154,
+                    "score": 0.811
+                },
+                {
+                    "word": "by",
+                    "start": 7.234,
+                    "end": 7.395,
+                    "score": 0.99
+                },
+                {
+                    "word": "your",
+                    "start": 7.455,
+                    "end": 7.615,
+                    "score": 0.81
+                },
+                {
+                    "word": "delicate",
+                    "start": 7.655,
+                    "end": 8.277,
+                    "score": 0.77
+                },
+                {
+                    "word": "cheek,",
+                    "start": 8.377,
+                    "end": 8.798,
+                    "score": 0.855
+                },
+                {
+                    "word": "and",
+                    "start": 9.66,
+                    "end": 9.761,
+                    "score": 0.989
+                },
+                {
+                    "word": "your",
+                    "start": 9.821,
+                    "end": 10.001,
+                    "score": 0.75
+                },
+                {
+                    "word": "little",
+                    "start": 10.081,
+                    "end": 10.402,
+                    "score": 0.871
+                },
+                {
+                    "word": "gloves",
+                    "start": 10.502,
+                    "end": 10.903,
+                    "score": 0.858
+                },
+                {
+                    "word": "fit",
+                    "start": 11.104,
+                    "end": 11.385,
+                    "score": 0.947
+                },
+                {
+                    "word": "as",
+                    "start": 11.485,
+                    "end": 11.565,
+                    "score": 0.928
+                },
+                {
+                    "word": "on",
+                    "start": 11.705,
+                    "end": 11.786,
+                    "score": 0.804
+                },
+                {
+                    "word": "any",
+                    "start": 12.046,
+                    "end": 12.207,
+                    "score": 0.782
+                },
+                {
+                    "word": "lady.",
+                    "start": 12.307,
+                    "end": 13.129,
+                    "score": 0.925
+                }
+            ]
+        }
+    ],
+    "word_segments": [
+        {
+            "word": "Your",
+            "start": 0.858,
+            "end": 1.018,
+            "score": 0.708
+        },
+        {
+            "word": "hands",
+            "start": 1.059,
+            "end": 1.319,
+            "score": 0.623
+        },
+        {
+            "word": "were",
+            "start": 1.359,
+            "end": 1.5,
+            "score": 0.896
+        },
+        {
+            "word": "like",
+            "start": 1.56,
+            "end": 1.76,
+            "score": 0.834
+        },
+        {
+            "word": "paws",
+            "start": 1.881,
+            "end": 2.282,
+            "score": 0.938
+        },
+        {
+            "word": "then,",
+            "start": 2.342,
+            "end": 2.582,
+            "score": 0.966
+        },
+        {
+            "word": "your",
+            "start": 2.622,
+            "end": 3.284,
+            "score": 0.912
+        },
+        {
+            "word": "face",
+            "start": 3.324,
+            "end": 3.745,
+            "score": 0.834
+        },
+        {
+            "word": "blue",
+            "start": 3.866,
+            "end": 4.206,
+            "score": 0.733
+        },
+        {
+            "word": "and",
+            "start": 4.327,
+            "end": 4.407,
+            "score": 0.719
+        },
+        {
+            "word": "bleak,",
+            "start": 4.447,
+            "end": 4.988,
+            "score": 0.802
+        },
+        {
+            "word": "but",
+            "start": 5.871,
+            "end": 5.991,
+            "score": 0.921
+        },
+        {
+            "word": "now",
+            "start": 6.051,
+            "end": 6.232,
+            "score": 0.995
+        },
+        {
+            "word": "I'm",
+            "start": 6.352,
+            "end": 6.512,
+            "score": 0.876
+        },
+        {
+            "word": "bewitched",
+            "start": 6.572,
+            "end": 7.154,
+            "score": 0.811
+        },
+        {
+            "word": "by",
+            "start": 7.234,
+            "end": 7.395,
+            "score": 0.99
+        },
+        {
+            "word": "your",
+            "start": 7.455,
+            "end": 7.615,
+            "score": 0.81
+        },
+        {
+            "word": "delicate",
+            "start": 7.655,
+            "end": 8.277,
+            "score": 0.77
+        },
+        {
+            "word": "cheek,",
+            "start": 8.377,
+            "end": 8.798,
+            "score": 0.855
+        },
+        {
+            "word": "and",
+            "start": 9.66,
+            "end": 9.761,
+            "score": 0.989
+        },
+        {
+            "word": "your",
+            "start": 9.821,
+            "end": 10.001,
+            "score": 0.75
+        },
+        {
+            "word": "little",
+            "start": 10.081,
+            "end": 10.402,
+            "score": 0.871
+        },
+        {
+            "word": "gloves",
+            "start": 10.502,
+            "end": 10.903,
+            "score": 0.858
+        },
+        {
+            "word": "fit",
+            "start": 11.104,
+            "end": 11.385,
+            "score": 0.947
+        },
+        {
+            "word": "as",
+            "start": 11.485,
+            "end": 11.565,
+            "score": 0.928
+        },
+        {
+            "word": "on",
+            "start": 11.705,
+            "end": 11.786,
+            "score": 0.804
+        },
+        {
+            "word": "any",
+            "start": 12.046,
+            "end": 12.207,
+            "score": 0.782
+        },
+        {
+            "word": "lady.",
+            "start": 12.307,
+            "end": 13.129,
+            "score": 0.925
+        }
+    ],
+    "language": "en"
+}
