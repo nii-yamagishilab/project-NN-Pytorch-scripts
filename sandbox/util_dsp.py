@@ -24,7 +24,110 @@ import torch.nn.functional as torch_nn_func
 
 __author__ = "Xin Wang"
 __email__ = "wangxin@nii.ac.jp"
-__copyright__ = "Copyright 2020-2021, Xin Wang"
+__copyright__ = "Copyright 2020-2024, Xin Wang"
+
+######################
+### F0 utilities
+######################
+def quantize_f0(f0, f0_max=512.0, f0_min=32.0, f0_bins=128, f0_v=10.0):
+    """f0_quan = quantize_f0(f0, f0_max, f0_min, f0_bins, f0_v)
+    
+    input
+    -----
+      f0:      tensor, f0 input, any shape
+      f0_max:  float,  f0 max value allowed, f0>f0_max will be clampped
+      f0_min:  float,  f0 min value allowed, f0_v<f0<f0_min is clampped to 1
+      f0_bins: int,    number of f0 bins 
+      f0_v:    float,  min f0 value for voiced frames, f0<f0_v is unvoiced
+      
+    output
+    ------
+      f0_quan: tensor, torch.long, quantized F0, same shape as f0
+    """
+    # voiced frames
+    idx_voiced = f0 > f0_v
+    # unvoiced frames
+    idx_unvoiced = ~idx_voiced
+    
+    # quantization
+    # save one bin for uv
+    f0_quan = (f0 - f0_min) / (f0_max - f0_min) * (f0_bins - 2)
+    
+    # 
+    f0_quan = torch.clamp(f0_quan, 0, f0_bins - 2)
+    # set unvoiced frames to 0 
+    f0_quan[idx_unvoiced] = 0
+    # shift index by 1 so that voiced frames is in [1, f0_bins)
+    f0_quan[idx_voiced] += 1
+    # convert type
+    f0_quan = f0_quan.to(dtype=torch.long)
+    return f0_quan
+    
+def dequantize_f0(f0_quan, f0_max=512.0, f0_min=32.0, f0_bins=128):
+    """f0 = dequantize_f0(f0_quan, f0_max, f0_min, f0_bins)
+    
+    input
+    -----
+      f0_quan: tensor, torch.long, quantized F0, same shape as f0
+      f0_max:  float,  f0 max value allowed, f0>f0_max will be clampped
+      f0_min:  float,  f0 min value allowed, f0_v<f0<f0_min is clampped to 1
+      f0_bins: int,    number of f0 bins 
+      f0_v:    float,  min f0 value for voiced frames, f0<f0_v is unvoiced
+      
+    output
+    ------
+      f0:      tensor, f0 input, same shape as f0_quan
+
+    To do: 
+    """
+    # voiced frames
+    idx_voiced = f0_quan > 0
+    # unvoiced frames
+    idx_unvoiced = ~idx_voiced
+    
+    # shift 1 back, and recover
+    f0 = (f0_quan - 1) / (f0_bins - 2) * (f0_max - f0_min) + f0_min
+    f0[idx_unvoiced] = 0.0
+    
+    return f0
+
+
+def dequantize_f0_prob(f0_logits, f0_max=512.0, f0_min=32.0, f0_uv_prob_t=0.5):
+    """f0 = dequantize_f0(f0_prob, f0_max, f0_min, f0_bins, f0_v)
+    
+    input
+    -----
+      f0_logits: tensor, torch.float, logits before softmax and sigmoid
+                 f0_logits[..., 0] is the uv logits
+      f0_max:  float,  f0 max value allowed, f0>f0_max will be clampped
+      f0_min:  float,  f0 min value allowed, f0_v<f0<f0_min is clampped to 1
+      f0_uv_prob: float, probablity to decide voiced / unvoiced
+    output
+    ------
+      f0:      tensor, f0 input, same shape as f0_quan
+    """
+    # infer the the number of bins
+    f0_bins = f0_logits.shape[-1] - 1
+
+    # uv probability (batch, length)
+    f0_uv_prob = torch.sigmoid(f0_logits[..., 0])
+    # voiced frames
+    idx_voiced = f0_uv_prob > f0_uv_prob_t
+    # unvoiced frames
+    idx_unvoiced = ~idx_voiced
+    
+    # value of f0 in each bin
+    f0_prob = torch_nn_func.softmax(f0_logits[..., 1:], dim=-1)
+
+    f0_bin_val = torch.arange(0, f0_bins)
+    f0_bin_val = f0_bin_val / (f0_bins - 2) * (f0_max - f0_min) + f0_min
+    f0_bin_val = f0_bin_val.to(device=f0_prob.device, dtype=f0_prob.dtype)
+    f0_bin_val = f0_bin_val.unsqueeze(0).unsqueeze(0)
+    
+    f0_val = (f0_prob * f0_bin_val).sum(dim=-1)
+    f0_val[idx_unvoiced] = 0.0
+    
+    return f0_val.unsqueeze(-1)
 
 ######################
 ### WaveForm utilities

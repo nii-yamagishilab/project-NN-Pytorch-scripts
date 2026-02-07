@@ -1177,7 +1177,7 @@ class AdjustTemporalResoIO(torch_nn.Module):
                 self.dim_change.append(1)
                 self.reso_change.append(x // self.target_reso)
                 self.l_upsampler.append(
-                    nii_nn.UpSampleLayer(dim, x // self.target_reso))
+                    UpSampleLayer(dim, x // self.target_reso))
             elif x < self.target_reso:
                 # down sample
                 # for down-sample, we fold the multiple feature frames into one 
@@ -1652,6 +1652,46 @@ class DropoutForMC(torch_nn.Module):
     def forward(self, x):
         return torch_nn_func.dropout(x, self.p, training=self.flag)
         
+class MCDropFFResBlock(torch_nn.Module):
+    """MCDropFFResBlock 
+    Linear layer + LeakyReLU + MCDropout
+
+    MCDropFFResBlock(input_dim, out_dim, dropout_rate, dropout_flag)
+    
+    args
+    ----
+      input_dim:      int, input feature dimension
+      out_dim:        int, output feature dimension
+      dropout_rate:   float, dropout rate
+      dropout_flag:   bool, whether use dropout during training & inference
+    """
+    def __init__(self, input_dim, out_dim, dropout_rate, dropout_flag):
+        super(MCDropFFResBlock, self).__init__()
+        # dimension
+        self.in_dim = input_dim
+        self.out_dim = out_dim
+        # MC dropout rate
+        self.m_mcdp_rate = dropout_rate
+        self.m_mcdp_flag = dropout_flag
+        
+        self.m_block = torch_nn.Sequential(
+            torch_nn.Linear(self.in_dim, self.out_dim),
+            torch_nn.LeakyReLU(),
+            DropoutForMC(self.m_mcdp_rate,self.m_mcdp_flag))
+        return
+
+    def forward(self, x):
+        """ y = MCDropFFResBlock(x)
+        
+        input
+        -----
+          x: tensor, (batch, ..., input_dim)
+        
+        output
+        ------
+          y: tensor, (batch, ..., out_dim)
+        """
+        return self.m_block(x)
 
 if __name__ == "__main__":
     print("Definition of block NN")

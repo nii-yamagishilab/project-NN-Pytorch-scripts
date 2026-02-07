@@ -1157,7 +1157,9 @@ def f_inference_wrapper_sb(
                 #filename_buf.append(data_info)
                 try:
                     data_gen = pt_model.denormalize_output(data_gen)
-                    data_gen_np = data_gen.to("cpu").numpy()
+                    #data_gen_np = data_gen.to("cpu").numpy()
+                    # converting to numpy should be done by putitem
+                    data_gen_np = data_gen.to("cpu")
                 except AttributeError:
                     mes = "Output data is not torch.tensor. Please check "
                     mes += "model.forward or model.inference"
