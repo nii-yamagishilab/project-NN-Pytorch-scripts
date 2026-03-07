@@ -17,7 +17,10 @@ import re
 import collections
 
 #from torch._six import container_abcs, string_classes, int_classes
-from torch._six import string_classes
+try:
+    from torch._six import string_classes
+except ModuleNotFoundError:
+    string_classes = str
 
 """
 The primary motivation is to handle batch of data with varied length.
