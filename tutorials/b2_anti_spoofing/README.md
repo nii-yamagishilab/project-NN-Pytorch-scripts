@@ -14,6 +14,6 @@ Jun Jee Wong, Hye jin Shim, Hemlata Tak, Xin Wang, Advances in audio anti-spoofi
 | chapter 2  Graph attention network CM | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19amdsNeLZ0O6Ch-jDuIm9Z4pXeO_rF40?usp=sharing) Please check Second session
 | [chapter_a0_EER](./chapter_a0_EER.ipynb) | Detailed tutorial on equal error rate (EER)
 | [chapter_a1_stats_test](./chapter_a1_stats_test.ipynb) |  Detailed tutorial on statistical analysis on EER
-
+| [chapter_a3_EER_and_calibration](./chapter_a3_EER_and_calibration.ipynb) |  Another demonstration notebook on EER, score calibration, and actDCF 
 ---
 That's all
