@@ -157,6 +157,8 @@ log_eval_*_score.txt has five columns (see Note 2):
 
 ## Note
 1. Blizzard data must be downloaded manually by each user, due to license. Thus, please do not try Softmax-energy/config_train_asvspoof2019_bc10 first. Please try other models first. After that, please check README in DATA/bc_release
+   * For internal server user. The symbolic link `DATA/bc_release/train_dev` may point to an old folder. Please use `/home/smg2/share/shared-data/Antideepfake-ood/bc_release/train_dev`
+   
 
 2. If GPU memory is insufficient, please reduce `--batch-size` in `01_train.sh`
 
