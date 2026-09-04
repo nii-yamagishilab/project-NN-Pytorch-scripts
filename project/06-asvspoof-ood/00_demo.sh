@@ -81,7 +81,7 @@ then
     wget -q --show-progress ${link_set}
     tar -xf ${set_name}
     mv ${temp_name}/* ./
-    rm -r ${set_name}
+    #rm -r ${set_name}
     rm -r ${temp_name}
 fi
 cd ..
